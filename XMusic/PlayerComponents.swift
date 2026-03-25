@@ -618,12 +618,3 @@ private struct NowPlayingSliderBar: View {
         return min(max((value - range.lowerBound) / span, 0), 1)
     }
 }
-#Preview {
-    let player = MusicPlayerViewModel()
-    player.currentTrack = DemoLibrary.featuredTrack
-    player.isNowPlayingPresented = true
-
-    return InlineNowPlayingPanel {
-    }
-    .environmentObject(player)
-}

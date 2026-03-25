@@ -26,6 +26,7 @@ private struct PersistedColor: Codable {
     let blue: Double
     let alpha: Double
 
+    @MainActor
     init(color: Color) {
         #if canImport(UIKit)
         let uiColor = UIColor(color)
@@ -63,6 +64,7 @@ private struct PersistedArtworkPalette: Codable {
     let symbol: String
     let label: String
 
+    @MainActor
     init(artwork: ArtworkPalette) {
         colors = artwork.colors.map(PersistedColor.init)
         glow = PersistedColor(color: artwork.glow)
@@ -91,6 +93,7 @@ private struct PersistedSearchSong: Codable {
     let qualities: [String]
     let legacyInfoJSON: String
 
+    @MainActor
     init(song: SearchSong) {
         id = song.id
         source = song.source.rawValue
@@ -131,6 +134,7 @@ private struct PersistedTrack: Codable {
     let searchSong: PersistedSearchSong?
     let sourceName: String?
 
+    @MainActor
     init(track: Track) {
         title = track.title
         artist = track.artist
@@ -190,6 +194,7 @@ final class MusicPlayerViewModel: ObservableObject {
     private let lastPlayedTrackStorageKey = "XMusic.LastPlayedTrack"
     private let cachedTracksStorageKey = "XMusic.CachedTracks"
     private var lastAutoAdvancedTrackID: UUID?
+    private var currentLoadToken = UUID()
     private var hasPreparedSystemPlayback = false
 
     #if os(iOS)
@@ -281,7 +286,9 @@ final class MusicPlayerViewModel: ObservableObject {
 
         if let searchSong = currentTrack.searchSong,
            currentTrack.audioURL == nil {
-            resolveSearchTrack(searchSong, trackID: currentTrack.id, autoPlay: true)
+            currentLoadToken = UUID()
+            let loadToken = currentLoadToken
+            resolveSearchTrack(searchSong, trackID: currentTrack.id, autoPlay: true, loadToken: loadToken)
             return
         }
 
@@ -443,12 +450,14 @@ final class MusicPlayerViewModel: ObservableObject {
         pendingResolveTask?.cancel()
         pendingResolveTask = nil
         lastAutoAdvancedTrackID = nil
+        currentLoadToken = UUID()
+        let loadToken = currentLoadToken
         currentTrack = track
         currentTime = 0
         duration = max(track.duration, 1)
         updateNowPlayingInfo()
         if let searchSong = track.searchSong, track.audioURL == nil {
-            resolveSearchTrack(searchSong, trackID: track.id, autoPlay: autoPlay)
+            resolveSearchTrack(searchSong, trackID: track.id, autoPlay: autoPlay, loadToken: loadToken)
             return
         }
 
@@ -484,7 +493,7 @@ final class MusicPlayerViewModel: ObservableObject {
         playNext()
     }
 
-    private func resolveSearchTrack(_ song: SearchSong, trackID: UUID, autoPlay: Bool) {
+    private func resolveSearchTrack(_ song: SearchSong, trackID: UUID, autoPlay: Bool, loadToken: UUID) {
         guard let resolverBox = searchPlaybackResolverBox else {
             player.pause()
             isPlaying = false
@@ -504,8 +513,10 @@ final class MusicPlayerViewModel: ObservableObject {
             guard self != nil else { return }
             do {
                 let resolution = try await resolverBox.resolve(song)
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     guard let self else { return }
+                    guard self.currentLoadToken == loadToken else { return }
                     guard let index = self.queue.firstIndex(where: { $0.id == trackID }) else { return }
                     var updatedTrack = self.queue[index]
                     updatedTrack.audioURL = resolution.playableURL
@@ -530,6 +541,7 @@ final class MusicPlayerViewModel: ObservableObject {
                 )
                 await MainActor.run {
                     guard let self else { return }
+                    guard self.currentLoadToken == loadToken else { return }
                     guard self.currentTrack?.id == trackID else { return }
                     self.player.pause()
                     self.isPlaying = false

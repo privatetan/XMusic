@@ -21,7 +21,7 @@ final class MusicPlaylistViewModel: ObservableObject {
 
     private let service = MusicPlaylistService()
     private var listTask: Task<Void, Never>?
-    private var detailTask: Task<Void, Never>?
+    private var detailTasks: [String: Task<Playlist, Error>] = [:]
     private var listToken = UUID()
 
     var availableSorts: [PlaylistSortOption] {
@@ -48,7 +48,7 @@ final class MusicPlaylistViewModel: ObservableObject {
             isLoadingList = false
             isLoadingDetail = false
             listTask?.cancel()
-            detailTask?.cancel()
+            cancelDetailTasks()
             return
         }
 
@@ -70,7 +70,7 @@ final class MusicPlaylistViewModel: ObservableObject {
         }
 
         listTask?.cancel()
-        detailTask?.cancel()
+        cancelDetailTasks()
         isLoadingList = true
         isLoadingDetail = false
         errorMessage = nil
@@ -119,28 +119,51 @@ final class MusicPlaylistViewModel: ObservableObject {
         guard let playlist = playlists.first(where: { $0.stableKey == key }) else { return }
         guard playlist.tracks.isEmpty else { return }
 
-        detailTask?.cancel()
-        isLoadingDetail = true
-
-        detailTask = Task { [weak self] in
-            guard let self else { return }
+        if let existingTask = detailTasks[key] {
             do {
-                let detail = try await service.fetchPlaylistDetail(for: playlist)
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    if let index = self.playlists.firstIndex(where: { $0.stableKey == key }) {
-                        self.playlists[index] = detail
-                    }
-                    self.isLoadingDetail = false
-                }
+                let detail = try await existingTask.value
+                applyLoadedDetail(detail, for: key)
             } catch {
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    self.isLoadingDetail = false
-                    self.errorMessage = error.localizedDescription
+                if !Task.isCancelled {
+                    errorMessage = error.localizedDescription
                 }
             }
+            return
         }
+
+        isLoadingDetail = true
+        errorMessage = nil
+
+        let task = Task<Playlist, Error>(priority: .userInitiated) { [service] in
+            try await service.fetchPlaylistDetail(for: playlist)
+        }
+
+        detailTasks[key] = task
+
+        defer {
+            detailTasks[key] = nil
+            isLoadingDetail = !detailTasks.isEmpty
+        }
+
+        do {
+            let detail = try await task.value
+            applyLoadedDetail(detail, for: key)
+        } catch {
+            if !Task.isCancelled {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func applyLoadedDetail(_ detail: Playlist, for key: String) {
+        if let index = playlists.firstIndex(where: { $0.stableKey == key }) {
+            playlists[index] = detail
+        }
+    }
+
+    private func cancelDetailTasks() {
+        detailTasks.values.forEach { $0.cancel() }
+        detailTasks.removeAll()
     }
 }
 

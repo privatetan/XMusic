@@ -20,10 +20,11 @@ struct TrackStack: View {
                     TrackRow(
                         track: track,
                         index: index + 1,
-                        queue: queue,
                         isCurrent: currentTrackID == track.id,
                         isPlaying: isPlaying
-                    )
+                    ) {
+                        player.play(track, from: queue)
+                    }
                 }
             }
         }
@@ -232,17 +233,14 @@ struct AppBackground: View {
 }
 
 private struct TrackRow: View {
-    @EnvironmentObject private var player: MusicPlayerViewModel
     let track: Track
     let index: Int
-    let queue: [Track]
     let isCurrent: Bool
     let isPlaying: Bool
+    let action: () -> Void
 
     var body: some View {
-        return Button {
-            player.play(track, from: queue)
-        } label: {
+        return Button(action: action) {
             HStack(spacing: 14) {
                 Text(index.formatted())
                     .font(.subheadline.weight(.semibold))
@@ -266,7 +264,7 @@ private struct TrackRow: View {
 
                 Spacer(minLength: 12)
 
-                Image(systemName: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "play.circle.fill")
+                Image(systemName: isCurrent && isPlaying ? "speaker.wave.2.fill" : "play.circle.fill")
                     .font(.title3)
                     .foregroundStyle(isCurrent ? Color(red: 1.00, green: 0.43, blue: 0.42) : Color.white.opacity(0.86))
             }
