@@ -2,23 +2,32 @@ import SwiftUI
 
 struct ListenNowView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
+    @EnvironmentObject private var library: MusicLibraryViewModel
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 28) {
-                PageHeader(title: "现在听", subtitle: "为你挑了更顺耳的一组连播")
+            VStack(alignment: .leading, spacing: 24) {
+                PageHeader(
+                    title: "现在听",
+                    subtitle: player.currentTrack == nil
+                        ? "只显示你正在播放和已经收进来的歌曲"
+                        : "围绕当前播放和你的资料库继续听"
+                )
 
-                HeroFeatureCard(track: DemoLibrary.featuredTrack)
-
-                ForEach(DemoLibrary.listenNowShelves) { shelf in
-                    ShelfSection(shelf: shelf)
+                if let currentTrack = player.currentTrack {
+                    ListenNowCurrentTrackCard(track: currentTrack)
                 }
 
-                TrackStack(
-                    title: "快速选择",
-                    subtitle: "直接播放，不需要想太多",
-                    tracks: DemoLibrary.allTracks
-                )
+                if library.savedTracks.isEmpty {
+                    ListenNowEmptyCard()
+                } else {
+                    TrackStack(
+                        title: "资料库里的歌",
+                        subtitle: "共 \(library.savedTracks.count) 首，按加入时间倒序排列",
+                        tracks: library.savedTracks,
+                        queueOverride: library.savedTracks
+                    )
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 24)
@@ -27,44 +36,41 @@ struct ListenNowView: View {
     }
 }
 
-private struct HeroFeatureCard: View {
+private struct ListenNowCurrentTrackCard: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let track: Track
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .top, spacing: isCompactLayout ? 14 : 18) {
-                ArtworkView(track: track, cornerRadius: 30, iconSize: 34)
-                    .frame(width: artworkSize, height: artworkSize)
+        VStack(alignment: .leading, spacing: 18) {
+            Text("当前播放")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.62))
+                .textCase(.uppercase)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("本周主打")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.62))
-                        .textCase(.uppercase)
+            HStack(alignment: .center, spacing: 16) {
+                ArtworkView(track: track, cornerRadius: 28, iconSize: 30)
+                    .frame(width: 118, height: 118)
 
+                VStack(alignment: .leading, spacing: 10) {
                     Text(track.title)
-                        .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                        .lineLimit(isCompactLayout ? 3 : 2)
-                        .minimumScaleFactor(0.84)
+                        .lineLimit(2)
 
                     Text(track.artist)
-                        .font((isCompactLayout ? Font.headline : .title3).weight(.medium))
+                        .font(.headline)
                         .foregroundStyle(Color.white.opacity(0.74))
                         .lineLimit(1)
 
-                    Text(track.blurb)
-                        .font(isCompactLayout ? .subheadline : .body)
-                        .foregroundStyle(Color.white.opacity(0.78))
-                        .lineLimit(isCompactLayout ? 3 : nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(track.album)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.56))
+                        .lineLimit(1)
 
                     Button {
-                        player.play(track, from: DemoLibrary.allTracks)
+                        player.isNowPlayingPresented = true
                     } label: {
-                        Label("播放专辑", systemImage: "play.fill")
+                        Label("打开播放页", systemImage: "play.fill")
                             .font(.headline)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
@@ -76,10 +82,10 @@ private struct HeroFeatureCard: View {
                 .layoutPriority(1)
             }
         }
-        .padding(isCompactLayout ? 18 : 22)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 34, style: .continuous)
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: track.artwork.colors.map { $0.opacity(0.95) } + [Color.black.opacity(0.88)],
@@ -89,76 +95,30 @@ private struct HeroFeatureCard: View {
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 34, style: .continuous)
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
-        .shadow(color: track.artwork.glow.opacity(0.24), radius: 40, x: 0, y: 22)
-    }
-
-    private var isCompactLayout: Bool {
-        horizontalSizeClass == .compact
-    }
-
-    private var artworkSize: CGFloat {
-        isCompactLayout ? 136 : 180
-    }
-
-    private var titleFontSize: CGFloat {
-        isCompactLayout ? 24 : 30
     }
 }
 
-private struct ShelfSection: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    let shelf: Shelf
-
+private struct ListenNowEmptyCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionHeading(title: shelf.title, subtitle: shelf.subtitle)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("还没有可继续播放的歌曲")
+                .font(.headline)
+                .foregroundStyle(.white)
 
-            GeometryReader { geometry in
-                let cardWidth = min(max(geometry.size.width * 0.44, 144), 176)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 18) {
-                        ForEach(shelf.tracks) { track in
-                            AlbumCard(track: track, queue: shelf.tracks, width: cardWidth)
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                }
-            }
-            .frame(height: horizontalSizeClass == .compact ? 218 : 242)
+            Text("去搜索页找到想听的歌，加入资料库之后，这里和资料库页都会同步显示。")
+                .font(.subheadline)
+                .foregroundStyle(Color.white.opacity(0.68))
+                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-}
-
-private struct AlbumCard: View {
-    @EnvironmentObject private var player: MusicPlayerViewModel
-    let track: Track
-    let queue: [Track]
-    let width: CGFloat
-
-    var body: some View {
-        Button {
-            player.play(track, from: queue)
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                ArtworkView(track: track, cornerRadius: 26, iconSize: 26)
-                    .frame(width: width, height: width)
-
-                Text(track.title)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-
-                Text(track.artist)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.7))
-                    .lineLimit(1)
-            }
-            .frame(width: width, alignment: .leading)
-        }
-        .buttonStyle(.plain)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }

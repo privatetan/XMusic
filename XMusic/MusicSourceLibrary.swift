@@ -9,6 +9,11 @@ import Combine
 import CryptoKit
 import Foundation
 
+private enum MusicSourceLibraryStorageKey {
+    static let enableAutomaticSourceFallback = "XMusic.EnableAutomaticSourceFallback"
+    static let defaultPlaybackQuality = "XMusic.DefaultPlaybackQuality"
+}
+
 private struct CachedMusicURLResolution {
     let url: URL
     let createdAt: Date
@@ -27,7 +32,22 @@ final class MusicSourceLibrary: ObservableObject {
     @Published private(set) var sources: [ImportedMusicSource] = []
     @Published var activeSourceID: String?
     @Published private(set) var latestPlaybackDebugInfo: PlaybackDebugInfo?
-    @Published var enableAutomaticSourceFallback = false
+    @Published var enableAutomaticSourceFallback = false {
+        didSet {
+            UserDefaults.standard.set(
+                enableAutomaticSourceFallback,
+                forKey: MusicSourceLibraryStorageKey.enableAutomaticSourceFallback
+            )
+        }
+    }
+    @Published var defaultPlaybackQuality: PlaybackQualityPreference = .hiresLossless {
+        didSet {
+            UserDefaults.standard.set(
+                defaultPlaybackQuality.rawValue,
+                forKey: MusicSourceLibraryStorageKey.defaultPlaybackQuality
+            )
+        }
+    }
     @Published private(set) var mediaCacheSummary: MediaCacheSummary = .empty
 
     private let storageURL: URL
@@ -58,11 +78,26 @@ final class MusicSourceLibrary: ObservableObject {
 
         load()
         loadMediaCacheIndex()
+        enableAutomaticSourceFallback = UserDefaults.standard.bool(
+            forKey: MusicSourceLibraryStorageKey.enableAutomaticSourceFallback
+        )
+        if let rawValue = UserDefaults.standard.string(forKey: MusicSourceLibraryStorageKey.defaultPlaybackQuality),
+           let quality = PlaybackQualityPreference(rawValue: rawValue) {
+            defaultPlaybackQuality = quality
+        }
     }
 
     var activeSource: ImportedMusicSource? {
         guard let activeSourceID else { return nil }
         return sources.first { $0.id == activeSourceID }
+    }
+
+    func preferredPlaybackQuality(for song: SearchSong) -> String {
+        preferredQuality(
+            requested: defaultPlaybackQuality.rawValue,
+            available: song.qualities,
+            platformSource: song.source.rawValue
+        )
     }
 
     func importText(_ script: String, fileName: String? = nil) throws {
@@ -210,9 +245,8 @@ final class MusicSourceLibrary: ObservableObject {
     func inspectPlaybackPayload(for song: SearchSong, with source: ImportedMusicSource) -> PlaybackDebugInfo {
         let sourceName = song.source.rawValue
         let requestedQuality = preferredQuality(
-            requested: song.preferredQuality,
+            requested: defaultPlaybackQuality.rawValue,
             available: song.qualities,
-            source: source,
             platformSource: sourceName
         )
         let legacyObject = try? normalizedLegacyObject(
@@ -260,9 +294,8 @@ final class MusicSourceLibrary: ObservableObject {
             """
         )
         let requestedQuality = preferredQuality(
-            requested: song.preferredQuality,
+            requested: defaultPlaybackQuality.rawValue,
             available: song.qualities,
-            source: source,
             platformSource: requestedSource
         )
         var attemptedSources: [String] = []
@@ -274,7 +307,6 @@ final class MusicSourceLibrary: ObservableObject {
             let directQualityCandidates = qualityCandidates(
                 requested: requestedQuality,
                 available: song.qualities,
-                source: source,
                 platformSource: requestedSource
             )
             for quality in directQualityCandidates {
@@ -402,7 +434,6 @@ final class MusicSourceLibrary: ObservableObject {
             let fallbackQualities = qualityCandidates(
                 requested: requestedQuality,
                 available: candidate.qualities,
-                source: source,
                 platformSource: resolvedSource
             )
 
@@ -721,58 +752,37 @@ final class MusicSourceLibrary: ObservableObject {
     private func preferredQuality(
         requested: String,
         available: [String],
-        source: ImportedMusicSource,
         platformSource: String
     ) -> String {
-        if shouldForceKugou128k(source: source, platformSource: platformSource),
+        if shouldForceKugou128k(platformSource: platformSource),
            available.contains("128k") {
             return "128k"
         }
-        let priority = ["flac24bit", "flac", "320k", "128k"]
-        let normalizedRequested = priority.contains(requested) ? requested : "128k"
-        guard !available.isEmpty else { return normalizedRequested }
-        if available.contains(normalizedRequested) { return normalizedRequested }
-
-        let startIndex = priority.firstIndex(of: normalizedRequested) ?? (priority.count - 1)
-        for quality in priority[startIndex...] where available.contains(quality) {
+        let orderedQualities = orderedQualityPreferences(requested: requested)
+        guard !available.isEmpty else { return orderedQualities.first ?? "128k" }
+        for quality in orderedQualities where available.contains(quality) {
             return quality
         }
-        for quality in priority where available.contains(quality) {
-            return quality
-        }
-        return available.first ?? normalizedRequested
+        return available.first ?? (orderedQualities.first ?? "128k")
     }
 
     private func qualityCandidates(
         requested: String,
         available: [String],
-        source: ImportedMusicSource,
         platformSource: String
     ) -> [String] {
-        if shouldForceKugou128k(source: source, platformSource: platformSource) {
+        if shouldForceKugou128k(platformSource: platformSource) {
             if available.contains("128k") {
                 return ["128k"]
             }
             let fallback = preferredQuality(
                 requested: requested,
                 available: available,
-                source: source,
                 platformSource: platformSource
             )
             return [fallback]
         }
-        let normalizedRequested = preferredQuality(
-            requested: requested,
-            available: available,
-            source: source,
-            platformSource: platformSource
-        )
-        let fallbackOrder = ["128k", "320k", "flac", "flac24bit"]
-        var candidates: [String] = [normalizedRequested]
-        if normalizedRequested != "128k" {
-            candidates.append("128k")
-        }
-        candidates.append(contentsOf: fallbackOrder)
+        let candidates = orderedQualityPreferences(requested: requested)
 
         var unique: [String] = []
         for quality in candidates where available.contains(quality) {
@@ -783,8 +793,17 @@ final class MusicSourceLibrary: ObservableObject {
         return unique
     }
 
-    private func shouldForceKugou128k(source: ImportedMusicSource, platformSource: String) -> Bool {
-        _ = source
+    private func orderedQualityPreferences(requested: String) -> [String] {
+        let priority = ["flac24bit", "flac", "320k", "128k"]
+        guard let requestedIndex = priority.firstIndex(of: requested) else {
+            return priority
+        }
+        let downward = Array(priority[requestedIndex...])
+        let upward = Array(priority[..<requestedIndex].reversed())
+        return downward + upward
+    }
+
+    private func shouldForceKugou128k(platformSource: String) -> Bool {
         return platformSource == "kg"
     }
 

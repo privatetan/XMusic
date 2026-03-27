@@ -43,6 +43,11 @@ private struct PlaylistDetailScrollOffsetKey: PreferenceKey {
     }
 }
 
+private struct CustomPlaylistEditorSession: Identifiable {
+    let id = UUID()
+    let playlistKey: String?
+}
+
 #if canImport(UIKit)
 private struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable {
     let backgroundColor: UIColor
@@ -104,116 +109,30 @@ private struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable 
 
 struct PlaylistView: View {
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
+    @EnvironmentObject private var library: MusicLibraryViewModel
+    @EnvironmentObject private var playlistModel: MusicPlaylistViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @StateObject private var playlistModel = MusicPlaylistViewModel()
-    @State private var isSourceManagerPresented = false
+    @State private var playlistEditorSession: CustomPlaylistEditorSession?
 
     var body: some View {
         PlaylistNavigationContainer {
             ScrollView(showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 28) {
-                    PageHeader(title: "歌单", subtitle: "先挑一张，再点进详情页慢慢看")
+                    PageHeader(
+                        title: "歌单",
+                        subtitle: "在线歌单和你自己整理的收藏，都放在这里"
+                    )
 
-                    SourceManagerEntryCard(
-                        sourceCount: sourceLibrary.sources.count,
-                        activeSourceName: sourceLibrary.activeSource?.name
-                    ) {
-                        isSourceManagerPresented = true
-                    }
+                    customPlaylistSection
 
-                    if sourceLibrary.activeSource == nil {
-                        playlistNoticeCard(
-                            title: "还没有激活音乐源",
-                            message: "歌单页会按当前激活音源支持的平台去加载真实歌单。先导入并激活一个音源，再回来浏览。"
-                        )
-                    } else if playlistModel.supportedSources.isEmpty {
-                        playlistNoticeCard(
-                            title: "当前音源不包含在线平台",
-                            message: "这个音源没有声明可用的歌单平台能力，所以暂时没法加载平台歌单。你可以切换到支持 kw / kg / tx / wy / mg 的音源。"
-                        )
-                    } else {
-                        VStack(alignment: .leading, spacing: 16) {
-                            SectionHeading(title: "数据来源", subtitle: "歌单列表会跟随当前激活音源支持的平台变化")
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(alignment: .top, spacing: 12) {
+                            SectionHeading(title: "在线歌单", subtitle: "跟随当前激活音源支持的平台实时加载")
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    ForEach(playlistModel.supportedSources) { source in
-                                        PlaylistFilterPill(
-                                            title: source.title,
-                                            isSelected: playlistModel.selectedSource == source
-                                        ) {
-                                            playlistModel.selectedSource = source
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 2)
-                            }
-
-                            if playlistModel.availableSorts.count > 1 {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 10) {
-                                        ForEach(playlistModel.availableSorts) { sort in
-                                            PlaylistFilterPill(
-                                                title: sort.title,
-                                                isSelected: playlistModel.selectedSort == sort
-                                            ) {
-                                                playlistModel.selectedSort = sort
-                                            }
-                                        }
-                                    }
-                                    .padding(.horizontal, 2)
-                                }
-                            }
+                            Spacer(minLength: 0)
                         }
 
-                        if let errorMessage = playlistModel.errorMessage {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
-                                .padding(14)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        }
-
-                        if playlistModel.isLoadingList && playlistModel.playlists.isEmpty {
-                            VStack(spacing: 16) {
-                                ProgressView()
-                                    .tint(.white)
-
-                                Text("正在从 \(playlistModel.selectedSource?.title ?? "当前平台") 加载歌单…")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.white.opacity(0.68))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 36)
-                        } else if playlistModel.playlists.isEmpty {
-                            playlistNoticeCard(
-                                title: "这一页没有歌单",
-                                message: "当前平台返回了空列表。你可以换一个支持的平台，或者重新导入别的音源试试。"
-                            )
-                        } else {
-                            LazyVGrid(columns: playlistColumns, spacing: 14) {
-                                ForEach(playlistModel.playlists) { playlist in
-                                    NavigationLink {
-                                        PlaylistDetailPage(
-                                            playlistModel: playlistModel,
-                                            playlistKey: playlist.stableKey
-                                        )
-                                    } label: {
-                                        PlaylistRowCard(
-                                            playlist: playlist,
-                                            isSelected: playlistModel.selectedPlaylistKey == playlist.stableKey
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                    .simultaneousGesture(
-                                        TapGesture().onEnded {
-                                            playlistModel.selectPlaylist(with: playlist.stableKey)
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        remotePlaylistSection
                     }
                 }
                 .padding(.horizontal, 20)
@@ -242,8 +161,18 @@ struct PlaylistView: View {
                 playlistModel.reload()
             }
         }
-        .sheet(isPresented: $isSourceManagerPresented) {
-            PlaylistSourceManagementSheet()
+        .sheet(item: $playlistEditorSession) { session in
+            PlaylistCustomEditorSheet(
+                draft: session.playlistKey.flatMap { key in
+                    playlistModel.draftForCustomPlaylist(
+                        playlistModel.playlists.first(where: { $0.stableKey == key }),
+                        libraryTracks: library.savedTracks
+                    )
+                } ?? playlistModel.draftForNewCustomPlaylist(libraryTracks: library.savedTracks),
+                isEditing: session.playlistKey != nil
+            ) { draft in
+                playlistModel.saveCustomPlaylist(draft)
+            }
         }
     }
 
@@ -268,6 +197,129 @@ struct PlaylistView: View {
         )
     }
 
+    @ViewBuilder
+    private var customPlaylistSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                SectionHeading(title: "自定义歌单", subtitle: "本地保存，随时编辑，也可以慢慢往里挑歌")
+
+                Spacer(minLength: 0)
+
+                Button {
+                    openCustomPlaylistEditor()
+                } label: {
+                    Label("新建歌单", systemImage: "plus")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 11)
+                        .background(Color.white, in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+
+            if playlistModel.customPlaylists.isEmpty {
+                PlaylistCustomEmptyCard {
+                    openCustomPlaylistEditor()
+                }
+            } else {
+                HStack(spacing: 10) {
+                    PlaylistFilterPill(
+                        title: "\(playlistModel.customPlaylists.count) 张已创建",
+                        isSelected: true
+                    ) {
+                    }
+                    .allowsHitTesting(false)
+
+                    Text("歌单会保存在这台设备上，重启后也还在。")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.58))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                playlistGrid(playlists: playlistModel.customPlaylists)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var remotePlaylistSection: some View {
+        if sourceLibrary.activeSource == nil {
+            playlistNoticeCard(
+                title: "还没有激活音乐源",
+                message: "在线歌单会按当前激活音源支持的平台去加载。先去设置页导入并激活一个音源，再回来浏览。"
+            )
+        } else if playlistModel.supportedSources.isEmpty {
+            playlistNoticeCard(
+                title: "当前音源不包含在线平台",
+                message: "这个音源没有声明可用的歌单平台能力，所以暂时没法加载平台歌单。你可以去设置页切换到支持 kw / kg / tx / wy / mg 的音源。"
+            )
+        } else {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeading(title: "数据来源", subtitle: "歌单列表会跟随当前激活音源支持的平台变化")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(playlistModel.supportedSources) { source in
+                            PlaylistFilterPill(
+                                title: source.title,
+                                isSelected: playlistModel.selectedSource == source
+                            ) {
+                                playlistModel.selectedSource = source
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+
+                if playlistModel.availableSorts.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(playlistModel.availableSorts) { sort in
+                                PlaylistFilterPill(
+                                    title: sort.title,
+                                    isSelected: playlistModel.selectedSort == sort
+                                ) {
+                                    playlistModel.selectedSort = sort
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 2)
+                    }
+                }
+
+                if let errorMessage = playlistModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                }
+
+                if playlistModel.isLoadingList && playlistModel.remotePlaylists.isEmpty {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .tint(.white)
+
+                        Text("正在从 \(playlistModel.selectedSource?.title ?? "当前平台") 加载歌单…")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.white.opacity(0.68))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 36)
+                } else if playlistModel.remotePlaylists.isEmpty {
+                    playlistNoticeCard(
+                        title: "这一页没有在线歌单",
+                        message: "当前平台返回了空列表。你可以换一个支持的平台，或者重新导入别的音源试试。"
+                    )
+                } else {
+                    playlistGrid(playlists: playlistModel.remotePlaylists)
+                }
+            }
+        }
+    }
+
     private func syncPlaylists() {
         playlistModel.configure(with: sourceLibrary.activeSource)
         if playlistModel.selectedSource != nil {
@@ -275,8 +327,344 @@ struct PlaylistView: View {
         }
     }
 
+    @ViewBuilder
+    private func playlistGrid(playlists: [Playlist]) -> some View {
+        LazyVGrid(columns: playlistColumns, spacing: 14) {
+            ForEach(playlists) { playlist in
+                NavigationLink {
+                    PlaylistDetailPage(
+                        playlistModel: playlistModel,
+                        playlistKey: playlist.stableKey
+                    )
+                } label: {
+                    PlaylistRowCard(
+                        playlist: playlist,
+                        isSelected: playlistModel.selectedPlaylistKey == playlist.stableKey
+                    )
+                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        playlistModel.selectPlaylist(with: playlist.stableKey)
+                    }
+                )
+            }
+        }
+    }
+
+    private func openCustomPlaylistEditor(_ playlist: Playlist? = nil) {
+        playlistEditorSession = CustomPlaylistEditorSession(playlistKey: playlist?.stableKey)
+    }
+
     private var playlistColumns: [GridItem] {
         [GridItem(.adaptive(minimum: horizontalSizeClass == .compact ? 268 : 300), spacing: 14)]
+    }
+}
+
+private struct PlaylistCustomEmptyCard: View {
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+
+                    Image(systemName: "music.note.list")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.92))
+                }
+                .frame(width: 68, height: 68)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("先建一张自己的歌单")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Text("名字、简介和选歌都可以自己定，保存后会一直留在这台设备上。")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.68))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button(action: action) {
+                Label("创建第一张歌单", systemImage: "plus.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+}
+
+struct PlaylistCustomEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let isEditing: Bool
+    let onSave: (CustomPlaylistDraft) -> Void
+    private let availableTracks: [Track]
+    @State private var playlistID: String?
+    @State private var title: String
+    @State private var summary: String
+    @State private var descriptionText: String
+    @State private var tagsText: String
+    @State private var selectedTrackKeys: Set<String>
+
+    init(
+        draft: CustomPlaylistDraft,
+        isEditing: Bool,
+        onSave: @escaping (CustomPlaylistDraft) -> Void
+    ) {
+        self.isEditing = isEditing
+        self.onSave = onSave
+        availableTracks = draft.availableTracks
+        _playlistID = State(initialValue: draft.playlistID)
+        _title = State(initialValue: draft.title)
+        _summary = State(initialValue: draft.summary)
+        _descriptionText = State(initialValue: draft.description)
+        _tagsText = State(initialValue: draft.tagsText)
+        _selectedTrackKeys = State(initialValue: draft.selectedTrackKeys)
+    }
+
+    var body: some View {
+        PlaylistNavigationContainer {
+            ZStack {
+                AppBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        PlaylistEditorSectionCard(
+                            title: "基本信息",
+                            subtitle: "名字是必填，简介和标签可以慢慢补。"
+                        ) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                editorTextField(
+                                    title: "歌单名称",
+                                    text: $title,
+                                    prompt: "比如：夜骑回家"
+                                )
+
+                                editorTextField(
+                                    title: "一句简介",
+                                    text: $summary,
+                                    prompt: "会显示在歌单卡片里"
+                                )
+
+                                editorTextField(
+                                    title: "标签",
+                                    text: $tagsText,
+                                    prompt: "用逗号分隔，例如：夜晚, 通勤, 电子"
+                                )
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("详细描述")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(Color.white.opacity(0.68))
+
+                                    TextEditor(text: $descriptionText)
+                                        .frame(minHeight: 120)
+                                        .padding(10)
+                                        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                        )
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                        }
+
+                        PlaylistEditorSectionCard(
+                            title: "挑歌",
+                            subtitle: availableTracks.isEmpty
+                                ? "先去搜索页把歌加入资料库，之后就能在这里挑了。"
+                                : selectedTrackKeys.isEmpty
+                                ? "从你已经收进资料库或歌单的歌曲里挑几首，空歌单也可以直接保存。"
+                                : "已选 \(selectedTrackKeys.count) 首，点一下就能取消。"
+                        ) {
+                            if availableTracks.isEmpty {
+                                Text("还没有可选歌曲。先去搜索结果里把歌加入资料库，或者从搜索结果直接新建歌单。")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.white.opacity(0.68))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(16)
+                                    .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            } else {
+                                VStack(spacing: 12) {
+                                    ForEach(availableTracks, id: \.storageKey) { track in
+                                        PlaylistCustomTrackPickerRow(
+                                            track: track,
+                                            isSelected: selectedTrackKeys.contains(track.storageKey)
+                                        ) {
+                                            toggleTrackSelection(track)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 28)
+                }
+            }
+            .navigationTitle(isEditing ? "编辑歌单" : "新建歌单")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isEditing ? "保存" : "创建") {
+                        onSave(
+                            CustomPlaylistDraft(
+                                playlistID: playlistID,
+                                title: title,
+                                summary: summary,
+                                description: descriptionText,
+                                tagsText: tagsText,
+                                selectedTrackKeys: selectedTrackKeys,
+                                availableTracks: availableTracks
+                            )
+                        )
+                        dismiss()
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .foregroundStyle(.white)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private func editorTextField(
+        title: String,
+        text: Binding<String>,
+        prompt: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.68))
+
+            TextField("", text: text, prompt: Text(prompt).foregroundColor(Color.white.opacity(0.28)))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func toggleTrackSelection(_ track: Track) {
+        if selectedTrackKeys.contains(track.storageKey) {
+            selectedTrackKeys.remove(track.storageKey)
+        } else {
+            selectedTrackKeys.insert(track.storageKey)
+        }
+    }
+}
+
+private struct PlaylistEditorSectionCard<Content: View>: View {
+    let title: String
+    let subtitle: String
+    let content: Content
+
+    init(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.62))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            content
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+}
+
+private struct PlaylistCustomTrackPickerRow: View {
+    let track: Track
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                ArtworkView(track: track, cornerRadius: 18, iconSize: 18)
+                    .frame(width: 58, height: 58)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(track.title)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Text("\(track.artist) · \(track.album)")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.62))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.26))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(Color.white.opacity(isSelected ? 0.16 : 0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -515,11 +903,14 @@ private struct CompactPlaylistMetricChip: View {
 private struct PlaylistDetailPage: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var player: MusicPlayerViewModel
+    @EnvironmentObject private var library: MusicLibraryViewModel
     @ObservedObject var playlistModel: MusicPlaylistViewModel
     let playlistKey: String
     @State private var showsNavigationTitle = false
     @State private var playbackTask: Task<Void, Never>?
     @State private var isStartingPlayback = false
+    @State private var isCustomPlaylistEditorPresented = false
+    @State private var isDeleteConfirmationPresented = false
 
     private let accentColor = Color(red: 0.89, green: 0.28, blue: 0.32)
 
@@ -663,15 +1054,29 @@ private struct PlaylistDetailPage: View {
             }
 
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    Task {
-                        await playlistModel.ensureDetailLoaded(for: playlistKey)
+                if !(currentPlaylist?.isCustomPlaylist ?? false) {
+                    Button {
+                        Task {
+                            await playlistModel.ensureDetailLoaded(for: playlistKey)
+                        }
+                    } label: {
+                        detailToolbarIcon("arrow.clockwise")
                     }
-                } label: {
-                    detailToolbarIcon("arrow.clockwise")
                 }
 
                 Menu {
+                    if let playlist = currentPlaylist, playlist.isCustomPlaylist {
+                        Button("编辑歌单", systemImage: "pencil") {
+                            isCustomPlaylistEditorPresented = true
+                        }
+
+                        Button("删除歌单", systemImage: "trash", role: .destructive) {
+                            isDeleteConfirmationPresented = true
+                        }
+
+                        Divider()
+                    }
+
                     Button("播放歌单", systemImage: "play.fill") {
                         startPlayback(shuffled: false)
                     }
@@ -694,6 +1099,24 @@ private struct PlaylistDetailPage: View {
             playbackTask?.cancel()
             playbackTask = nil
             isStartingPlayback = false
+        }
+        .sheet(isPresented: $isCustomPlaylistEditorPresented) {
+            PlaylistCustomEditorSheet(
+                draft: playlistModel.draftForCustomPlaylist(currentPlaylist, libraryTracks: library.savedTracks),
+                isEditing: true
+            ) { draft in
+                playlistModel.saveCustomPlaylist(draft)
+            }
+        }
+        .alert("删除这张歌单？", isPresented: $isDeleteConfirmationPresented, presenting: currentPlaylist) { playlist in
+            Button("删除", role: .destructive) {
+                playlistModel.deleteCustomPlaylist(playlist)
+                dismiss()
+            }
+            Button("取消", role: .cancel) {
+            }
+        } message: { playlist in
+            Text("“\(playlist.title)” 会从这台设备里移除，里面的选歌也会一起删除。")
         }
         .onPreferenceChange(PlaylistDetailScrollOffsetKey.self) { value in
             let nextValue = value < 120
@@ -1136,20 +1559,22 @@ private struct PlaylistCoverView: View {
     }
 }
 
-private struct PlaylistSourceManagementSheet: View {
-    @EnvironmentObject private var player: MusicPlayerViewModel
-    @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
-
-    var body: some View {
-        MusicSourceManagementView()
-            .environmentObject(player)
-            .environmentObject(sourceLibrary)
-    }
-}
-
 #Preview {
     let player = MusicPlayerViewModel()
-    player.currentTrack = DemoLibrary.featuredTrack
+    player.currentTrack = Track(
+        title: "Preview Track",
+        artist: "XMusic",
+        album: "Preview",
+        blurb: "用于播放器预览的占位内容。",
+        genre: "Preview",
+        duration: 240,
+        artwork: ArtworkPalette(
+            colors: [Color(red: 0.94, green: 0.38, blue: 0.34), Color(red: 0.18, green: 0.22, blue: 0.34)],
+            glow: Color(red: 1.00, green: 0.62, blue: 0.50),
+            symbol: "music.note",
+            label: "Preview"
+        )
+    )
     player.isNowPlayingPresented = true
 
     return InlineNowPlayingPanel {

@@ -76,6 +76,11 @@ final class MusicSearchViewModel: ObservableObject {
         }
     }
 
+    func clearSearchHistory() {
+        searchHistory = []
+        UserDefaults.standard.removeObject(forKey: historyKey)
+    }
+
     func reset() {
         results = []
         debugItems = []

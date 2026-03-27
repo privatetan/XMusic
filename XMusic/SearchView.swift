@@ -1,20 +1,32 @@
 import SwiftUI
 
+private struct SearchPlaylistDraftSession: Identifiable {
+    let id = UUID()
+    let draft: CustomPlaylistDraft
+}
+
 struct SearchView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @EnvironmentObject private var musicSearch: MusicSearchViewModel
+    @EnvironmentObject private var library: MusicLibraryViewModel
+    @EnvironmentObject private var playlistModel: MusicPlaylistViewModel
     @State private var resolvingSongID: String?
     @State private var playbackError: String?
+    @State private var actionMessage: String?
     @State private var isDebugPanelExpanded = true
     @State private var playbackDebugInfo: PlaybackDebugInfo?
+    @State private var playlistDraftSession: SearchPlaylistDraftSession?
     private let isPlaybackDebugCardVisible = false
     private let isSearchDebugPanelVisible = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
-                PageHeader(title: "搜索", subtitle: "内置多平台搜歌，播放时走当前激活音源解析地址")
+                PageHeader(
+                    title: "搜索",
+                    subtitle: "内置多平台搜歌，播放时走当前激活音源解析地址"
+                )
 
                 SearchField(text: $musicSearch.query)
                     .onChange(of: musicSearch.query) { _ in
@@ -107,6 +119,19 @@ struct SearchView: View {
                                 .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                         }
 
+                        if let actionMessage {
+                            Text(actionMessage)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(Color(red: 0.57, green: 0.90, blue: 0.72))
+                                .padding(14)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(red: 0.24, green: 0.55, blue: 0.38).opacity(0.14), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                        .stroke(Color(red: 0.57, green: 0.90, blue: 0.72).opacity(0.18), lineWidth: 1)
+                                )
+                        }
+
                         if let playbackDebugInfo, isPlaybackDebugCardVisible {
                             PlaybackDebugCard(info: playbackDebugInfo)
                         }
@@ -121,11 +146,23 @@ struct SearchView: View {
                         }
 
                         ForEach(musicSearch.results) { song in
+                            let track = Track.searchResultTrack(from: song)
                             OnlineSearchResultRow(
                                 song: song,
-                                isResolving: resolvingSongID == song.id
+                                isResolving: resolvingSongID == song.id,
+                                isInLibrary: library.contains(track),
+                                customPlaylists: playlistModel.customPlaylists,
+                                playlistContainsTrack: { playlist in
+                                    playlistModel.contains(track, in: playlist)
+                                }
                             ) {
                                 play(song)
+                            } onAddToLibrary: {
+                                addToLibrary(song)
+                            } onAddToCustomPlaylist: { playlist in
+                                addToCustomPlaylist(song, playlist: playlist)
+                            } onCreateCustomPlaylist: {
+                                openCustomPlaylistEditor(prefilling: song)
                             }
                         }
 
@@ -163,6 +200,15 @@ struct SearchView: View {
                 musicSearch.reload(allowedSources: searchableSources)
             }
         }
+        .sheet(item: $playlistDraftSession) { session in
+            PlaylistCustomEditorSheet(
+                draft: session.draft,
+                isEditing: false
+            ) { draft in
+                playlistModel.saveCustomPlaylist(draft)
+                actionMessage = "已创建自定义歌单。"
+            }
+        }
     }
 
     private var searchableSources: [SearchPlatformSource] {
@@ -195,6 +241,7 @@ struct SearchView: View {
 
     private func play(_ song: SearchSong) {
         playbackError = nil
+        actionMessage = nil
         playbackDebugInfo = nil
         resolvingSongID = song.id
 
@@ -207,7 +254,7 @@ struct SearchView: View {
 
             guard let activeSource = sourceLibrary.activeSource else {
                 await MainActor.run {
-                    playbackError = "请先导入并激活一个音乐源，再播放搜索结果。"
+                    playbackError = "请先去设置页导入并激活一个音乐源，再播放搜索结果。"
                 }
                 return
             }
@@ -251,6 +298,39 @@ struct SearchView: View {
                 }
             }
         }
+    }
+
+    private func addToLibrary(_ song: SearchSong) {
+        playbackError = nil
+        let track = Track.searchResultTrack(from: song)
+        guard !library.contains(track) else {
+            actionMessage = "这首歌已经在资料库里了。"
+            return
+        }
+
+        library.add(track)
+        actionMessage = "已加入资料库：\(song.title)"
+    }
+
+    private func addToCustomPlaylist(_ song: SearchSong, playlist: Playlist) {
+        let track = Track.searchResultTrack(from: song)
+        guard !playlistModel.contains(track, in: playlist) else {
+            actionMessage = "“\(song.title)” 已经在歌单 “\(playlist.title)” 里了。"
+            return
+        }
+
+        playlistModel.addTrack(track, to: playlist)
+        actionMessage = "已加入歌单：\(playlist.title)"
+    }
+
+    private func openCustomPlaylistEditor(prefilling song: SearchSong) {
+        let track = Track.searchResultTrack(from: song)
+        playlistDraftSession = SearchPlaylistDraftSession(
+            draft: playlistModel.draftForNewCustomPlaylist(
+                prefilledTracks: [track],
+                libraryTracks: library.savedTracks
+            )
+        )
     }
 }
 
@@ -388,7 +468,7 @@ private struct SearchStatusCard: View {
                 .foregroundStyle(.white)
 
             Text(activeSourceName == nil
-                 ? "你可以先直接搜索看看结果，真正点播放前再去“音乐源管理”激活一个源。"
+                 ? "你可以先直接搜索看看结果，真正点播放前再去设置页激活一个音源。"
                  : "当前激活音源可用于这些平台：\(supportedSources.joined(separator: " / "))")
                 .font(.subheadline)
                 .foregroundStyle(Color.white.opacity(0.68))
@@ -409,72 +489,123 @@ private struct SearchStatusCard: View {
 }
 
 private struct OnlineSearchResultRow: View {
+    @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     let song: SearchSong
     let isResolving: Bool
+    let isInLibrary: Bool
+    let customPlaylists: [Playlist]
+    let playlistContainsTrack: (Playlist) -> Bool
     let action: () -> Void
+    let onAddToLibrary: () -> Void
+    let onAddToCustomPlaylist: (Playlist) -> Void
+    let onCreateCustomPlaylist: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                AsyncImage(url: song.artworkURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    TrackArtworkFallbackView(
-                        platformTitle: song.source.title,
-                        trackTitle: song.title,
-                        cornerRadius: 18,
-                        tintColors: [Color(red: 0.20, green: 0.32, blue: 0.54), Color(red: 0.08, green: 0.11, blue: 0.20)]
-                    )
-                }
-                .frame(width: 62, height: 62)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        HStack(spacing: 12) {
+            Button(action: action) {
+                HStack(spacing: 14) {
+                    AsyncImage(url: song.artworkURL) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        TrackArtworkFallbackView(
+                            platformTitle: song.source.title,
+                            trackTitle: song.title,
+                            cornerRadius: 18,
+                            tintColors: [Color(red: 0.20, green: 0.32, blue: 0.54), Color(red: 0.08, green: 0.11, blue: 0.20)]
+                        )
+                    }
+                    .frame(width: 62, height: 62)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Text(song.title)
-                            .font(.headline)
-                            .foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Text(song.title)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+
+                            Text(song.source.title)
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.08), in: Capsule())
+                                .foregroundStyle(Color.white.opacity(0.72))
+                        }
+
+                        Text("\(song.artist) • \(song.album)")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.white.opacity(0.64))
                             .lineLimit(1)
 
-                        Text(song.source.title)
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white.opacity(0.08), in: Capsule())
-                            .foregroundStyle(Color.white.opacity(0.72))
+                        Text("\(song.durationText) · \(sourceLibrary.preferredPlaybackQuality(for: song))")
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.48))
                     }
 
-                    Text("\(song.artist) • \(song.album)")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.64))
-                        .lineLimit(1)
-
-                    Text("\(song.durationText) · \(song.preferredQuality)")
-                        .font(.caption)
-                        .foregroundStyle(Color.white.opacity(0.48))
+                    Spacer(minLength: 0)
                 }
-
-                Spacer(minLength: 12)
-
-                if isResolving {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Image(systemName: "play.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.9))
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .padding(12)
-            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
+            .buttonStyle(.plain)
+            .disabled(isResolving)
+
+            if isResolving {
+                ProgressView()
+                    .tint(.white)
+                    .frame(width: 34, height: 34)
+            } else {
+                Menu {
+                    Button(isInLibrary ? "已在资料库" : "加入资料库", systemImage: isInLibrary ? "checkmark" : "square.and.arrow.down") {
+                        onAddToLibrary()
+                    }
+                    .disabled(isInLibrary)
+
+                    Divider()
+
+                    if customPlaylists.isEmpty {
+                        Button("新建自定义歌单", systemImage: "plus.circle") {
+                            onCreateCustomPlaylist()
+                        }
+                    } else {
+                        Menu("加入自定义歌单", systemImage: "music.note.list") {
+                            ForEach(customPlaylists) { playlist in
+                                if playlistContainsTrack(playlist) {
+                                    Button("\(playlist.title) 已添加", systemImage: "checkmark") {
+                                    }
+                                    .disabled(true)
+                                } else {
+                                    Button(playlist.title, systemImage: "text.badge.plus") {
+                                        onAddToCustomPlaylist(playlist)
+                                    }
+                                }
+                            }
+
+                            Divider()
+
+                            Button("新建歌单", systemImage: "plus.circle") {
+                                onCreateCustomPlaylist()
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(12)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
@@ -590,6 +721,7 @@ private struct SearchDebugRow: View {
 
 private struct SearchField: View {
     @Binding var text: String
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         HStack(spacing: 12) {
@@ -611,15 +743,37 @@ private struct SearchField: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+        .frame(height: ChromeBarMetrics.height(for: horizontalSizeClass))
+        .background(searchFieldBackground())
+        .overlay(searchFieldOutline())
+    }
+
+    @ViewBuilder
+    private func searchFieldBackground() -> some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: shape)
+                .overlay {
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+        } else {
+            shape.fill(Color.white.opacity(0.08))
+        }
+    }
+
+    @ViewBuilder
+    private func searchFieldOutline() -> some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .stroke(Color.white.opacity(0.08), lineWidth: 1)
     }
 }
 

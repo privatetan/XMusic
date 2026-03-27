@@ -7,6 +7,67 @@
 
 import Foundation
 
+enum PlaybackQualityPreference: String, CaseIterable, Identifiable {
+    case hiresLossless = "flac24bit"
+    case lossless = "flac"
+    case high = "320k"
+    case standard = "128k"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .hiresLossless:
+            return "Hi-Res 无损"
+        case .lossless:
+            return "无损 FLAC"
+        case .high:
+            return "高品质 320k"
+        case .standard:
+            return "标准 128k"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .hiresLossless:
+            return "优先 24bit / Hi-Res，无可用时自动降级"
+        case .lossless:
+            return "优先 FLAC，无可用时自动降级"
+        case .high:
+            return "优先 320k，无可用时自动切到最近可用音质"
+        case .standard:
+            return "优先 128k，更省流量和缓存空间"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .hiresLossless:
+            return "Hi-Res"
+        case .lossless:
+            return "FLAC"
+        case .high:
+            return "320k"
+        case .standard:
+            return "128k"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .hiresLossless:
+            return "hifispeaker.fill"
+        case .lossless:
+            return "waveform.path"
+        case .high:
+            return "bolt.fill"
+        case .standard:
+            return "antenna.radiowaves.left.and.right"
+        }
+    }
+}
+
 enum MusicSourceAction: String, Codable, CaseIterable, Hashable {
     case musicUrl
     case lyric

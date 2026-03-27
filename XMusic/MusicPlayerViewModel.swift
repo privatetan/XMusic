@@ -181,7 +181,6 @@ final class MusicPlayerViewModel: ObservableObject {
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 1
     @Published var volume: Double = 0.85
-    @Published var searchText = ""
 
     private let player = AVPlayer()
     private var queue: [Track] = []
@@ -213,7 +212,7 @@ final class MusicPlayerViewModel: ObservableObject {
         #else
         setVolume(volume)
         #endif
-        queue = DemoLibrary.allTracks
+        queue = []
         cachedTracks = loadCachedTracks()
         clearPersistedTrack()
         updateNowPlayingInfo()
@@ -235,24 +234,9 @@ final class MusicPlayerViewModel: ObservableObject {
         #endif
     }
 
-    var searchResults: [Track] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return DemoLibrary.allTracks }
-
-        return DemoLibrary.allTracks.filter { track in
-            track.title.localizedCaseInsensitiveContains(query)
-                || track.artist.localizedCaseInsensitiveContains(query)
-                || track.album.localizedCaseInsensitiveContains(query)
-                || track.genre.localizedCaseInsensitiveContains(query)
-                || track.blurb.localizedCaseInsensitiveContains(query)
-        }
-    }
-
     func play(_ track: Track, from tracks: [Track]? = nil) {
         if let tracks, !tracks.isEmpty {
             queue = tracks
-        } else if queue.isEmpty {
-            queue = DemoLibrary.allTracks
         }
 
         if let index = queue.firstIndex(of: track) {
@@ -552,31 +536,7 @@ final class MusicPlayerViewModel: ObservableObject {
     }
 
     private func makeSearchTrack(from song: SearchSong, sourceName: String, resolvedURL: URL?) -> Track {
-        Track(
-            title: song.title,
-            artist: song.artist,
-            album: song.album,
-            blurb: "搜索来源 \(song.source.title)，播放时按当前音源重新解析。",
-            genre: song.source.title,
-            duration: parseDuration(song.durationText),
-            audioURL: resolvedURL,
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.98, green: 0.36, blue: 0.38), Color(red: 0.28, green: 0.12, blue: 0.34)],
-                glow: Color(red: 1.00, green: 0.55, blue: 0.46),
-                symbol: "magnifyingglass.circle.fill",
-                label: song.source.title
-            ),
-            searchSong: song,
-            sourceName: sourceName
-        )
-    }
-
-    private func parseDuration(_ text: String) -> TimeInterval {
-        let parts = text.split(separator: ":").compactMap { Double($0) }
-        guard !parts.isEmpty else { return 240 }
-        return parts.reversed().enumerated().reduce(into: 0) { partialResult, item in
-            partialResult += item.element * pow(60, Double(item.offset))
-        }
+        Track.searchResultTrack(from: song, sourceName: sourceName, resolvedURL: resolvedURL)
     }
 
     private func persistCurrentTrack(_ track: Track) {

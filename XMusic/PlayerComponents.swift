@@ -24,7 +24,7 @@ struct MiniPlayerView: View {
                         ArtworkView(track: track, cornerRadius: 18, iconSize: 18)
                             .frame(width: artworkSize, height: artworkSize)
 
-                        VStack(alignment: .leading, spacing: 5) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Text(track.title)
                                 .font(.headline)
                                 .foregroundStyle(.white)
@@ -49,7 +49,7 @@ struct MiniPlayerView: View {
                         .font(.title3.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: controlSize, height: controlSize)
-                        .background(Color.white.opacity(0.08), in: Circle())
+                        .background(miniPlayerControlBackground())
                 }
                 .buttonStyle(.plain)
 
@@ -60,16 +60,14 @@ struct MiniPlayerView: View {
                         .font(.headline.weight(.bold))
                         .foregroundStyle(.white.opacity(0.88))
                         .frame(width: controlSize, height: controlSize)
-                        .background(Color.white.opacity(0.08), in: Circle())
+                        .background(miniPlayerControlBackground())
                 }
                 .buttonStyle(.plain)
             }
-            .padding(isCompactLayout ? 10 : 12)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-            )
+            .padding(.horizontal, isCompactLayout ? 10 : 12)
+            .frame(height: barHeight)
+            .background(miniPlayerBackground())
+            .overlay(miniPlayerOutline())
         }
     }
 
@@ -78,53 +76,251 @@ struct MiniPlayerView: View {
     }
 
     private var artworkSize: CGFloat {
-        isCompactLayout ? 52 : 58
+        ChromeBarMetrics.miniPlayerArtworkSize(for: horizontalSizeClass)
     }
 
     private var controlSize: CGFloat {
-        isCompactLayout ? 40 : 42
+        ChromeBarMetrics.miniPlayerControlSize(for: horizontalSizeClass)
+    }
+
+    private var barHeight: CGFloat {
+        ChromeBarMetrics.height(for: horizontalSizeClass)
+    }
+
+    @ViewBuilder
+    private func miniPlayerBackground() -> some View {
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: shape)
+                .overlay {
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+        } else {
+            shape.fill(.ultraThinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private func miniPlayerOutline() -> some View {
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+    }
+
+    @ViewBuilder
+    private func miniPlayerControlBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: Circle())
+                .overlay {
+                    Circle()
+                        .fill(Color.white.opacity(0.06))
+                }
+        } else {
+            Circle()
+                .fill(Color.white.opacity(0.08))
+        }
     }
 }
 
 struct AppTabBar: View {
     @Binding var selectedTab: AppTab
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Namespace private var navigationAnimation
+    private let activeColor = Color(red: 0.50, green: 0.52, blue: 1.0)
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(AppTab.allCases) { tab in
-                Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                        selectedTab = tab
-                    }
-                } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: tab.symbol)
-                            .font(.body.weight(.semibold))
-
-                        Text(tab.title)
-                            .font(.caption2.weight(.semibold))
-                    }
-                    .foregroundStyle(selectedTab == tab ? .white : Color.white.opacity(0.55))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(
-                        Group {
-                            if selectedTab == tab {
-                                Capsule()
-                                    .fill(Color.white.opacity(0.12))
-                            }
-                        }
-                    )
+        HStack(spacing: isCompactLayout ? 12 : 16) {
+            HStack(spacing: isCompactLayout ? 4 : 6) {
+                ForEach(AppTab.mainNavigationTabs) { tab in
+                    tabButton(for: tab)
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, isCompactLayout ? 3 : 4)
+            .frame(maxWidth: .infinity)
+            .frame(height: barHeight)
+            .background(tabClusterBackground())
+            .overlay(tabClusterOutline())
+            .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+
+            tabButton(for: .search, isSearchShortcut: true)
+        }
+    }
+
+    private func tabButton(for tab: AppTab, isSearchShortcut: Bool = false) -> some View {
+        let isSelected = selectedTab == tab
+
+        return Button {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+                selectedTab = tab
+            }
+        } label: {
+            if isSearchShortcut {
+                Image(systemName: tab.symbol)
+                    .font(.system(size: isCompactLayout ? 22 : 24, weight: .semibold))
+                    .foregroundStyle(isSelected ? activeColor : .white)
+                    .frame(width: barHeight, height: barHeight)
+                    .background(searchButtonBackground(isSelected: isSelected))
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(isSelected ? 0.18 : 0.12), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.18), radius: 16, x: 0, y: 8)
+            } else {
+                VStack(spacing: 3) {
+                    Image(systemName: tab.symbol)
+                        .font(.system(size: isSelected ? 18 : 16, weight: .semibold))
+
+                    Text(tab.title)
+                        .font(.system(size: isCompactLayout ? 10 : 11, weight: .semibold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+                .foregroundStyle(isSelected ? activeColor : Color.white.opacity(0.88))
+                .frame(maxWidth: .infinity)
+                .frame(height: tabItemHeight)
+                .background {
+                    if isSelected {
+                        selectedTabBackground()
+                    }
+                }
             }
         }
-        .padding(8)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(
+        .buttonStyle(.plain)
+    }
+
+    private var isCompactLayout: Bool {
+        horizontalSizeClass == .compact
+    }
+
+    private var tabItemHeight: CGFloat {
+        ChromeBarMetrics.tabItemHeight(for: horizontalSizeClass)
+    }
+
+    private var barHeight: CGFloat {
+        ChromeBarMetrics.height(for: horizontalSizeClass)
+    }
+
+    @ViewBuilder
+    private func searchButtonBackground(isSelected: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: Circle())
+                .overlay {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: isSelected
+                                    ? [activeColor.opacity(0.22), Color.white.opacity(0.10)]
+                                    : [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+        } else {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: isSelected
+                                    ? [Color.white.opacity(0.16), Color.white.opacity(0.06)]
+                                    : [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func tabClusterBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+        } else {
             Capsule()
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+                .fill(.ultraThinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private func tabClusterOutline() -> some View {
+        if #available(iOS 26.0, *) {
+            Capsule()
+                .stroke(Color.white.opacity(0.07), lineWidth: 0.8)
+        } else {
+            Capsule()
+                .stroke(Color.white.opacity(0.11), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func selectedTabBackground() -> some View {
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [activeColor.opacity(0.16), Color.white.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                .padding(.horizontal, 0.5)
+                .padding(.vertical, 1)
+                .matchedGeometryEffect(id: "tab-selection", in: navigationAnimation)
+        } else {
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.12),
+                            Color.white.opacity(0.04)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+                .padding(.horizontal, 0.5)
+                .padding(.vertical, 1)
+                .matchedGeometryEffect(id: "tab-selection", in: navigationAnimation)
+        }
+    }
+
+    private var tabClusterShadowColor: Color {
+        if #available(iOS 26.0, *) {
+            return Color.black.opacity(0.14)
+        }
+        return Color.black.opacity(0.22)
     }
 }
 
@@ -161,7 +357,7 @@ struct InlineNowPlayingPanel: View {
                 let actionIconSize = compactHeight ? 20.0 : 24.0
                 let bottomPadding = max(safeBottom + (compactHeight ? 4 : 6), 10)
                 let artworkTopPadding = max(safeTop + 100, 100)
-                let topButtonPadding = max(safeTop + 10, 16)
+                let topButtonPadding = max(safeTop + 2, 10)
 
                 ZStack {
                     LinearGradient(
@@ -184,22 +380,14 @@ struct InlineNowPlayingPanel: View {
 
                     VStack(spacing: 0) {
                         HStack {
-                            Button(action: close) {
-                                HStack(spacing: 100) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 14, weight: .semibold))
-
-                                    Text("返回")
-                                        .font(.system(size: 15, weight: .semibold))
-                                }
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 14)
-                                .frame(height: 40)
-                                .background(.ultraThinMaterial, in: Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                                )
+                            Button {
+                                close()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.white.opacity(0.96))
+                                    .shadow(color: Color.black.opacity(0.18), radius: 6, x: 0, y: 2)
+                                    .frame(width: 32, height: 32)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("返回")
@@ -235,9 +423,9 @@ struct InlineNowPlayingPanel: View {
                                     Text(track.title)
                                         .font(.system(size: compactHeight ? 28 : 32, weight: .bold))
                                         .foregroundStyle(.white)
-                                        .lineLimit(2)
+                                        .lineLimit(1)
                                         .minimumScaleFactor(0.8)
-                                        .multilineTextAlignment(.leading)
+                                        .truncationMode(.tail)
 
                                     Text(track.artist)
                                         .font(.system(size: compactHeight ? 18 : 20, weight: .regular))

@@ -4,6 +4,8 @@ struct ContentView: View {
     @StateObject private var player = MusicPlayerViewModel()
     @StateObject private var sourceLibrary = MusicSourceLibrary()
     @StateObject private var musicSearch = MusicSearchViewModel()
+    @StateObject private var library = MusicLibraryViewModel()
+    @StateObject private var playlistModel = MusicPlaylistViewModel()
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -17,6 +19,8 @@ struct ContentView: View {
                     BrowseView()
                 case .radio:
                     PlaylistView()
+                case .settings:
+                    SettingsView()
                 case .search:
                     SearchView()
                 }
@@ -24,6 +28,8 @@ struct ContentView: View {
             .environmentObject(player)
             .environmentObject(sourceLibrary)
             .environmentObject(musicSearch)
+            .environmentObject(library)
+            .environmentObject(playlistModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .preferredColorScheme(.dark)

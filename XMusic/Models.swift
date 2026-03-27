@@ -8,22 +8,35 @@
 import Foundation
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
+
 enum AppTab: String, CaseIterable, Identifiable {
     case listenNow
     case browse
     case radio
+    case settings
     case search
 
     var id: String { rawValue }
+
+    static var mainNavigationTabs: [AppTab] {
+        [.listenNow, .browse, .radio, .settings]
+    }
 
     var title: String {
         switch self {
         case .listenNow:
             return "现在听"
         case .browse:
-            return "浏览"
+            return "资料库"
         case .radio:
             return "歌单"
+        case .settings:
+            return "设置"
         case .search:
             return "搜索"
         }
@@ -34,9 +47,11 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .listenNow:
             return "play.square.stack.fill"
         case .browse:
-            return "square.grid.2x2.fill"
+            return "play.square.stack"
         case .radio:
             return "music.note.list"
+        case .settings:
+            return "gearshape.fill"
         case .search:
             return "magnifyingglass"
         }
@@ -66,31 +81,50 @@ struct Track: Identifiable, Equatable {
     static func == (lhs: Track, rhs: Track) -> Bool {
         lhs.id == rhs.id
     }
-}
 
-struct Shelf: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let tracks: [Track]
-}
+    var catalogKey: String {
+        [title, artist, album]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .joined(separator: "|")
+    }
 
-struct Station: Identifiable {
-    let id = UUID()
-    let title: String
-    let host: String
-    let blurb: String
-    let tint: [Color]
-    let symbol: String
-    let featuredTrack: Track
-}
+    var storageKey: String {
+        if let searchSong {
+            return "search:\(searchSong.id)"
+        }
+        if let sourceName = sourceName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !sourceName.isEmpty {
+            return "source:\(sourceName.lowercased())|\(catalogKey)"
+        }
+        return "catalog:\(catalogKey)"
+    }
 
-struct GenreCard: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let colors: [Color]
-    let symbol: String
+    static func searchResultTrack(
+        from song: SearchSong,
+        sourceName: String? = nil,
+        resolvedURL: URL? = nil
+    ) -> Track {
+        Track(
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            blurb: "搜索来源 \(song.source.title)，播放时按当前音源重新解析。",
+            genre: song.source.title,
+            duration: searchTrackDuration(from: song.durationText),
+            audioURL: resolvedURL,
+            artwork: song.source.searchArtworkPalette,
+            searchSong: song,
+            sourceName: sourceName
+        )
+    }
+
+    private static func searchTrackDuration(from text: String) -> TimeInterval {
+        let parts = text.split(separator: ":").compactMap { Double($0) }
+        guard !parts.isEmpty else { return 240 }
+        return parts.reversed().enumerated().reduce(into: 0) { partialResult, item in
+            partialResult += item.element * pow(60, Double(item.offset))
+        }
+    }
 }
 
 enum PlaylistSortOption: String, CaseIterable, Identifiable {
@@ -204,12 +238,27 @@ struct Playlist: Identifiable {
         sourceIdentifier ?? id.uuidString
     }
 
+    var isCustomPlaylist: Bool {
+        stableKey.hasPrefix(Self.customStableKeyPrefix)
+    }
+
+    var customPlaylistID: String? {
+        guard isCustomPlaylist else { return nil }
+        return String(stableKey.dropFirst(Self.customStableKeyPrefix.count))
+    }
+
     private func compactCount(_ value: Int) -> String {
         guard value >= 10_000 else { return "\(value)" }
 
         let major = value / 10_000
         let minor = (value % 10_000) / 1_000
         return minor == 0 ? "\(major)万" : "\(major).\(minor)万"
+    }
+
+    static let customStableKeyPrefix = "custom:"
+
+    static func customStableKey(for id: String) -> String {
+        "\(customStableKeyPrefix)\(id)"
     }
 }
 
@@ -225,285 +274,196 @@ extension URL {
     }
 }
 
-enum DemoLibrary {
-    private static func url(_ path: String) -> URL {
-        URL(string: "https://www.soundhelix.com/examples/mp3/\(path)")!
+extension SearchPlatformSource {
+    var searchArtworkPalette: ArtworkPalette {
+        switch self {
+        case .all:
+            return ArtworkPalette(
+                colors: [Color(red: 0.46, green: 0.50, blue: 0.58), Color(red: 0.10, green: 0.12, blue: 0.18)],
+                glow: Color(red: 0.72, green: 0.76, blue: 0.84),
+                symbol: "magnifyingglass.circle.fill",
+                label: "All"
+            )
+        case .kw:
+            return ArtworkPalette(
+                colors: [Color(red: 0.93, green: 0.55, blue: 0.24), Color(red: 0.27, green: 0.12, blue: 0.10)],
+                glow: Color(red: 1.00, green: 0.75, blue: 0.42),
+                symbol: "music.note",
+                label: title
+            )
+        case .kg:
+            return ArtworkPalette(
+                colors: [Color(red: 0.10, green: 0.65, blue: 0.76), Color(red: 0.05, green: 0.14, blue: 0.24)],
+                glow: Color(red: 0.52, green: 0.89, blue: 0.97),
+                symbol: "waveform",
+                label: title
+            )
+        case .tx:
+            return ArtworkPalette(
+                colors: [Color(red: 0.33, green: 0.86, blue: 0.49), Color(red: 0.08, green: 0.18, blue: 0.13)],
+                glow: Color(red: 0.67, green: 0.97, blue: 0.75),
+                symbol: "message.and.waveform.fill",
+                label: title
+            )
+        case .wy:
+            return ArtworkPalette(
+                colors: [Color(red: 0.92, green: 0.27, blue: 0.30), Color(red: 0.23, green: 0.07, blue: 0.12)],
+                glow: Color(red: 1.00, green: 0.58, blue: 0.61),
+                symbol: "dot.radiowaves.left.and.right",
+                label: title
+            )
+        case .mg:
+            return ArtworkPalette(
+                colors: [Color(red: 0.93, green: 0.76, blue: 0.24), Color(red: 0.31, green: 0.15, blue: 0.08)],
+                glow: Color(red: 1.00, green: 0.86, blue: 0.47),
+                symbol: "music.mic",
+                label: title
+            )
+        }
+    }
+}
+
+struct StoredSearchSongRecord: Codable {
+    let id: String
+    let source: String
+    let title: String
+    let artist: String
+    let album: String
+    let durationText: String
+    let artworkURL: String?
+    let qualities: [String]
+    let legacyInfoJSON: String
+
+    init(song: SearchSong) {
+        id = song.id
+        source = song.source.rawValue
+        title = song.title
+        artist = song.artist
+        album = song.album
+        durationText = song.durationText
+        artworkURL = song.artworkURL?.absoluteString
+        qualities = song.qualities
+        legacyInfoJSON = song.legacyInfoJSON
     }
 
-    static let allTracks: [Track] = [
-        Track(
-            title: "Midnight Echo",
-            artist: "Aurora Lane",
-            album: "Afterglow City",
-            blurb: "深夜耳机里最柔和的电子脉冲。",
-            genre: "Electronica",
-            duration: 372,
-            audioURL: url("SoundHelix-Song-1.mp3"),
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.99, green: 0.42, blue: 0.38), Color(red: 0.47, green: 0.11, blue: 0.37)],
-                glow: Color(red: 1.00, green: 0.65, blue: 0.45),
-                symbol: "moon.stars.fill",
-                label: "Midnight"
-            )
-        ),
-        Track(
-            title: "Velvet Skyline",
-            artist: "Neon Harbor",
-            album: "Golden Hour Traffic",
-            blurb: "带一点城市雾气的流行律动。",
-            genre: "Alt Pop",
-            duration: 401,
-            audioURL: url("SoundHelix-Song-2.mp3"),
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.12, green: 0.24, blue: 0.46), Color(red: 0.76, green: 0.34, blue: 0.64)],
-                glow: Color(red: 0.47, green: 0.82, blue: 1.00),
-                symbol: "sparkles.tv.fill",
-                label: "Skyline"
-            )
-        ),
-        Track(
-            title: "Sunset Lines",
-            artist: "Mira Vale",
-            album: "Palm Drive",
-            blurb: "像黄昏开车穿过海岸线那样松弛。",
-            genre: "Indie Pop",
-            duration: 388,
-            audioURL: url("SoundHelix-Song-3.mp3"),
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.98, green: 0.60, blue: 0.21), Color(red: 0.84, green: 0.17, blue: 0.33)],
-                glow: Color(red: 1.00, green: 0.81, blue: 0.41),
-                symbol: "sun.max.fill",
-                label: "Sunset"
-            )
-        ),
-        Track(
-            title: "Static Bloom",
-            artist: "Holo Youth",
-            album: "Signal Garden",
-            blurb: "颗粒感合成器和轻盈鼓点一起上升。",
-            genre: "Synthwave",
-            duration: 424,
-            audioURL: url("SoundHelix-Song-4.mp3"),
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.30, green: 0.11, blue: 0.47), Color(red: 0.06, green: 0.63, blue: 0.73)],
-                glow: Color(red: 0.62, green: 0.48, blue: 1.00),
-                symbol: "waveform.path.ecg.rectangle.fill",
-                label: "Signal"
-            )
-        ),
-        Track(
-            title: "Blue Hour",
-            artist: "Cedar Bloom",
-            album: "Quiet Weather",
-            blurb: "适合雨后、适合散步，也适合放空。",
-            genre: "Downtempo",
-            duration: 356,
-            audioURL: url("SoundHelix-Song-5.mp3"),
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.16, green: 0.31, blue: 0.60), Color(red: 0.07, green: 0.11, blue: 0.22)],
-                glow: Color(red: 0.52, green: 0.76, blue: 0.96),
-                symbol: "cloud.drizzle.fill",
-                label: "Blue Hour"
-            )
-        ),
-        Track(
-            title: "Satellite Hearts",
-            artist: "Ivory Coastline",
-            album: "Orbit Season",
-            blurb: "大开阔感和副歌一起冲进来。",
-            genre: "Dream Pop",
-            duration: 365,
-            audioURL: url("SoundHelix-Song-6.mp3"),
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.10, green: 0.10, blue: 0.18), Color(red: 0.74, green: 0.29, blue: 0.26)],
-                glow: Color(red: 0.96, green: 0.54, blue: 0.41),
-                symbol: "globe.americas.fill",
-                label: "Orbit"
-            )
+    var searchSong: SearchSong? {
+        guard let source = SearchPlatformSource(rawValue: source) else { return nil }
+        return SearchSong(
+            id: id,
+            source: source,
+            title: title,
+            artist: artist,
+            album: album,
+            durationText: durationText,
+            artworkURL: artworkURL.flatMap(URL.init(string:)),
+            qualities: qualities,
+            legacyInfoJSON: legacyInfoJSON
         )
-    ]
+    }
+}
 
-    static let featuredTrack = allTracks[0]
+struct StoredColorRecord: Codable {
+    let red: Double
+    let green: Double
+    let blue: Double
+    let alpha: Double
 
-    static let listenNowShelves: [Shelf] = [
-        Shelf(
-            title: "最近添加",
-            subtitle: "轻快、流畅、带一点都市夜色",
-            tracks: [allTracks[1], allTracks[2], allTracks[4]]
-        ),
-        Shelf(
-            title: "空间感精选",
-            subtitle: "适合大耳机和更安静的房间",
-            tracks: [allTracks[3], allTracks[5], allTracks[0]]
-        ),
-        Shelf(
-            title: "凌晨模式",
-            subtitle: "把节奏放低，把情绪留住",
-            tracks: [allTracks[4], allTracks[0], allTracks[1]]
+    @MainActor
+    init(color: Color) {
+        #if canImport(UIKit)
+        let uiColor = UIColor(color)
+        var resolvedRed: CGFloat = 1
+        var resolvedGreen: CGFloat = 1
+        var resolvedBlue: CGFloat = 1
+        var resolvedAlpha: CGFloat = 1
+        uiColor.getRed(&resolvedRed, green: &resolvedGreen, blue: &resolvedBlue, alpha: &resolvedAlpha)
+        red = Double(resolvedRed)
+        green = Double(resolvedGreen)
+        blue = Double(resolvedBlue)
+        alpha = Double(resolvedAlpha)
+        #elseif canImport(AppKit)
+        let nsColor = NSColor(color).usingColorSpace(.deviceRGB) ?? .white
+        red = Double(nsColor.redComponent)
+        green = Double(nsColor.greenComponent)
+        blue = Double(nsColor.blueComponent)
+        alpha = Double(nsColor.alphaComponent)
+        #else
+        red = 1
+        green = 1
+        blue = 1
+        alpha = 1
+        #endif
+    }
+
+    var swiftUIColor: Color {
+        Color(.sRGB, red: red, green: green, blue: blue, opacity: alpha)
+    }
+}
+
+struct StoredArtworkPaletteRecord: Codable {
+    let colors: [StoredColorRecord]
+    let glow: StoredColorRecord
+    let symbol: String
+    let label: String
+
+    @MainActor
+    init(artwork: ArtworkPalette) {
+        colors = artwork.colors.map(StoredColorRecord.init)
+        glow = StoredColorRecord(color: artwork.glow)
+        symbol = artwork.symbol
+        label = artwork.label
+    }
+
+    var artworkPalette: ArtworkPalette {
+        ArtworkPalette(
+            colors: colors.map(\.swiftUIColor),
+            glow: glow.swiftUIColor,
+            symbol: symbol,
+            label: label
         )
-    ]
+    }
+}
 
-    static let stations: [Station] = [
-        Station(
-            title: "One Station",
-            host: "XMusic Radio",
-            blurb: "从丝滑 R&B 到更亮的合成器流行，一条顺着晚风滑下去的连续曲线。",
-            tint: [Color(red: 0.93, green: 0.25, blue: 0.30), Color(red: 0.43, green: 0.05, blue: 0.17)],
-            symbol: "dot.radiowaves.forward",
-            featuredTrack: allTracks[0]
-        ),
-        Station(
-            title: "Glow FM",
-            host: "Mira Vale",
-            blurb: "电光、霓虹、轻盈鼓机，还有一点恰到好处的浪漫。",
-            tint: [Color(red: 0.15, green: 0.68, blue: 0.79), Color(red: 0.17, green: 0.17, blue: 0.42)],
-            symbol: "sparkles.rectangle.stack.fill",
-            featuredTrack: allTracks[3]
-        ),
-        Station(
-            title: "After 11",
-            host: "Aurora Lane",
-            blurb: "给深夜不想被打扰的时候准备的连播频道。",
-            tint: [Color(red: 0.48, green: 0.27, blue: 0.96), Color(red: 0.08, green: 0.08, blue: 0.18)],
-            symbol: "moonphase.waning.crescent.inverse",
-            featuredTrack: allTracks[4]
+struct StoredTrackRecord: Codable, Identifiable {
+    let id: String
+    let title: String
+    let artist: String
+    let album: String
+    let blurb: String
+    let genre: String
+    let duration: TimeInterval
+    let audioURL: String?
+    let artwork: StoredArtworkPaletteRecord
+    let searchSong: StoredSearchSongRecord?
+    let sourceName: String?
+
+    @MainActor
+    init(track: Track) {
+        id = track.storageKey
+        title = track.title
+        artist = track.artist
+        album = track.album
+        blurb = track.blurb
+        genre = track.genre
+        duration = track.duration
+        audioURL = track.audioURL?.absoluteString
+        artwork = StoredArtworkPaletteRecord(artwork: track.artwork)
+        searchSong = track.searchSong.map(StoredSearchSongRecord.init)
+        sourceName = track.sourceName
+    }
+
+    var track: Track {
+        Track(
+            title: title,
+            artist: artist,
+            album: album,
+            blurb: blurb,
+            genre: genre,
+            duration: duration,
+            audioURL: audioURL.flatMap(URL.init(string:)),
+            artwork: artwork.artworkPalette,
+            searchSong: searchSong?.searchSong,
+            sourceName: sourceName
         )
-    ]
-
-    static let genres: [GenreCard] = [
-        GenreCard(title: "流行新歌", subtitle: "明亮且上头", colors: [Color(red: 0.96, green: 0.31, blue: 0.35), Color(red: 0.98, green: 0.66, blue: 0.29)], symbol: "music.note.tv"),
-        GenreCard(title: "氛围电子", subtitle: "空气感与层次", colors: [Color(red: 0.12, green: 0.29, blue: 0.62), Color(red: 0.22, green: 0.69, blue: 0.76)], symbol: "waveform.and.magnifyingglass"),
-        GenreCard(title: "深夜 R&B", subtitle: "柔软又黏人", colors: [Color(red: 0.26, green: 0.13, blue: 0.41), Color(red: 0.67, green: 0.25, blue: 0.46)], symbol: "heart.text.square.fill"),
-        GenreCard(title: "空间音频", subtitle: "更宽的声场", colors: [Color(red: 0.08, green: 0.14, blue: 0.21), Color(red: 0.52, green: 0.58, blue: 0.65)], symbol: "hifispeaker.and.homepod.fill")
-    ]
-
-    static let playlists: [Playlist] = [
-        Playlist(
-            title: "夜航霓虹",
-            curator: "XMusic 编辑部",
-            summary: "合成器、城市夜景和一点恰到好处的失真。",
-            description: "从丝滑的夜间流行过渡到更有空间感的电子层次，适合通勤回家后把灯调暗、把节奏留在耳机里的那种晚上。",
-            categories: ["推荐", "夜晚", "电子"],
-            tracks: [allTracks[0], allTracks[3], allTracks[5], allTracks[4]],
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.95, green: 0.30, blue: 0.36), Color(red: 0.22, green: 0.09, blue: 0.30)],
-                glow: Color(red: 1.00, green: 0.53, blue: 0.47),
-                symbol: "sparkles",
-                label: "Neon"
-            ),
-            playCount: 286_400,
-            followerCount: 18_320,
-            updatedLabel: "2 小时前更新",
-            updatedOrder: 2
-        ),
-        Playlist(
-            title: "海边晚风收集",
-            curator: "Mira Vale",
-            summary: "柔和鼓点、慢速流行和开窗就能吹进来的松弛感。",
-            description: "偏暖色的独立流行和梦感旋律都在这里，适合傍晚散步、开车绕海岸线，或者让房间慢慢从工作模式退下来。",
-            categories: ["推荐", "流行", "公路"],
-            tracks: [allTracks[2], allTracks[1], allTracks[5], allTracks[4]],
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.98, green: 0.63, blue: 0.28), Color(red: 0.78, green: 0.20, blue: 0.31)],
-                glow: Color(red: 1.00, green: 0.78, blue: 0.42),
-                symbol: "sun.horizon.fill",
-                label: "Breeze"
-            ),
-            playCount: 198_600,
-            followerCount: 12_840,
-            updatedLabel: "昨天更新",
-            updatedOrder: 4
-        ),
-        Playlist(
-            title: "晴窗写代码",
-            curator: "Workstream",
-            summary: "没有太多歌词抢戏，只把专注度慢慢拉上来。",
-            description: "节拍轻、层次稳、不会突然打断思路的一组歌单，适合白天写代码、看文档和处理比较需要连续注意力的工作。",
-            categories: ["学习", "电子", "推荐"],
-            tracks: [allTracks[4], allTracks[3], allTracks[0], allTracks[1]],
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.24, green: 0.63, blue: 0.80), Color(red: 0.10, green: 0.18, blue: 0.32)],
-                glow: Color(red: 0.55, green: 0.84, blue: 0.95),
-                symbol: "laptopcomputer.and.arrow.down",
-                label: "Focus"
-            ),
-            playCount: 124_200,
-            followerCount: 9_460,
-            updatedLabel: "30 分钟前更新",
-            updatedOrder: 1
-        ),
-        Playlist(
-            title: "卧室低光模式",
-            curator: "凌晨俱乐部",
-            summary: "更靠近耳边的低频和更慢一点的呼吸节奏。",
-            description: "给夜深之后不想再被打扰的时候准备的歌单，副歌不会太亮，氛围会把人轻轻包起来，适合独处和反复循环。",
-            categories: ["夜晚", "流行"],
-            tracks: [allTracks[4], allTracks[0], allTracks[5], allTracks[1]],
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.38, green: 0.25, blue: 0.84), Color(red: 0.09, green: 0.09, blue: 0.19)],
-                glow: Color(red: 0.67, green: 0.56, blue: 1.00),
-                symbol: "bed.double.fill",
-                label: "Low Light"
-            ),
-            playCount: 241_500,
-            followerCount: 16_070,
-            updatedLabel: "6 小时前更新",
-            updatedOrder: 3
-        ),
-        Playlist(
-            title: "快速出门前",
-            curator: "City Route",
-            summary: "节奏利落、推进感明确，适合给一天一个起步速度。",
-            description: "从更亮的流行律动开始，慢慢接进合成器和干净鼓点，适合通勤路上、咖啡还没喝完之前的那段清醒时间。",
-            categories: ["流行", "推荐"],
-            tracks: [allTracks[1], allTracks[2], allTracks[3], allTracks[0]],
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.99, green: 0.43, blue: 0.36), Color(red: 0.13, green: 0.23, blue: 0.46)],
-                glow: Color(red: 1.00, green: 0.67, blue: 0.51),
-                symbol: "tram.fill",
-                label: "Rush"
-            ),
-            playCount: 173_800,
-            followerCount: 10_480,
-            updatedLabel: "3 天前更新",
-            updatedOrder: 6
-        ),
-        Playlist(
-            title: "驶离市区",
-            curator: "Drive Club",
-            summary: "适合速度慢慢提起来，也适合窗外景色不断后退。",
-            description: "一张更有画面感的公路歌单，保留了梦感和流行副歌的开阔度，适合长路、夜路和不想太快到达的目的地。",
-            categories: ["公路", "夜晚", "流行"],
-            tracks: [allTracks[5], allTracks[2], allTracks[1], allTracks[3]],
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.12, green: 0.20, blue: 0.30), Color(red: 0.81, green: 0.34, blue: 0.31)],
-                glow: Color(red: 0.98, green: 0.56, blue: 0.41),
-                symbol: "car.fill",
-                label: "Drive"
-            ),
-            playCount: 312_700,
-            followerCount: 21_140,
-            updatedLabel: "今天更新",
-            updatedOrder: 0
-        )
-    ]
-
-    static let playlistCategories: [String] = [
-        "全部",
-        "推荐",
-        "夜晚",
-        "电子",
-        "流行",
-        "学习",
-        "公路"
-    ]
-
-    static let searchSuggestions: [String] = [
-        "Midnight",
-        "Synthwave",
-        "Dream Pop",
-        "Aurora Lane",
-        "Downtempo",
-        "海边黄昏"
-    ]
+    }
 }
