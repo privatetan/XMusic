@@ -1,0 +1,40 @@
+{
+  "source": "/Users/galio/Documents/Developer/AI/XMusic/XMusic/ListenNowView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "当前播放",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "打开播放页",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 73
+        }
+      },
+      {
+        "comment": "",
+        "key": "还没有可继续播放的歌曲",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 107
+        }
+      },
+      {
+        "comment": "",
+        "key": "去搜索页找到想听的歌，加入资料库之后，这里和资料库页都会同步显示。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 111
+        }
+      }
+    ]
+  },
+  "version": 1
+}

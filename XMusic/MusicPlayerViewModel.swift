@@ -177,6 +177,7 @@ final class MusicPlayerViewModel: ObservableObject {
     @Published var currentTrack: Track?
     @Published var selectedTab: AppTab = .listenNow
     @Published var isNowPlayingPresented = false
+    @Published private(set) var nowPlayingPresentationID = UUID()
     @Published var isPlaying = false
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 1
@@ -256,6 +257,19 @@ final class MusicPlayerViewModel: ObservableObject {
 
     func setSearchPlaybackResolver(_ resolver: @escaping @MainActor (SearchSong) async throws -> PlaybackResolutionResult) {
         searchPlaybackResolverBox = SearchPlaybackResolverBox(resolve: resolver)
+    }
+
+    func presentNowPlaying(animated: Bool = true) {
+        guard currentTrack != nil else { return }
+        guard !isNowPlayingPresented else { return }
+
+        nowPlayingPresentationID = UUID()
+        setNowPlayingPresented(true, animated: animated)
+    }
+
+    func dismissNowPlaying(animated: Bool = false) {
+        guard isNowPlayingPresented else { return }
+        setNowPlayingPresented(false, animated: animated)
     }
 
     func togglePlayback() {
@@ -389,32 +403,29 @@ final class MusicPlayerViewModel: ObservableObject {
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         let player = self.player
 
-        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self, player] time in
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+            guard let self else { return }
             let seconds = CMTimeGetSeconds(time)
             let itemDuration = CMTimeGetSeconds(player.currentItem?.duration ?? .zero)
 
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-
-                if seconds.isFinite {
-                    currentTime = seconds
-                }
-
-                if itemDuration.isFinite, itemDuration > 0 {
-                    duration = itemDuration
-                }
-
-                let effectiveDuration = itemDuration.isFinite && itemDuration > 0 ? itemDuration : duration
-                if let currentTrack,
-                   isPlaying,
-                   effectiveDuration > 1,
-                   seconds.isFinite,
-                   seconds >= effectiveDuration - 0.2 {
-                    advanceQueueIfNeeded(afterFinishing: currentTrack.id)
-                }
-
-                updateNowPlayingInfo()
+            if seconds.isFinite {
+                currentTime = seconds
             }
+
+            if itemDuration.isFinite, itemDuration > 0 {
+                duration = itemDuration
+            }
+
+            let effectiveDuration = itemDuration.isFinite && itemDuration > 0 ? itemDuration : duration
+            if let currentTrack,
+               isPlaying,
+               effectiveDuration > 1,
+               seconds.isFinite,
+               seconds >= effectiveDuration - 0.2 {
+                advanceQueueIfNeeded(afterFinishing: currentTrack.id)
+            }
+
+            updateNowPlayingInfo()
         }
 
         endObserver = NotificationCenter.default.addObserver(
@@ -422,34 +433,52 @@ final class MusicPlayerViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                guard let trackID = currentTrack?.id else { return }
-                advanceQueueIfNeeded(afterFinishing: trackID)
-            }
+            guard let self else { return }
+            guard let trackID = currentTrack?.id else { return }
+            advanceQueueIfNeeded(afterFinishing: trackID)
         }
+    }
+
+    private func setNowPlayingPresented(_ isPresented: Bool, animated: Bool) {
+        if animated {
+            withAnimation(nowPlayingAnimation(isPresented: isPresented)) {
+                isNowPlayingPresented = isPresented
+            }
+        } else {
+            isNowPlayingPresented = isPresented
+        }
+    }
+
+    private func nowPlayingAnimation(isPresented: Bool) -> Animation {
+        if isPresented {
+            return .spring(response: 0.36, dampingFraction: 0.84)
+        }
+        return .easeOut(duration: 0.22)
     }
 
     private func load(_ track: Track, autoPlay: Bool) {
         pendingResolveTask?.cancel()
         pendingResolveTask = nil
         lastAutoAdvancedTrackID = nil
+
+        // Stop current playback immediately to avoid overlapping audio.
+        player.pause()
+        player.replaceCurrentItem(with: nil)
+
         currentLoadToken = UUID()
         let loadToken = currentLoadToken
         currentTrack = track
         currentTime = 0
         duration = max(track.duration, 1)
+        isPlaying = false
         updateNowPlayingInfo()
+
         if let searchSong = track.searchSong, track.audioURL == nil {
             resolveSearchTrack(searchSong, trackID: track.id, autoPlay: autoPlay, loadToken: loadToken)
             return
         }
 
-        guard let url = track.audioURL else {
-            player.pause()
-            isPlaying = false
-            return
-        }
+        guard let url = track.audioURL else { return }
 
         persistCurrentTrack(track)
         loadResolvedURL(url, autoPlay: autoPlay)
@@ -494,43 +523,37 @@ final class MusicPlayerViewModel: ObservableObject {
         )
 
         pendingResolveTask = Task { [weak self] in
-            guard self != nil else { return }
+            guard let self else { return }
             do {
                 let resolution = try await resolverBox.resolve(song)
                 guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    guard let self else { return }
-                    guard self.currentLoadToken == loadToken else { return }
-                    guard let index = self.queue.firstIndex(where: { $0.id == trackID }) else { return }
-                    var updatedTrack = self.queue[index]
-                    updatedTrack.audioURL = resolution.playableURL
-                    self.queue[index] = updatedTrack
-                    if self.currentTrack?.id == trackID {
-                        self.currentTrack = updatedTrack
-                        self.persistCurrentTrack(updatedTrack)
-                        self.loadResolvedURL(resolution.playableURL, autoPlay: autoPlay)
-                    }
-                    self.updateNowPlayingInfo()
+                guard currentLoadToken == loadToken else { return }
+                guard let index = queue.firstIndex(where: { $0.id == trackID }) else { return }
+                var updatedTrack = queue[index]
+                updatedTrack.audioURL = resolution.playableURL
+                queue[index] = updatedTrack
+                if currentTrack?.id == trackID {
+                    currentTrack = updatedTrack
+                    persistCurrentTrack(updatedTrack)
+                    loadResolvedURL(resolution.playableURL, autoPlay: autoPlay)
                 }
+                updateNowPlayingInfo()
             } catch {
-                let message = error.localizedDescription
+                guard !Task.isCancelled else { return }
                 print(
                     """
                     [XMusic][PlaybackResolve] failed
                     source=\(song.source.rawValue)
                     title=\(song.title)
                     artist=\(song.artist)
-                    error=\(message)
+                    error=\(error.localizedDescription)
                     """
                 )
-                await MainActor.run {
-                    guard let self else { return }
-                    guard self.currentLoadToken == loadToken else { return }
-                    guard self.currentTrack?.id == trackID else { return }
-                    self.player.pause()
-                    self.isPlaying = false
-                    self.updateNowPlayingInfo()
-                }
+                guard currentLoadToken == loadToken else { return }
+                guard currentTrack?.id == trackID else { return }
+                player.pause()
+                isPlaying = false
+                updateNowPlayingInfo()
             }
         }
     }

@@ -53,15 +53,21 @@ struct ContentView: View {
             .padding(.bottom, 10)
         }
         .overlay {
-            if player.isNowPlayingPresented, player.currentTrack != nil {
-                InlineNowPlayingPanel {
-                    withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
-                        player.isNowPlayingPresented = false
+            GeometryReader { proxy in
+                if player.isNowPlayingPresented, player.currentTrack != nil {
+                    InlineNowPlayingPanel(containerSize: proxy.size) {
+                        player.dismissNowPlaying()
                     }
+                    .id(player.nowPlayingPresentationID)
+                    .environmentObject(player)
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .identity
+                        )
+                    )
+                    .zIndex(20)
                 }
-                .environmentObject(player)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .zIndex(20)
             }
         }
     }

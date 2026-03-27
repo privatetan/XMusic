@@ -8,6 +8,27 @@ import MediaPlayer
 import UIKit
 #endif
 
+/// GeometryProxy 在转场动画期间可能返回 .zero 或不正确的尺寸。
+/// 此包装器在 proxy 的值无效时使用外部传入的稳定 fallback 值。
+private struct StableGeometry {
+    let size: CGSize
+    let safeAreaInsets: EdgeInsets
+
+    init(proposed: GeometryProxy, fallbackSize: CGSize) {
+        let s = proposed.size
+        // 视图处于转场动画中时 size 可能为 0 或极小值。
+        if s.width > 10 && s.height > 10 {
+            size = s
+            safeAreaInsets = proposed.safeAreaInsets
+        } else {
+            size = fallbackSize.width > 10 && fallbackSize.height > 10
+                ? fallbackSize
+                : UIScreen.main.bounds.size
+            safeAreaInsets = proposed.safeAreaInsets
+        }
+    }
+}
+
 struct MiniPlayerView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -16,9 +37,7 @@ struct MiniPlayerView: View {
         if let track = player.currentTrack {
             HStack(spacing: isCompactLayout ? 10 : 14) {
                 Button {
-                    withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
-                        player.isNowPlayingPresented.toggle()
-                    }
+                    player.presentNowPlaying()
                 } label: {
                     HStack(spacing: isCompactLayout ? 10 : 14) {
                         ArtworkView(track: track, cornerRadius: 18, iconSize: 18)
@@ -329,11 +348,18 @@ struct InlineNowPlayingPanel: View {
     @State private var isScrubbing = false
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
+    /// 从父视图传入的稳定尺寸，避免 GeometryReader 在转场动画期间
+    /// 拿到 .zero / 不正确的值导致布局卡死。
+    var containerSize: CGSize = .zero
     let close: () -> Void
 
     var body: some View {
         if let track = player.currentTrack {
             GeometryReader { geometry in
+                let geometry = StableGeometry(
+                    proposed: geometry,
+                    fallbackSize: containerSize
+                )
                 let safeTop = geometry.safeAreaInsets.top
                 let safeBottom = geometry.safeAreaInsets.bottom
                 let horizontalPadding = min(max(geometry.size.width * 0.075, 24), 32)
@@ -381,7 +407,7 @@ struct InlineNowPlayingPanel: View {
                     VStack(spacing: 0) {
                         HStack {
                             Button {
-                                close()
+                                dismissPanel()
                             } label: {
                                 Image(systemName: "chevron.left")
                                     .font(.body.weight(.semibold))
@@ -553,13 +579,30 @@ struct InlineNowPlayingPanel: View {
                         .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .top)
                     }
                 }
-                // 整个播放器面板挂上拖拽关闭手势的捕获层。
-                .background(dismissPanCapture)
+                // 屏幕上半部分下滑可关闭播放页（通过背景探针挂载手势到宿主视图）。
+                #if canImport(UIKit)
+                .background(
+                    DismissPanCapture(
+                        onChanged: { dragOffset = $0 },
+                        onEnded: { ty, vy in
+                            let shouldDismiss = ty > 120 || (ty > 44 && vy > 900)
+                            if shouldDismiss {
+                                dismissPanel()
+                            } else {
+                                withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                    )
+                )
+                #endif
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                 // 下滑时让整页跟随手指位移，形成下拉退出的反馈。
                 .offset(y: dragOffset)
             }
             .ignoresSafeArea()
+            .onAppear(perform: resetTransientPresentationState)
         }
     }
 
@@ -568,29 +611,21 @@ struct InlineNowPlayingPanel: View {
         return 1 - Double(progress) * 0.22
     }
 
-    @ViewBuilder
-    private var dismissPanCapture: some View {
-        #if canImport(UIKit)
-        NowPlayingDismissPanCapture(
-            onChanged: { translation in
-                dragOffset = translation
-            },
-            onEnded: { translation, velocity in
-                let shouldDismiss = translation > 120 || (translation > 44 && velocity > 900)
-
-                if shouldDismiss {
-                    close()
-                } else {
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
-                        dragOffset = 0
-                    }
-                }
-            }
-        )
-        #else
-        Color.clear
-        #endif
+    private func resetTransientPresentationState() {
+        isScrubbing = false
+        draftTime = player.currentTime
+        dragOffset = 0
     }
+
+    private func dismissPanel() {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            resetTransientPresentationState()
+        }
+        close()
+    }
+
 
     @ViewBuilder
     private func playbackControlButton(systemName: String, size: CGFloat, touchSize: CGFloat, action: @escaping () -> Void) -> some View {
@@ -652,7 +687,19 @@ private struct SystemVolumeBridgeView: UIViewRepresentable {
 #endif
 
 #if canImport(UIKit)
-private struct NowPlayingDismissPanCapture: UIViewRepresentable {
+/// 通过零尺寸背景探针 UIView 将 UIPanGestureRecognizer 挂载到宿主视图上，
+/// 实现「屏幕上半部分下滑关闭播放页」。
+///
+/// 原理：
+/// - 探针 view 不接收触摸（isUserInteractionEnabled = false），
+///   仅用于找到包含 ScrollView 的宿主视图。
+/// - 手势挂载在宿主视图上，与 ScrollView 共享触摸链。
+/// - gestureRecognizerShouldBegin 只在「触摸点在屏幕上半部 + 垂直下滑」时
+///   返回 true；其余情况立即失败，ScrollView / 按钮正常响应。
+/// - shouldRecognizeSimultaneouslyWith 返回 true 保证 begin 阶段能
+///   同时识别；一旦确认下滑，通过禁用 ScrollView 的 isScrollEnabled 来
+///   独占拖拽控制，结束后恢复。
+private struct DismissPanCapture: UIViewRepresentable {
     let onChanged: (CGFloat) -> Void
     let onEnded: (CGFloat, CGFloat) -> Void
 
@@ -661,15 +708,18 @@ private struct NowPlayingDismissPanCapture: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
-        view.backgroundColor = .clear
-        view.isUserInteractionEnabled = false
-        return view
+        let v = UIView(frame: .zero)
+        v.backgroundColor = .clear
+        v.isUserInteractionEnabled = false
+        return v
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.parent = self
-        context.coordinator.attachIfNeeded(to: uiView.superview)
+        // 延迟一帧以确保 SwiftUI hosting 层级已完成布局。
+        DispatchQueue.main.async {
+            context.coordinator.attachIfNeeded(from: uiView)
+        }
     }
 
     static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
@@ -677,63 +727,110 @@ private struct NowPlayingDismissPanCapture: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        var parent: NowPlayingDismissPanCapture
-        private let recognizer = UIPanGestureRecognizer()
-        private weak var attachedView: UIView?
+        var parent: DismissPanCapture
+        private let pan = UIPanGestureRecognizer()
+        private weak var attachedHost: UIView?
+        private weak var scrollView: UIScrollView?
+        /// 拖拽期间被禁用的 ScrollView（强引用，保证 detach 时能恢复）。
+        private var disabledScrollView: UIScrollView?
 
-        init(parent: NowPlayingDismissPanCapture) {
+        init(parent: DismissPanCapture) {
             self.parent = parent
             super.init()
-            recognizer.addTarget(self, action: #selector(handlePan(_:)))
-            recognizer.delegate = self
-            recognizer.cancelsTouchesInView = false
-            recognizer.delaysTouchesBegan = false
-            recognizer.delaysTouchesEnded = false
+            pan.addTarget(self, action: #selector(handlePan(_:)))
+            pan.delegate = self
+            pan.cancelsTouchesInView = false
+            pan.delaysTouchesBegan = false
+            pan.delaysTouchesEnded = false
         }
 
-        func attachIfNeeded(to view: UIView?) {
-            guard attachedView !== view else { return }
+        // MARK: - 挂载 / 卸载
+
+        func attachIfNeeded(from probe: UIView) {
+            // 找到包含 UIScrollView 的最近祖先。
+            var candidate = probe.superview
+            while let c = candidate {
+                if Self.findScrollView(in: c) != nil { break }
+                candidate = c.superview
+            }
+            guard let host = candidate else { return }
+            guard attachedHost !== host else { return }
             detach()
 
-            guard let view else { return }
-            view.addGestureRecognizer(recognizer)
-            attachedView = view
+            host.addGestureRecognizer(pan)
+            attachedHost = host
+            scrollView = Self.findScrollView(in: host)
+        }
+
+        private func enableScrollView() {
+            disabledScrollView?.isScrollEnabled = true
+            disabledScrollView = nil
         }
 
         func detach() {
-            attachedView?.removeGestureRecognizer(recognizer)
-            attachedView = nil
+            enableScrollView()
+            attachedHost?.removeGestureRecognizer(pan)
+            attachedHost = nil
+            scrollView = nil
         }
 
-        @objc
-        private func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            let translation = recognizer.translation(in: recognizer.view)
-            let translationY = max(translation.y, 0)
-            let velocityY = recognizer.velocity(in: recognizer.view).y
+        // MARK: - UIScrollView 查找
+
+        private static func findScrollView(in view: UIView) -> UIScrollView? {
+            if let sv = view as? UIScrollView { return sv }
+            for child in view.subviews {
+                if let found = findScrollView(in: child) { return found }
+            }
+            return nil
+        }
+
+        // MARK: - Pan 处理
+
+        @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard let view = recognizer.view else { return }
+            let ty = max(recognizer.translation(in: view).y, 0)
+            let vy = recognizer.velocity(in: view).y
 
             switch recognizer.state {
+            case .began:
+                disabledScrollView = scrollView
+                disabledScrollView?.isScrollEnabled = false
             case .changed:
-                parent.onChanged(translationY)
+                parent.onChanged(ty)
             case .ended:
-                parent.onEnded(translationY, velocityY)
+                enableScrollView()
+                parent.onEnded(ty, vy)
             case .cancelled, .failed:
+                enableScrollView()
                 parent.onEnded(0, 0)
             default:
                 break
             }
         }
 
-        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            guard let recognizer = gestureRecognizer as? UIPanGestureRecognizer,
-                  let attachedView else {
-                return false
-            }
+        // MARK: - UIGestureRecognizerDelegate
 
-            let velocity = recognizer.velocity(in: attachedView)
-            return velocity.y > abs(velocity.x) && velocity.y > 0
+        func gestureRecognizerShouldBegin(
+            _ gestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
+                  let host = pan.view else { return false }
+
+            // 只在屏幕上半部分起效。
+            let location = pan.location(in: host)
+            guard location.y < host.bounds.height / 2 else { return false }
+
+            let v = pan.velocity(in: host)
+            // 只在明确的垂直下滑时开始手势。
+            return v.y > 0 && v.y > abs(v.x)
         }
 
-        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+        ) -> Bool {
+            // 允许同时识别，这样在 begin 阶段能和 ScrollView 的 pan 共存。
+            // 一旦 began 触发，handlePan 会禁用 ScrollView 来独占控制。
             true
         }
     }

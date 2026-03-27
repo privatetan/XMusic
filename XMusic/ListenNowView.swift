@@ -68,7 +68,7 @@ private struct ListenNowCurrentTrackCard: View {
                         .lineLimit(1)
 
                     Button {
-                        player.isNowPlayingPresented = true
+                        player.presentNowPlaying()
                     } label: {
                         Label("打开播放页", systemImage: "play.fill")
                             .font(.headline)

@@ -1,0 +1,12 @@
+{
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/BrowseView.swift" : {
+    "abi-baseline-json" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic.abi.json",
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic-primary.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic-primary.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic-primary.dia",
+    "objc-header" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic-Swift.h",
+    "swiftdoc" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic.swiftdoc",
+    "swiftmodule" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic.swiftmodule",
+    "swiftsourceinfo" : "/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.build/Release-iphonesimulator/XMusic.build/Objects-normal/x86_64/XMusic.swiftsourceinfo"
+  }
+}

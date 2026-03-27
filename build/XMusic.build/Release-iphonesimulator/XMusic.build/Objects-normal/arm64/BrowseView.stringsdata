@@ -1,0 +1,24 @@
+{
+  "source": "/Users/galio/Documents/Developer/AI/XMusic/XMusic/BrowseView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "你的资料库还空着",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "去搜索页找到想听的歌，点结果行右侧的三个点，可以直接加入资料库，也可以顺手放进自定义歌单。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 48
+        }
+      }
+    ]
+  },
+  "version": 1
+}
