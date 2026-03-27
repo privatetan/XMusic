@@ -28,11 +28,6 @@ struct SearchView: View {
                     subtitle: "内置多平台搜歌，播放时走当前激活音源解析地址"
                 )
 
-                SearchField(text: $musicSearch.query)
-                    .onChange(of: musicSearch.query) { _ in
-                        musicSearch.scheduleSearch(allowedSources: searchableSources)
-                    }
-
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(searchableSourceTabs, id: \.rawValue) { source in
@@ -208,6 +203,9 @@ struct SearchView: View {
                 playlistModel.saveCustomPlaylist(draft)
                 actionMessage = "已创建自定义歌单。"
             }
+        }
+        .onChange(of: musicSearch.query) { _ in
+            musicSearch.scheduleSearch(allowedSources: searchableSources)
         }
     }
 
@@ -716,64 +714,6 @@ private struct SearchDebugRow: View {
         case .error:
             return "失败"
         }
-    }
-}
-
-private struct SearchField: View {
-    @Binding var text: String
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(Color.white.opacity(0.55))
-
-            TextField("搜索歌名、艺人、专辑", text: $text)
-                .textFieldStyle(.plain)
-                .foregroundStyle(.white)
-
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Color.white.opacity(0.36))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 16)
-        .frame(height: ChromeBarMetrics.height(for: horizontalSizeClass))
-        .background(searchFieldBackground())
-        .overlay(searchFieldOutline())
-    }
-
-    @ViewBuilder
-    private func searchFieldBackground() -> some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-
-        if #available(iOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular, in: shape)
-                .overlay {
-                    shape
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.08), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-        } else {
-            shape.fill(Color.white.opacity(0.08))
-        }
-    }
-
-    @ViewBuilder
-    private func searchFieldOutline() -> some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .stroke(Color.white.opacity(0.08), lineWidth: 1)
     }
 }
 

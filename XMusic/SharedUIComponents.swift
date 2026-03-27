@@ -39,12 +39,19 @@ struct ArtworkView: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             if let artworkURL = track.searchSong?.artworkURL {
-                AsyncImage(url: artworkURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    artworkFallback
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        artworkFallback
+                    case .empty:
+                        artworkFallback
+                    @unknown default:
+                        artworkFallback
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             } else if shouldUseTextOnlyFallback {
@@ -126,40 +133,50 @@ struct TrackArtworkFallbackView: View {
     let tintColors: [Color]
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: tintColors + [Color.black.opacity(0.68)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+        GeometryReader { geo in
+            let isCompact = min(geo.size.width, geo.size.height) < 60
+
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: tintColors + [Color.black.opacity(0.68)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
 
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.10), Color.clear, Color.black.opacity(0.26)],
-                        startPoint: .top,
-                        endPoint: .bottom
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.10), Color.clear, Color.black.opacity(0.26)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
-                )
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(platformTitle.uppercased())
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Color.white.opacity(0.72))
-                    .lineLimit(1)
+                if isCompact {
+                    Image(systemName: "music.note")
+                        .font(.system(size: min(geo.size.width, geo.size.height) * 0.4, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.8))
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(platformTitle.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(Color.white.opacity(0.72))
+                            .lineLimit(1)
 
-                Spacer(minLength: 0)
+                        Spacer(minLength: 0)
 
-                Text(trackTitle)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
+                        Text(trackTitle)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(3)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(10)
+                }
             }
-            .padding(10)
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }

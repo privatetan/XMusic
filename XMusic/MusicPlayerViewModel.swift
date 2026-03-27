@@ -450,10 +450,7 @@ final class MusicPlayerViewModel: ObservableObject {
     }
 
     private func nowPlayingAnimation(isPresented: Bool) -> Animation {
-        if isPresented {
-            return .spring(response: 0.36, dampingFraction: 0.84)
-        }
-        return .easeOut(duration: 0.22)
+        .spring(response: 0.40, dampingFraction: 0.78, blendDuration: 0.12)
     }
 
     private func load(_ track: Track, autoPlay: Bool) {

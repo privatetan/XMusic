@@ -6,6 +6,8 @@ struct ContentView: View {
     @StateObject private var musicSearch = MusicSearchViewModel()
     @StateObject private var library = MusicLibraryViewModel()
     @StateObject private var playlistModel = MusicPlaylistViewModel()
+    @Namespace private var playerAnimation
+    @FocusState private var isSearchFieldFocused: Bool
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -41,12 +43,17 @@ struct ContentView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 12) {
-                if player.currentTrack != nil {
-                    MiniPlayerView()
+                if player.currentTrack != nil && !(player.selectedTab == .search && isSearchFieldFocused) {
+                    MiniPlayerView(animation: playerAnimation)
                         .environmentObject(player)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                AppTabBar(selectedTab: $player.selectedTab)
+                AppTabBar(
+                    selectedTab: $player.selectedTab,
+                    searchQuery: $musicSearch.query,
+                    isSearchFieldFocused: $isSearchFieldFocused
+                )
             }
             .padding(.horizontal, 18)
             .padding(.top, 8)
@@ -55,17 +62,15 @@ struct ContentView: View {
         .overlay {
             GeometryReader { proxy in
                 if player.isNowPlayingPresented, player.currentTrack != nil {
-                    InlineNowPlayingPanel(containerSize: proxy.size) {
-                        player.dismissNowPlaying()
+                    InlineNowPlayingPanel(animation: playerAnimation, containerSize: proxy.size) {
+                        player.dismissNowPlaying(animated: true)
                     }
                     .id(player.nowPlayingPresentationID)
                     .environmentObject(player)
-                    .transition(
-                        .asymmetric(
-                            insertion: .move(edge: .bottom).combined(with: .opacity),
-                            removal: .identity
-                        )
-                    )
+                    .transition(.asymmetric(
+                        insertion: .identity,
+                        removal: .scale(scale: 0.95, anchor: .center).combined(with: .opacity)
+                    ))
                     .zIndex(20)
                 }
             }

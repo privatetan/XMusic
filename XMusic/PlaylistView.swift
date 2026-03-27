@@ -1559,25 +1559,37 @@ private struct PlaylistCoverView: View {
     }
 }
 
-#Preview {
-    let player = MusicPlayerViewModel()
-    player.currentTrack = Track(
-        title: "Preview Track",
-        artist: "XMusic",
-        album: "Preview",
-        blurb: "用于播放器预览的占位内容。",
-        genre: "Preview",
-        duration: 240,
-        artwork: ArtworkPalette(
-            colors: [Color(red: 0.94, green: 0.38, blue: 0.34), Color(red: 0.18, green: 0.22, blue: 0.34)],
-            glow: Color(red: 1.00, green: 0.62, blue: 0.50),
-            symbol: "music.note",
-            label: "Preview"
-        )
-    )
-    player.isNowPlayingPresented = true
+struct PlaylistView_Preview: View {
+    @Namespace var animation
+    @StateObject var player: MusicPlayerViewModel
 
-    return InlineNowPlayingPanel {
+    init() {
+        let p = MusicPlayerViewModel()
+        p.currentTrack = Track(
+            title: "Preview Track",
+            artist: "XMusic",
+            album: "Preview",
+            blurb: "用于播放器预览的占位内容。",
+            genre: "Preview",
+            duration: 240,
+            artwork: ArtworkPalette(
+                colors: [Color(red: 0.94, green: 0.38, blue: 0.34), Color(red: 0.18, green: 0.22, blue: 0.34)],
+                glow: Color(red: 1.00, green: 0.62, blue: 0.50),
+                symbol: "music.note",
+                label: "Preview"
+            )
+        )
+        p.isNowPlayingPresented = true
+        _player = StateObject(wrappedValue: p)
     }
-    .environmentObject(player)
+
+    var body: some View {
+        InlineNowPlayingPanel(animation: animation) {
+        }
+        .environmentObject(player)
+    }
+}
+
+#Preview {
+    PlaylistView_Preview()
 }

@@ -32,6 +32,7 @@ private struct StableGeometry {
 struct MiniPlayerView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    let animation: Namespace.ID
 
     var body: some View {
         if let track = player.currentTrack {
@@ -42,6 +43,7 @@ struct MiniPlayerView: View {
                     HStack(spacing: isCompactLayout ? 10 : 14) {
                         ArtworkView(track: track, cornerRadius: 18, iconSize: 18)
                             .frame(width: artworkSize, height: artworkSize)
+                            .matchedGeometryEffect(id: "Artwork", in: animation)
 
                         VStack(alignment: .leading, spacing: 3) {
                             Text(track.title)
@@ -123,8 +125,10 @@ struct MiniPlayerView: View {
                             )
                         )
                 }
+                .matchedGeometryEffect(id: "PlayerBackground", in: animation)
         } else {
             shape.fill(.ultraThinMaterial)
+                .matchedGeometryEffect(id: "PlayerBackground", in: animation)
         }
     }
 
@@ -152,26 +156,95 @@ struct MiniPlayerView: View {
 
 struct AppTabBar: View {
     @Binding var selectedTab: AppTab
+    @Binding var searchQuery: String
+    var isSearchFieldFocused: FocusState<Bool>.Binding
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var navigationAnimation
     private let activeColor = Color(red: 0.50, green: 0.52, blue: 1.0)
 
+    private var isSearchMode: Bool { selectedTab == .search }
+
     var body: some View {
         HStack(spacing: isCompactLayout ? 12 : 16) {
-            HStack(spacing: isCompactLayout ? 4 : 6) {
-                ForEach(AppTab.mainNavigationTabs) { tab in
-                    tabButton(for: tab)
+            // Left cluster: full tabs OR collapsed home button
+            if isSearchMode {
+                // Collapsed: single round "home" button
+                Button {
+                    isSearchFieldFocused.wrappedValue = false
+                    withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
+                        selectedTab = .listenNow
+                    }
+                } label: {
+                    Image(systemName: "house.fill")
+                        .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: barHeight, height: barHeight)
+                        .background(searchButtonBackground(isSelected: false))
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                        )
                 }
+                .buttonStyle(.plain)
+                .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+            } else {
+                // Expanded: normal tab cluster
+                HStack(spacing: isCompactLayout ? 4 : 6) {
+                    ForEach(AppTab.mainNavigationTabs) { tab in
+                        tabButton(for: tab)
+                    }
+                }
+                .padding(.horizontal, isCompactLayout ? 3 : 4)
+                .frame(maxWidth: .infinity)
+                .frame(height: barHeight)
+                .background(tabClusterBackground())
+                .overlay(tabClusterOutline())
+                .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+                .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
             }
-            .padding(.horizontal, isCompactLayout ? 3 : 4)
-            .frame(maxWidth: .infinity)
-            .frame(height: barHeight)
-            .background(tabClusterBackground())
-            .overlay(tabClusterOutline())
-            .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
 
-            tabButton(for: .search, isSearchShortcut: true)
+            // Right side: search button OR stretched search field
+            if isSearchMode {
+                // Stretched search field
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.55))
+
+                    TextField("搜索歌名、艺人、专辑", text: $searchQuery)
+                        .focused(isSearchFieldFocused)
+                        .textFieldStyle(.plain)
+                        .foregroundStyle(.white)
+                        .font(.system(size: 16, weight: .medium))
+                        .submitLabel(.search)
+
+                    if !searchQuery.isEmpty {
+                        Button {
+                            searchQuery = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color.white.opacity(0.4))
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
+                .frame(height: barHeight)
+                .background(searchFieldBackground())
+                .overlay(searchFieldOutline())
+                .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+                .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
+            } else {
+                // Normal search button
+                tabButton(for: .search, isSearchShortcut: true)
+                    .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
+            }
         }
+        .animation(.spring(response: 0.40, dampingFraction: 0.80), value: isSearchMode)
     }
 
     private func tabButton(for tab: AppTab, isSearchShortcut: Bool = false) -> some View {
@@ -335,6 +408,33 @@ struct AppTabBar: View {
         }
     }
 
+    @ViewBuilder
+    private func searchFieldBackground() -> some View {
+        let shape = Capsule()
+        if #available(iOS 26.0, *) {
+            Color.clear
+                .glassEffect(.regular, in: shape)
+                .overlay {
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+        } else {
+            shape.fill(Color.white.opacity(0.08))
+        }
+    }
+
+    @ViewBuilder
+    private func searchFieldOutline() -> some View {
+        Capsule()
+            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+    }
+
     private var tabClusterShadowColor: Color {
         if #available(iOS 26.0, *) {
             return Color.black.opacity(0.14)
@@ -348,6 +448,8 @@ struct InlineNowPlayingPanel: View {
     @State private var isScrubbing = false
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
+    @State private var showContent = true
+    let animation: Namespace.ID
     /// 从父视图传入的稳定尺寸，避免 GeometryReader 在转场动画期间
     /// 拿到 .zero / 不正确的值导致布局卡死。
     var containerSize: CGSize = .zero
@@ -386,48 +488,22 @@ struct InlineNowPlayingPanel: View {
                 let topButtonPadding = max(safeTop + 2, 10)
 
                 ZStack {
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.67, green: 0.64, blue: 0.64),
-                            Color(red: 0.58, green: 0.55, blue: 0.55),
-                            Color(red: 0.53, green: 0.50, blue: 0.50)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea()
-                    .opacity(backgroundOpacity)
-
-                    Circle()
-                        .fill(track.artwork.glow.opacity(0.10))
-                        .frame(width: 560, height: 560)
-                        .blur(radius: 130)
-                        .offset(y: -240 + dragOffset * 0.18)
-
-                    VStack(spacing: 0) {
-                        HStack {
-                            Button {
-                                dismissPanel()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Color.white.opacity(0.96))
-                                    .shadow(color: Color.black.opacity(0.18), radius: 6, x: 0, y: 2)
-                                    .frame(width: 32, height: 32)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("返回")
-                            .accessibilityHint("关闭播放页")
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.top, topButtonPadding)
-                        .padding(.horizontal, horizontalPadding)
-
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .zIndex(10)
+                    RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.67, green: 0.64, blue: 0.64),
+                                    Color(red: 0.58, green: 0.55, blue: 0.55),
+                                    Color(red: 0.53, green: 0.50, blue: 0.50)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .matchedGeometryEffect(id: "PlayerBackground", in: animation)
+                        .ignoresSafeArea()
+                        .scaleEffect(x: currentScaleX, y: currentScaleY)
+                        .opacity(backgroundOpacity)
 
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 0) {
@@ -436,6 +512,7 @@ struct InlineNowPlayingPanel: View {
 
                                 ArtworkView(track: track, cornerRadius: 26, iconSize: compactHeight ? 26 : 30)
                                     .frame(width: artworkSize, height: artworkSize)
+                                    .matchedGeometryEffect(id: "Artwork", in: animation)
                                     .clipped()
                                     .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 8)
 
@@ -443,6 +520,7 @@ struct InlineNowPlayingPanel: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.top, artworkTopPadding + topGap)
+                            .scaleEffect(1.0 - (squeezeProgress * 0.08)) // 封面随下拉略微缩小
 
                             VStack(alignment: .leading, spacing: 0) {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -460,6 +538,9 @@ struct InlineNowPlayingPanel: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .layoutPriority(1)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 20)
+                                .scaleEffect(x: 1.0 - (squeezeProgress * 0.12), y: 1.0)
 
                                 Spacer().frame(height: secondaryGap)
 
@@ -480,7 +561,8 @@ struct InlineNowPlayingPanel: View {
                                         player.seek(to: draftTime)
                                     }
                                 }
-                                .frame(height: 8)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 20)
                                 .frame(maxWidth: .infinity)
 
                                 Spacer().frame(height: 10)
@@ -493,6 +575,8 @@ struct InlineNowPlayingPanel: View {
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Color.white.opacity(0.50))
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 22)
 
                                 Spacer().frame(height: controlsGap)
 
@@ -518,6 +602,8 @@ struct InlineNowPlayingPanel: View {
                                     Spacer()
                                 }
                                 .frame(maxWidth: .infinity)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 24)
 
                                 Spacer().frame(height: volumeGap)
 
@@ -544,6 +630,8 @@ struct InlineNowPlayingPanel: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .background(SystemVolumeBridgeView().environmentObject(player))
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 25)
 
                                 Spacer().frame(height: bottomGap)
 
@@ -563,6 +651,8 @@ struct InlineNowPlayingPanel: View {
                                     Spacer()
                                 }
                                 .frame(maxWidth: .infinity)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 30)
                             }
                             // 歌曲信息和控制区左对齐铺满可用宽度，避免标题变长时整体居中漂移。
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -578,6 +668,44 @@ struct InlineNowPlayingPanel: View {
                         // 至少撑满整个播放器页面高度，这样内容少时也能稳定贴顶显示。
                         .frame(maxWidth: .infinity, minHeight: geometry.size.height, alignment: .top)
                     }
+
+                    // 按钮层放在最上方，确保点击优先级
+                    VStack(spacing: 0) {
+                        HStack {
+                            Button {
+                                dismissPanel()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.white.opacity(0.96))
+                                    .shadow(color: Color.black.opacity(0.18), radius: 6, x: 0, y: 2)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("返回")
+                            .accessibilityHint("关闭播放页")
+                            .opacity(showContent ? 1 : 0)
+
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.top, topButtonPadding)
+                        .padding(.horizontal, horizontalPadding)
+
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .allowsHitTesting(true)
+                    .zIndex(100)
+
+                    // 装饰层
+                    Circle()
+                        .fill(track.artwork.glow.opacity(0.10))
+                        .frame(width: 560, height: 560)
+                        .blur(radius: 130)
+                        .offset(y: -240 + dragOffset * 0.18)
+                        .opacity(showContent ? 1 : 0)
+                        .allowsHitTesting(false)
                 }
                 // 屏幕上半部分下滑可关闭播放页（通过背景探针挂载手势到宿主视图）。
                 #if canImport(UIKit)
@@ -611,18 +739,41 @@ struct InlineNowPlayingPanel: View {
         return 1 - Double(progress) * 0.22
     }
 
+    private var squeezeProgress: CGFloat {
+        let threshold: CGFloat = 420
+        return min(max(dragOffset / threshold, 0), 1)
+    }
+
+    private var currentScaleX: CGFloat {
+        let baseScale: CGFloat = showContent ? 1.0 : 0.82
+        return baseScale - (squeezeProgress * 0.18)
+    }
+
+    private var currentScaleY: CGFloat {
+        let baseScale: CGFloat = showContent ? 1.0 : 0.96
+        return baseScale - (squeezeProgress * 0.04)
+    }
+
+    private var currentCornerRadius: CGFloat {
+        let baseRadius: CGFloat = showContent ? 48 : 28
+        return baseRadius - (squeezeProgress * 20)
+    }
+
     private func resetTransientPresentationState() {
         isScrubbing = false
         draftTime = player.currentTime
         dragOffset = 0
+        
+        // 仅在首次挂载或 ID 变化时触发入场效果
+        showContent = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.easeOut(duration: 0.45).delay(0.1)) {
+                showContent = true
+            }
+        }
     }
 
     private func dismissPanel() {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            resetTransientPresentationState()
-        }
         close()
     }
 
