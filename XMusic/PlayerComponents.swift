@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 #if os(iOS)
@@ -158,6 +159,7 @@ struct AppTabBar: View {
     @Binding var selectedTab: AppTab
     @Binding var searchQuery: String
     var isSearchFieldFocused: FocusState<Bool>.Binding
+    var onSearchSubmit: (() -> Void)? = nil
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var navigationAnimation
     private let activeColor = Color(red: 0.50, green: 0.52, blue: 1.0)
@@ -172,7 +174,7 @@ struct AppTabBar: View {
                 Button {
                     isSearchFieldFocused.wrappedValue = false
                     withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
-                        selectedTab = .listenNow
+                        selectedTab = .browse
                     }
                 } label: {
                     Image(systemName: "house.fill")
@@ -218,6 +220,7 @@ struct AppTabBar: View {
                         .foregroundStyle(.white)
                         .font(.system(size: 16, weight: .medium))
                         .submitLabel(.search)
+                        .onSubmit { onSearchSubmit?() }
 
                     if !searchQuery.isEmpty {
                         Button {
@@ -445,10 +448,17 @@ struct AppTabBar: View {
 
 struct InlineNowPlayingPanel: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
+    @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @State private var isScrubbing = false
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
     @State private var showContent = true
+    @State private var isLyricsPresented = false
+    @State private var isLoadingLyrics = false
+    @State private var lyricsStateTrackID: UUID?
+    @State private var loadedLyricsTrackID: UUID?
+    @State private var lyricResult: MusicSourceLyricResult?
+    @State private var lyricsErrorMessage: String?
     let animation: Namespace.ID
     /// 从父视图传入的稳定尺寸，避免 GeometryReader 在转场动画期间
     /// 拿到 .zero / 不正确的值导致布局卡死。
@@ -638,15 +648,23 @@ struct InlineNowPlayingPanel: View {
                                 HStack {
                                     Spacer()
                                     
-                                    bottomActionButton(systemName: "quote.bubble", size: actionIconSize)
+                                    bottomActionButton(
+                                        systemName: "quote.bubble",
+                                        size: actionIconSize,
+                                        isActive: isLyricsPresented
+                                    ) {
+                                        handleLyricsButtonTap(for: track)
+                                    }
 
                                     Spacer()
 
-                                    bottomActionButton(systemName: "airplayaudio", size: actionIconSize)
+                                    bottomActionButton(systemName: "airplayaudio", size: actionIconSize) {
+                                    }
 
                                     Spacer()
 
-                                    bottomActionButton(systemName: "list.bullet", size: actionIconSize)
+                                    bottomActionButton(systemName: "list.bullet", size: actionIconSize) {
+                                    }
                                     
                                     Spacer()
                                 }
@@ -706,6 +724,17 @@ struct InlineNowPlayingPanel: View {
                         .offset(y: -240 + dragOffset * 0.18)
                         .opacity(showContent ? 1 : 0)
                         .allowsHitTesting(false)
+
+                    if isLyricsPresented {
+                        lyricsOverlay(
+                            for: track,
+                            availableHeight: availableHeight,
+                            horizontalPadding: horizontalPadding,
+                            safeBottom: safeBottom,
+                            compactHeight: compactHeight
+                        )
+                        .zIndex(120)
+                    }
                 }
                 // 屏幕上半部分下滑可关闭播放页（通过背景探针挂载手势到宿主视图）。
                 #if canImport(UIKit)
@@ -728,6 +757,12 @@ struct InlineNowPlayingPanel: View {
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                 // 下滑时让整页跟随手指位移，形成下拉退出的反馈。
                 .offset(y: dragOffset)
+                .onChange(of: track.id) { _ in
+                    handleTrackChange(track)
+                }
+                .onDisappear {
+                    resetLyricsState()
+                }
             }
             .ignoresSafeArea()
             .onAppear(perform: resetTransientPresentationState)
@@ -777,7 +812,6 @@ struct InlineNowPlayingPanel: View {
         close()
     }
 
-
     @ViewBuilder
     private func playbackControlButton(systemName: String, size: CGFloat, touchSize: CGFloat, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -790,14 +824,288 @@ struct InlineNowPlayingPanel: View {
     }
 
     @ViewBuilder
-    private func bottomActionButton(systemName: String, size: CGFloat) -> some View {
-        Button(action: {}) {
+    private func bottomActionButton(
+        systemName: String,
+        size: CGFloat,
+        isActive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: size, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.74))
+                .foregroundStyle(Color.white.opacity(isActive ? 0.96 : 0.74))
                 .frame(width: 44, height: 44)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(isActive ? 0.14 : 0.001))
+                )
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func lyricsOverlay(
+        for track: Track,
+        availableHeight: CGFloat,
+        horizontalPadding: CGFloat,
+        safeBottom: CGFloat,
+        compactHeight: Bool
+    ) -> some View {
+        let panelHeight = min(max(availableHeight * (compactHeight ? 0.60 : 0.64), 320), compactHeight ? 450 : 540)
+        let lines = cleanedLyricLines(for: track)
+
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.34)
+                .ignoresSafeArea()
+                .transition(.opacity)
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                        isLyricsPresented = false
+                    }
+                }
+
+            VStack(spacing: 0) {
+                Capsule()
+                    .fill(Color.white.opacity(0.20))
+                    .frame(width: 42, height: 5)
+                    .padding(.top, 12)
+
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("歌词")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.white)
+
+                        Text("\(track.title) · \(track.artist)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.58))
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    if isLoadingLyrics, lyricsStateTrackID == track.id {
+                        ProgressView()
+                            .tint(.white)
+                    }
+
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                            isLyricsPresented = false
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.82))
+                            .frame(width: 32, height: 32)
+                            .background(Color.white.opacity(0.08), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 16)
+                .padding(.bottom, 18)
+
+                Group {
+                    if isLoadingLyrics, lyricsStateTrackID == track.id {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .tint(.white)
+                            Text("正在加载歌词…")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.72))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if lyricsStateTrackID == track.id, let lyricsErrorMessage {
+                        VStack(spacing: 14) {
+                            Image(systemName: "text.quote")
+                                .font(.system(size: 28, weight: .regular))
+                                .foregroundStyle(Color.white.opacity(0.78))
+
+                            Text(lyricsErrorMessage)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.72))
+                                .multilineTextAlignment(.center)
+
+                            Button {
+                                loadLyrics(for: track, force: true)
+                            } label: {
+                                Label("重试", systemImage: "arrow.clockwise")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(Color.white.opacity(0.12), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 28)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if !lines.isEmpty {
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(spacing: compactHeight ? 12 : 14) {
+                                ForEach(lines.indices, id: \.self) { index in
+                                    Text(lines[index])
+                                        .font(.system(size: compactHeight ? 17 : 18, weight: .medium))
+                                        .foregroundStyle(.white)
+                                        .multilineTextAlignment(.center)
+                                        .frame(maxWidth: .infinity)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 28)
+                        }
+                    } else {
+                        VStack(spacing: 12) {
+                            Image(systemName: "text.quote")
+                                .font(.system(size: 28, weight: .regular))
+                                .foregroundStyle(Color.white.opacity(0.78))
+
+                            Text("当前歌曲暂无可显示的歌词")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.72))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: panelHeight)
+            .background(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(Color.black.opacity(0.72))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .padding(.horizontal, horizontalPadding)
+            .padding(.bottom, max(safeBottom + 8, 12))
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func handleLyricsButtonTap(for track: Track) {
+        if isLyricsPresented {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                isLyricsPresented = false
+            }
+            return
+        }
+
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+            isLyricsPresented = true
+        }
+        loadLyrics(for: track, force: false)
+    }
+
+    private func handleTrackChange(_ track: Track) {
+        guard isLyricsPresented else {
+            resetLyricsState(keepPresentation: false)
+            return
+        }
+
+        loadLyrics(for: track, force: true)
+    }
+
+    private func resetLyricsState(keepPresentation: Bool = false) {
+        isLoadingLyrics = false
+        lyricsStateTrackID = nil
+        loadedLyricsTrackID = nil
+        lyricResult = nil
+        lyricsErrorMessage = nil
+        if !keepPresentation {
+            isLyricsPresented = false
+        }
+    }
+
+    private func loadLyrics(for track: Track, force: Bool) {
+        lyricsStateTrackID = track.id
+
+        if !force, loadedLyricsTrackID == track.id, lyricResult != nil {
+            lyricsErrorMessage = nil
+            return
+        }
+
+        lyricResult = nil
+        lyricsErrorMessage = nil
+        isLoadingLyrics = true
+
+        Task {
+            let currentTrackID = track.id
+
+            do {
+                guard let searchSong = track.searchSong else {
+                    throw NSError(
+                        domain: "XMusic.Lyrics",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "这首歌当前没有可用于解析歌词的歌曲信息。"]
+                    )
+                }
+
+                let source = preferredLyricsSource(for: track)
+                guard let source else {
+                    throw NSError(
+                        domain: "XMusic.Lyrics",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "没有找到可用的音源，请先在设置里激活一个音源。"]
+                    )
+                }
+
+                let resolvedLyrics = try await sourceLibrary.resolveLyric(
+                    with: source,
+                    platformSource: searchSong.source.rawValue,
+                    legacySongInfoJSON: searchSong.legacyInfoJSON
+                )
+
+                guard player.currentTrack?.id == currentTrackID, lyricsStateTrackID == currentTrackID else { return }
+                isLoadingLyrics = false
+                loadedLyricsTrackID = currentTrackID
+                lyricResult = resolvedLyrics
+            } catch {
+                guard player.currentTrack?.id == currentTrackID, lyricsStateTrackID == currentTrackID else { return }
+                isLoadingLyrics = false
+                loadedLyricsTrackID = nil
+                lyricsErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func preferredLyricsSource(for track: Track) -> ImportedMusicSource? {
+        if let sourceName = track.sourceName,
+           let matchedSource = sourceLibrary.sources.first(where: { $0.name == sourceName }) {
+            return matchedSource
+        }
+        return sourceLibrary.activeSource
+    }
+
+    private func cleanedLyricLines(for track: Track) -> [String] {
+        guard loadedLyricsTrackID == track.id, let lyricResult else { return [] }
+
+        let normalized = lyricResult.lyric
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        return normalized
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { cleanedLyricLine(from: String($0)) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func cleanedLyricLine(from line: String) -> String {
+        let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLine.isEmpty else { return "" }
+
+        if trimmedLine.range(of: #"^\[(ti|ar|al|by|offset):.*\]$"#, options: .regularExpression) != nil {
+            return ""
+        }
+
+        let withoutTimestamps = trimmedLine.replacingOccurrences(
+            of: #"\[[0-9]{1,2}:[0-9]{2}(?:\.[0-9]{1,3})?\]"#,
+            with: "",
+            options: .regularExpression
+        )
+        return withoutTimestamps.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func format(time: TimeInterval) -> String {

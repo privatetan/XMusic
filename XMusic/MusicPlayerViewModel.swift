@@ -175,7 +175,7 @@ private final class SearchPlaybackResolverBox {
 @MainActor
 final class MusicPlayerViewModel: ObservableObject {
     @Published var currentTrack: Track?
-    @Published var selectedTab: AppTab = .listenNow
+    @Published var selectedTab: AppTab = .browse
     @Published var isNowPlayingPresented = false
     @Published private(set) var nowPlayingPresentationID = UUID()
     @Published var isPlaying = false
@@ -185,7 +185,7 @@ final class MusicPlayerViewModel: ObservableObject {
 
     private let player = AVPlayer()
     private var queue: [Track] = []
-    private var cachedTracks: [Track] = []
+    @Published private(set) var cachedTracks: [Track] = []
     private var currentIndex = 0
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?

@@ -9,16 +9,22 @@ struct ContentView: View {
     @Namespace private var playerAnimation
     @FocusState private var isSearchFieldFocused: Bool
 
+    @State private var showBrowseSongs = false
+    @State private var showBrowsePlaylists = false
+    @State private var showBrowseCached = false
+
     var body: some View {
         ZStack(alignment: .top) {
             AppBackground()
 
             Group {
                 switch player.selectedTab {
-                case .listenNow:
-                    ListenNowView()
                 case .browse:
-                    BrowseView()
+                    BrowseView(
+                        showingSongs: $showBrowseSongs,
+                        showingPlaylists: $showBrowsePlaylists,
+                        showingCached: $showBrowseCached
+                    )
                 case .radio:
                     PlaylistView()
                 case .settings:
@@ -34,6 +40,34 @@ struct ContentView: View {
             .environmentObject(playlistModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .overlay(alignment: .top) {
+            if showBrowseSongs {
+                AllSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseSongs = false } })
+                    .environmentObject(library)
+                    .environmentObject(player)
+                    .environmentObject(playlistModel)
+                    .transition(.move(edge: .trailing))
+                    .zIndex(10)
+            }
+            if showBrowsePlaylists {
+                AllPlaylistsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowsePlaylists = false } })
+                    .environmentObject(playlistModel)
+                    .environmentObject(library)
+                    .environmentObject(player)
+                    .environmentObject(sourceLibrary)
+                    .transition(.move(edge: .trailing))
+                    .zIndex(10)
+            }
+            if showBrowseCached {
+                CachedSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseCached = false } })
+                    .environmentObject(player)
+                    .transition(.move(edge: .trailing))
+                    .zIndex(10)
+            }
+        }
+        .animation(.easeInOut(duration: 0.28), value: showBrowseSongs)
+        .animation(.easeInOut(duration: 0.28), value: showBrowsePlaylists)
+        .animation(.easeInOut(duration: 0.28), value: showBrowseCached)
         .preferredColorScheme(.dark)
         .onAppear {
             installSearchPlaybackResolver()
@@ -52,7 +86,8 @@ struct ContentView: View {
                 AppTabBar(
                     selectedTab: $player.selectedTab,
                     searchQuery: $musicSearch.query,
-                    isSearchFieldFocused: $isSearchFieldFocused
+                    isSearchFieldFocused: $isSearchFieldFocused,
+                    onSearchSubmit: { musicSearch.submitSearch() }
                 )
             }
             .padding(.horizontal, 18)
@@ -67,6 +102,7 @@ struct ContentView: View {
                     }
                     .id(player.nowPlayingPresentationID)
                     .environmentObject(player)
+                    .environmentObject(sourceLibrary)
                     .transition(.asymmetric(
                         insertion: .identity,
                         removal: .scale(scale: 0.95, anchor: .center).combined(with: .opacity)

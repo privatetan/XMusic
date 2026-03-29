@@ -15,7 +15,6 @@ import AppKit
 #endif
 
 enum AppTab: String, CaseIterable, Identifiable {
-    case listenNow
     case browse
     case radio
     case settings
@@ -24,13 +23,11 @@ enum AppTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     static var mainNavigationTabs: [AppTab] {
-        [.listenNow, .browse, .radio, .settings]
+        [.browse, .radio, .settings]
     }
 
     var title: String {
         switch self {
-        case .listenNow:
-            return "现在听"
         case .browse:
             return "资料库"
         case .radio:
@@ -44,8 +41,6 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .listenNow:
-            return "play.square.stack.fill"
         case .browse:
             return "play.square.stack"
         case .radio:

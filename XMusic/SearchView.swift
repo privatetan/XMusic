@@ -17,6 +17,7 @@ struct SearchView: View {
     @State private var isDebugPanelExpanded = true
     @State private var playbackDebugInfo: PlaybackDebugInfo?
     @State private var playlistDraftSession: SearchPlaylistDraftSession?
+    @State private var isEditingHistory = false
     private let isPlaybackDebugCardVisible = false
     private let isSearchDebugPanelVisible = false
 
@@ -54,10 +55,22 @@ struct SearchView: View {
 
                 if musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
-                        SectionHeading(
-                            title: "搜索记录",
-                            subtitle: musicSearch.searchHistory.isEmpty ? "你搜过的关键词会出现在这里" : "点一下就能重新搜索"
-                        )
+                        HStack(alignment: .firstTextBaseline) {
+                            SectionHeading(
+                                title: "搜索记录",
+                                subtitle: musicSearch.searchHistory.isEmpty ? "你搜过的关键词会出现在这里" : (isEditingHistory ? "点 × 删除单条记录" : "点一下就能重新搜索")
+                            )
+                            Spacer()
+                            if !musicSearch.searchHistory.isEmpty {
+                                Button(isEditingHistory ? "完成" : "编辑") {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        isEditingHistory.toggle()
+                                    }
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Color.white.opacity(0.55))
+                            }
+                        }
 
                         if musicSearch.searchHistory.isEmpty {
                             Text("还没有搜索记录。输入关键词后，搜索记录会自动保存在这里。")
@@ -71,9 +84,16 @@ struct SearchView: View {
                                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                                 )
                         } else {
-                            FlexibleTags(items: musicSearch.searchHistory) { keyword in
+                            FlexibleTags(items: musicSearch.searchHistory, isEditing: isEditingHistory) { keyword in
                                 musicSearch.query = keyword
                                 musicSearch.reload(allowedSources: searchableSources)
+                            } onDelete: { keyword in
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    musicSearch.removeSearchHistory(keyword)
+                                    if musicSearch.searchHistory.isEmpty {
+                                        isEditingHistory = false
+                                    }
+                                }
                             }
                         }
                     }
@@ -204,8 +224,11 @@ struct SearchView: View {
                 actionMessage = "已创建自定义歌单。"
             }
         }
-        .onChange(of: musicSearch.query) { _ in
+        .onChange(of: musicSearch.query) { newValue in
             musicSearch.scheduleSearch(allowedSources: searchableSources)
+            if !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                isEditingHistory = false
+            }
         }
     }
 
@@ -719,24 +742,44 @@ private struct SearchDebugRow: View {
 
 private struct FlexibleTags: View {
     let items: [String]
+    var isEditing: Bool = false
     let action: (String) -> Void
+    var onDelete: ((String) -> Void)? = nil
     private let columns = [GridItem(.adaptive(minimum: 96), spacing: 10)]
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
             ForEach(items, id: \.self) { item in
-                Button(item) {
-                    action(item)
+                ZStack(alignment: .topTrailing) {
+                    Button(item) {
+                        if !isEditing { action(item) }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.subheadline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.08), in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+
+                    if isEditing {
+                        Button {
+                            onDelete?(item)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Color.white)
+                                .background(Color(white: 0.15), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .offset(x: 6, y: -6)
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.white.opacity(0.08), in: Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-                .foregroundStyle(.white)
+                .animation(.easeInOut(duration: 0.15), value: isEditing)
             }
         }
     }

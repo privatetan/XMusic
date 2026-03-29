@@ -80,6 +80,11 @@ final class MusicLibraryViewModel: ObservableObject {
         add(Track.searchResultTrack(from: searchSong))
     }
 
+    func remove(_ track: Track) {
+        storedTracks.removeAll { $0.id == track.storageKey }
+        persist()
+    }
+
     private func load() {
         storedTracks = store.load().filter { $0.track.track.searchSong != nil }
         store.save(storedTracks)

@@ -27,6 +27,7 @@ final class MusicSearchViewModel: ObservableObject {
     private var cache: [String: SearchResponseBundle] = [:]
     private var latestSearchToken = UUID()
     private var searchTask: Task<Void, Never>?
+    private var lastAllowedSources: [SearchPlatformSource] = []
 
     init() {
         loadSearchHistory()
@@ -36,7 +37,12 @@ final class MusicSearchViewModel: ObservableObject {
         !results.isEmpty && currentPage < maxPage && !isLoading && !isLoadingMore
     }
 
+    func submitSearch() {
+        reload(allowedSources: lastAllowedSources)
+    }
+
     func scheduleSearch(allowedSources: [SearchPlatformSource]) {
+        lastAllowedSources = allowedSources
         searchTask?.cancel()
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -50,11 +56,12 @@ final class MusicSearchViewModel: ObservableObject {
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 350_000_000)
             guard !Task.isCancelled else { return }
-            await search(isReset: true, allowedSources: allowedSources, token: token)
+            await search(isReset: true, recordHistory: false, allowedSources: allowedSources, token: token)
         }
     }
 
     func reload(allowedSources: [SearchPlatformSource]) {
+        lastAllowedSources = allowedSources
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             reset()
@@ -64,7 +71,7 @@ final class MusicSearchViewModel: ObservableObject {
         let token = UUID()
         latestSearchToken = token
         Task {
-            await search(isReset: true, allowedSources: allowedSources, token: token)
+            await search(isReset: true, recordHistory: true, allowedSources: allowedSources, token: token)
         }
     }
 
@@ -72,13 +79,19 @@ final class MusicSearchViewModel: ObservableObject {
         guard canLoadMore else { return }
         let token = latestSearchToken
         Task {
-            await search(isReset: false, allowedSources: allowedSources, token: token)
+            await search(isReset: false, recordHistory: false, allowedSources: allowedSources, token: token)
         }
     }
 
     func clearSearchHistory() {
         searchHistory = []
         UserDefaults.standard.removeObject(forKey: historyKey)
+    }
+
+    func removeSearchHistory(_ keyword: String) {
+        let next = searchHistory.filter { $0 != keyword }
+        searchHistory = next
+        UserDefaults.standard.set(next, forKey: historyKey)
     }
 
     func reset() {
@@ -91,14 +104,14 @@ final class MusicSearchViewModel: ObservableObject {
         isLoadingMore = false
     }
 
-    private func search(isReset: Bool, allowedSources: [SearchPlatformSource], token: UUID) async {
+    private func search(isReset: Bool, recordHistory: Bool, allowedSources: [SearchPlatformSource], token: UUID) async {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             reset()
             return
         }
 
-        if isReset {
+        if isReset && recordHistory {
             recordSearchHistory(trimmed)
         }
 

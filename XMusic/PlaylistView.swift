@@ -49,7 +49,7 @@ private struct CustomPlaylistEditorSession: Identifiable {
 }
 
 #if canImport(UIKit)
-private struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable {
+struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable {
     let backgroundColor: UIColor
     let foregroundColor: UIColor
     let shadowColor: UIColor?
@@ -67,9 +67,14 @@ private struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable 
     }
 
     final class Controller: UIViewController {
-        private var backgroundColor: UIColor = .white
-        private var foregroundColor: UIColor = .black
+        private var backgroundColor: UIColor = UIColor(red: 0.07, green: 0.07, blue: 0.12, alpha: 1)
+        private var foregroundColor: UIColor = .white
         private var shadowColor: UIColor?
+
+        override func viewDidLoad() {
+            super.viewDidLoad()
+            updateAppearance()
+        }
 
         override func viewWillAppear(_ animated: Bool) {
             super.viewWillAppear(animated)
@@ -92,16 +97,16 @@ private struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable 
             guard let navigationBar = navigationController?.navigationBar else { return }
 
             let appearance = UINavigationBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = backgroundColor
-            appearance.shadowColor = shadowColor
+            appearance.configureWithTransparentBackground()
+            appearance.backgroundColor = .clear
+            appearance.shadowColor = .clear
             appearance.titleTextAttributes = [.foregroundColor: foregroundColor]
 
             navigationBar.standardAppearance = appearance
             navigationBar.scrollEdgeAppearance = appearance
             navigationBar.compactAppearance = appearance
             navigationBar.tintColor = foregroundColor
-            navigationBar.isTranslucent = false
+            navigationBar.isTranslucent = true
         }
     }
 }
@@ -900,7 +905,7 @@ private struct CompactPlaylistMetricChip: View {
     }
 }
 
-private struct PlaylistDetailPage: View {
+struct PlaylistDetailPage: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var library: MusicLibraryViewModel
@@ -916,7 +921,7 @@ private struct PlaylistDetailPage: View {
 
     var body: some View {
         ZStack {
-            Color.white
+            AppBackground()
                 .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
@@ -935,7 +940,7 @@ private struct PlaylistDetailPage: View {
                             VStack(spacing: 8) {
                                 Text(playlist.title)
                                     .font(.system(size: 31, weight: .bold, design: .rounded))
-                                    .foregroundStyle(Color.black)
+                                    .foregroundStyle(Color.white)
                                     .multilineTextAlignment(.center)
                                     .lineLimit(3)
 
@@ -946,7 +951,7 @@ private struct PlaylistDetailPage: View {
 
                                 Text(subtitleText(for: playlist))
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.black.opacity(0.46))
+                                    .foregroundStyle(Color.white.opacity(0.46))
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: 320)
@@ -986,7 +991,7 @@ private struct PlaylistDetailPage: View {
                                     .tint(accentColor)
                                 Text("正在加载歌单曲目…")
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.black.opacity(0.52))
+                                    .foregroundStyle(Color.white.opacity(0.52))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
@@ -994,11 +999,11 @@ private struct PlaylistDetailPage: View {
                             VStack(spacing: 10) {
                                 Image(systemName: "music.note.list")
                                     .font(.title2)
-                                    .foregroundStyle(Color.black.opacity(0.35))
+                                    .foregroundStyle(Color.white.opacity(0.35))
 
                                 Text("这张歌单暂时还没有可展示的曲目")
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.black.opacity(0.54))
+                                    .foregroundStyle(Color.white.opacity(0.54))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 28)
@@ -1040,15 +1045,16 @@ private struct PlaylistDetailPage: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.black.opacity(0.82))
-                        .frame(width: 32, height: 32)
+                        .foregroundStyle(Color.white.opacity(0.72))
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.10), in: Circle())
                 }
             }
 
             ToolbarItem(placement: .principal) {
                 Text(currentPlaylist?.title ?? "")
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.black)
+                    .foregroundStyle(Color.white)
                     .lineLimit(1)
                     .opacity(showsNavigationTitle ? 1 : 0)
             }
@@ -1126,12 +1132,12 @@ private struct PlaylistDetailPage: View {
                 showsNavigationTitle = nextValue
             }
         }
-        .preferredColorScheme(ColorScheme.light)
+        .preferredColorScheme(ColorScheme.dark)
 #if canImport(UIKit)
         .background(
             PlaylistNavigationBarConfigurator(
-                backgroundColor: .white,
-                foregroundColor: .black,
+                backgroundColor: UIColor(red: 0.07, green: 0.07, blue: 0.12, alpha: 1),
+                foregroundColor: .white,
                 shadowColor: .clear
             )
         )
@@ -1162,9 +1168,9 @@ private struct PlaylistDetailPage: View {
     private func detailToolbarIcon(_ systemImage: String) -> some View {
         Image(systemName: systemImage)
             .font(.body.weight(.semibold))
-            .foregroundStyle(Color.black.opacity(0.72))
+            .foregroundStyle(Color.white.opacity(0.72))
             .frame(width: 34, height: 34)
-            .background(Color.black.opacity(0.05), in: Circle())
+            .background(Color.white.opacity(0.10), in: Circle())
     }
 
     @MainActor
@@ -1207,7 +1213,7 @@ private struct PlaylistDetailActionButton: View {
                 .foregroundStyle(tint)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color(red: 0.95, green: 0.95, blue: 0.96), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -1233,12 +1239,12 @@ private struct PlaylistDetailTrackRow: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(track.title)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(Color.black)
+                        .foregroundStyle(Color.white)
                         .lineLimit(1)
 
                     Text(track.artist)
                         .font(.subheadline)
-                        .foregroundStyle(Color.black.opacity(0.52))
+                        .foregroundStyle(Color.white.opacity(0.52))
                         .lineLimit(1)
                 }
 
@@ -1246,11 +1252,11 @@ private struct PlaylistDetailTrackRow: View {
 
                 Text(index.formatted())
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.black.opacity(0.26))
+                    .foregroundStyle(Color.white.opacity(0.26))
 
                 Image(systemName: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "ellipsis")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(isCurrent ? accentColor : Color.black.opacity(0.55))
+                    .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
                     .frame(width: 20)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1562,6 +1568,7 @@ private struct PlaylistCoverView: View {
 struct PlaylistView_Preview: View {
     @Namespace var animation
     @StateObject var player: MusicPlayerViewModel
+    @StateObject var sourceLibrary = MusicSourceLibrary()
 
     init() {
         let p = MusicPlayerViewModel()
@@ -1587,6 +1594,7 @@ struct PlaylistView_Preview: View {
         InlineNowPlayingPanel(animation: animation) {
         }
         .environmentObject(player)
+        .environmentObject(sourceLibrary)
     }
 }
 
