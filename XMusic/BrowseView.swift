@@ -96,29 +96,16 @@ struct BrowseView: View {
                 BrowseLibraryEmptyCard()
                     .padding(.horizontal, 20)
             } else {
-                GeometryReader { geo in
-                    let cardSize = (geo.size.width - 20 * 2 - 14) / 2
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(alignment: .top, spacing: 14) {
-                            ForEach(stride(from: 0, to: min(library.savedTracks.count, 20), by: 2).map { $0 }, id: \.self) { i in
-                                VStack(spacing: 14) {
-                                    RecentlyAddedCard(track: library.savedTracks[i], size: cardSize) {
-                                        player.play(library.savedTracks[i], from: library.savedTracks)
-                                    }
-                                    if i + 1 < library.savedTracks.count {
-                                        RecentlyAddedCard(track: library.savedTracks[i + 1], size: cardSize) {
-                                            player.play(library.savedTracks[i + 1], from: library.savedTracks)
-                                        }
-                                    }
-                                }
-                                .frame(width: cardSize)
-                            }
+                let tracks = Array(library.savedTracks.prefix(20))
+                let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
+                    ForEach(tracks) { track in
+                        RecentlyAddedCard(track: track) {
+                            player.play(track, from: library.savedTracks)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 4)
                     }
                 }
-                .frame(height: recentlyAddedHeight)
+                .padding(.horizontal, 20)
             }
         }
     }
@@ -172,14 +159,16 @@ private struct LibraryCategoryRow: View {
 
 private struct RecentlyAddedCard: View {
     let track: Track
-    let size: CGFloat
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
-                ArtworkView(track: track, cornerRadius: 10, iconSize: 18)
-                    .frame(width: size, height: size)
+                GeometryReader { geo in
+                    ArtworkView(track: track, cornerRadius: 10, iconSize: 18)
+                        .frame(width: geo.size.width, height: geo.size.width)
+                }
+                .aspectRatio(1, contentMode: .fit)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(track.title)
@@ -193,7 +182,6 @@ private struct RecentlyAddedCard: View {
                         .lineLimit(1)
                 }
             }
-            .frame(width: size)
         }
         .buttonStyle(.plain)
     }

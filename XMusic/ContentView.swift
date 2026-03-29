@@ -68,6 +68,11 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.28), value: showBrowseSongs)
         .animation(.easeInOut(duration: 0.28), value: showBrowsePlaylists)
         .animation(.easeInOut(duration: 0.28), value: showBrowseCached)
+        .onChange(of: player.selectedTab) { _ in
+            showBrowseSongs = false
+            showBrowsePlaylists = false
+            showBrowseCached = false
+        }
         .preferredColorScheme(.dark)
         .onAppear {
             installSearchPlaybackResolver()

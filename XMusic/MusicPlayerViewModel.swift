@@ -578,8 +578,10 @@ final class MusicPlayerViewModel: ObservableObject {
     }
 
     private func registerCachedTrackIfNeeded(_ track: Track) {
-        guard let audioURL = track.audioURL, audioURL.isFileURL else { return }
-        guard FileManager.default.fileExists(atPath: audioURL.path) else { return }
+        guard let audioURL = track.audioURL else { return }
+        if audioURL.isFileURL {
+            guard FileManager.default.fileExists(atPath: audioURL.path) else { return }
+        }
 
         let key = cachedTrackKey(for: track)
         cachedTracks.removeAll { cachedTrackKey(for: $0) == key }
@@ -589,8 +591,11 @@ final class MusicPlayerViewModel: ObservableObject {
 
     private func playableCachedTracks() -> [Track] {
         let filtered = cachedTracks.filter { track in
-            guard let audioURL = track.audioURL, audioURL.isFileURL else { return false }
-            return FileManager.default.fileExists(atPath: audioURL.path)
+            guard let audioURL = track.audioURL else { return false }
+            if audioURL.isFileURL {
+                return FileManager.default.fileExists(atPath: audioURL.path)
+            }
+            return true
         }
 
         if filtered.count != cachedTracks.count {
@@ -611,6 +616,12 @@ final class MusicPlayerViewModel: ObservableObject {
         return "meta:\(track.title)|\(track.artist)|\(track.album)"
     }
 
+    func removeCachedTrack(_ track: Track) {
+        let key = cachedTrackKey(for: track)
+        cachedTracks.removeAll { cachedTrackKey(for: $0) == key }
+        persistCachedTracks()
+    }
+
     private func persistCachedTracks() {
         let snapshots = cachedTracks.map(PersistedTrack.init)
         guard let data = try? JSONEncoder().encode(snapshots) else { return }
@@ -626,8 +637,11 @@ final class MusicPlayerViewModel: ObservableObject {
         return snapshots
             .map(\.track)
             .filter { track in
-                guard let audioURL = track.audioURL, audioURL.isFileURL else { return false }
-                return FileManager.default.fileExists(atPath: audioURL.path)
+                guard let audioURL = track.audioURL else { return false }
+                if audioURL.isFileURL {
+                    return FileManager.default.fileExists(atPath: audioURL.path)
+                }
+                return true
             }
     }
 }
