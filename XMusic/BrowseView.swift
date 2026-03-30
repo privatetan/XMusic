@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 // MARK: - BrowseView
 
@@ -36,6 +37,13 @@ struct BrowseView: View {
                 Spacer(minLength: 80)
             }
         }
+    }
+
+    private var cachedTrackCount: Int {
+        mergedCachedTracks(
+            playerTracks: player.cachedTracks,
+            cachedFiles: sourceLibrary.cachedMediaFiles
+        ).count
     }
 
     private var recentlyAddedHeight: CGFloat {
@@ -77,7 +85,7 @@ struct BrowseView: View {
                 symbol: "arrow.down.circle.fill",
                 symbolColor: Color(red: 0.20, green: 0.78, blue: 0.55),
                 title: "已缓存",
-                count: player.cachedTracks.count
+                count: cachedTrackCount
             ) {
                 withAnimation(.easeInOut(duration: 0.28)) { showingCached = true }
             }
@@ -322,6 +330,7 @@ struct AllPlaylistsSheet: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     var onDismiss: () -> Void
+    @State private var isCreatingPlaylist = false
 
     var body: some View {
         NavigationView {
@@ -339,18 +348,32 @@ struct AllPlaylistsSheet: View {
                                 .background(Color.white.opacity(0.10), in: Circle())
                         }
                         .buttonStyle(.plain)
+
                         Spacer()
+
+                        Button {
+                            isCreatingPlaylist = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Color.white.opacity(0.88))
+                                .frame(width: 34, height: 34)
+                                .background(Color.white.opacity(0.10), in: Circle())
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
                     .padding(.bottom, 4)
 
-                    Text("歌单")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
+                    HStack(alignment: .center, spacing: 12) {
+                        Text("歌单")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.white)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
 
                     if playlistModel.customPlaylists.isEmpty {
                         Spacer()
@@ -404,6 +427,14 @@ struct AllPlaylistsSheet: View {
             #endif
         }
         .navigationViewStyle(.stack)
+        .sheet(isPresented: $isCreatingPlaylist) {
+            PlaylistCustomEditorSheet(
+                draft: playlistModel.draftForNewCustomPlaylist(libraryTracks: library.savedTracks),
+                isEditing: false
+            ) { draft in
+                playlistModel.saveCustomPlaylist(draft)
+            }
+        }
     }
 }
 
@@ -411,12 +442,19 @@ struct AllPlaylistsSheet: View {
 
 struct CachedSongsSheet: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
+    @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     var onDismiss: () -> Void
 
     @State private var searchText = ""
+    @State private var trackPendingRemoval: Track?
     @FocusState private var searchFocused: Bool
 
-    private var tracks: [Track] { player.cachedTracks.reversed() }
+    private var tracks: [Track] {
+        mergedCachedTracks(
+            playerTracks: player.cachedTracks,
+            cachedFiles: sourceLibrary.cachedMediaFiles
+        )
+    }
 
     private var filteredTracks: [Track] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -507,7 +545,10 @@ struct CachedSongsSheet: View {
                                 SheetSongRow(
                                     track: track,
                                     isCurrent: player.currentTrack?.id == track.id,
-                                    isPlaying: player.isPlaying
+                                    isPlaying: player.isPlaying,
+                                    onRemove: {
+                                        trackPendingRemoval = track
+                                    }
                                 ) {
                                     player.play(track, from: filteredTracks)
                                 }
@@ -526,6 +567,130 @@ struct CachedSongsSheet: View {
                 }
             }
         }
+        .confirmationDialog(
+            "删除这份缓存？",
+            isPresented: Binding(
+                get: { trackPendingRemoval != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        trackPendingRemoval = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("删除", role: .destructive) {
+                guard let track = trackPendingRemoval else { return }
+                removeCachedTrack(track)
+                trackPendingRemoval = nil
+            }
+            Button("取消", role: .cancel) {
+                trackPendingRemoval = nil
+            }
+        } message: {
+            if let trackPendingRemoval {
+                Text("“\(trackPendingRemoval.title)” 的本地缓存文件会被移除。")
+            }
+        }
+    }
+
+    private func removeCachedTrack(_ track: Track) {
+        player.removeCachedTrack(track)
+
+        guard let audioURL = track.audioURL, audioURL.isFileURL else { return }
+        do {
+            try sourceLibrary.removeCachedMediaFile(at: audioURL)
+        } catch {
+            #if DEBUG
+            print("[cache] Failed to remove cached media file: \(error)")
+            #endif
+        }
+    }
+}
+
+private func mergedCachedTracks(
+    playerTracks: [Track],
+    cachedFiles: [CachedMediaFile]
+) -> [Track] {
+    var merged = Array(playerTracks.reversed())
+    let existingLocalPaths: Set<String> = Set(
+        merged.compactMap { track in
+            guard let audioURL = track.audioURL, audioURL.isFileURL else { return nil }
+            return audioURL.standardizedFileURL.path
+        }
+    )
+
+    let fallbackTracks = cachedFiles.compactMap { file -> Track? in
+        let normalizedPath = file.localURL.standardizedFileURL.path
+        guard !existingLocalPaths.contains(normalizedPath) else { return nil }
+        return cachedMediaPlaceholderTrack(from: file)
+    }
+
+    merged.append(contentsOf: fallbackTracks)
+    return merged
+}
+
+private func cachedMediaPlaceholderTrack(from file: CachedMediaFile) -> Track {
+    let assetMetadata = cachedAudioMetadata(from: file.localURL)
+    let baseName = URL(fileURLWithPath: file.fileName).deletingPathExtension().lastPathComponent
+    let inferredTitle = file.title?.nilIfBlank
+        ?? assetMetadata.title?.nilIfBlank
+        ?? (baseName.isEmpty ? "缓存音频" : baseName)
+    let inferredArtist = file.artist?.nilIfBlank
+        ?? assetMetadata.artist?.nilIfBlank
+        ?? file.originalURL?.host?.replacingOccurrences(of: "www.", with: "")
+        ?? "媒体缓存"
+    let inferredAlbum = file.album?.nilIfBlank
+        ?? assetMetadata.album?.nilIfBlank
+        ?? "本地缓存"
+
+    return Track(
+        title: inferredTitle,
+        artist: inferredArtist,
+        album: inferredAlbum,
+        blurb: file.originalURL?.absoluteString ?? "本地媒体缓存文件",
+        genre: "Cache",
+        duration: 0,
+        audioURL: file.localURL,
+        artwork: ArtworkPalette(
+            colors: [Color(red: 0.23, green: 0.56, blue: 0.42), Color(red: 0.09, green: 0.18, blue: 0.16)],
+            glow: Color(red: 0.34, green: 0.86, blue: 0.62),
+            symbol: "arrow.down.circle.fill",
+            label: "Cache"
+        ),
+        sourceName: file.sourceName?.nilIfBlank ?? "媒体缓存"
+    )
+}
+
+private struct CachedAudioMetadata {
+    let title: String?
+    let artist: String?
+    let album: String?
+}
+
+private func cachedAudioMetadata(from url: URL) -> CachedAudioMetadata {
+    let asset = AVURLAsset(url: url)
+    let metadata = asset.commonMetadata
+
+    func value(for identifier: AVMetadataIdentifier) -> String? {
+        metadata
+            .first(where: { $0.identifier == identifier })?
+            .stringValue?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfBlank
+    }
+
+    return CachedAudioMetadata(
+        title: value(for: .commonIdentifierTitle),
+        artist: value(for: .commonIdentifierArtist),
+        album: value(for: .commonIdentifierAlbumName)
+    )
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -639,46 +804,59 @@ private struct SheetSongRow: View {
     let track: Track
     let isCurrent: Bool
     let isPlaying: Bool
+    let onRemove: () -> Void
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                ArtworkView(track: track, cornerRadius: 10, iconSize: 16)
-                    .frame(width: 50, height: 50)
-                    .overlay(alignment: .bottomTrailing) {
-                        if isCurrent {
-                            Image(systemName: isPlaying ? "waveform" : "pause.fill")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(4)
-                                .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                .padding(3)
+        HStack(spacing: 12) {
+            Button(action: action) {
+                HStack(spacing: 12) {
+                    ArtworkView(track: track, cornerRadius: 10, iconSize: 16)
+                        .frame(width: 50, height: 50)
+                        .overlay(alignment: .bottomTrailing) {
+                            if isCurrent {
+                                Image(systemName: isPlaying ? "waveform" : "pause.fill")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(4)
+                                    .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                    .padding(3)
+                            }
                         }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(track.title)
+                            .font(.body)
+                            .foregroundStyle(isCurrent ? Color(red: 0.50, green: 0.52, blue: 1.0) : .white)
+                            .lineLimit(1)
+
+                        Text(track.artist)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.white.opacity(0.5))
+                            .lineLimit(1)
                     }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(track.title)
-                        .font(.body)
-                        .foregroundStyle(isCurrent ? Color(red: 0.50, green: 0.52, blue: 1.0) : .white)
-                        .lineLimit(1)
-
-                    Text(track.artist)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.5))
-                        .lineLimit(1)
+                    Spacer()
                 }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
-                Spacer()
-
+            Menu {
+                Button(role: .destructive) {
+                    onRemove()
+                } label: {
+                    Label("删除缓存", systemImage: "trash")
+                }
+            } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.3))
+                    .frame(width: 36, height: 44)
             }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 }
 

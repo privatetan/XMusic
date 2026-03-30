@@ -14,6 +14,13 @@ private enum MusicSourceLibraryStorageKey {
     static let defaultPlaybackQuality = "XMusic.DefaultPlaybackQuality"
 }
 
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 private struct CachedMusicURLResolution {
     let url: URL
     let createdAt: Date
@@ -25,6 +32,24 @@ private struct MediaCacheEntry: Codable {
     let createdAt: Date
     var lastAccessedAt: Date
     var fileSize: Int64
+    var title: String?
+    var artist: String?
+    var album: String?
+    var sourceName: String?
+}
+
+struct CachedMediaFile: Identifiable {
+    let id: String
+    let originalURL: URL?
+    let localURL: URL
+    let fileName: String
+    let fileSize: Int64
+    let createdAt: Date
+    let lastAccessedAt: Date
+    let title: String?
+    let artist: String?
+    let album: String?
+    let sourceName: String?
 }
 
 @MainActor
@@ -90,6 +115,27 @@ final class MusicSourceLibrary: ObservableObject {
     var activeSource: ImportedMusicSource? {
         guard let activeSourceID else { return nil }
         return sources.first { $0.id == activeSourceID }
+    }
+
+    var cachedMediaFiles: [CachedMediaFile] {
+        mediaCacheIndex.values.compactMap { entry in
+            let localURL = mediaCacheDirectoryURL.appendingPathComponent(entry.fileName, isDirectory: false)
+            guard FileManager.default.fileExists(atPath: localURL.path) else { return nil }
+            return CachedMediaFile(
+                id: entry.originalURL,
+                originalURL: URL(string: entry.originalURL),
+                localURL: localURL,
+                fileName: entry.fileName,
+                fileSize: entry.fileSize,
+                createdAt: entry.createdAt,
+                lastAccessedAt: entry.lastAccessedAt,
+                title: entry.title,
+                artist: entry.artist,
+                album: entry.album,
+                sourceName: entry.sourceName
+            )
+        }
+        .sorted { $0.lastAccessedAt > $1.lastAccessedAt }
     }
 
     func preferredPlaybackQuality(for song: SearchSong) -> String {
@@ -346,6 +392,10 @@ final class MusicSourceLibrary: ObservableObject {
                     let note = quality == requestedQuality ? nil : "原请求音质 \(requestedQuality) 失败，已自动降级到 \(quality)。"
                     let debugInfo = try await preparePlayableURLWithDebug(
                         from: resolved.url,
+                        title: song.title,
+                        artist: song.artist,
+                        album: song.album,
+                        sourceName: source.name,
                         requestedSource: requestedSource,
                         resolvedSource: requestedSource,
                         requestedQuality: requestedQuality,
@@ -483,6 +533,10 @@ final class MusicSourceLibrary: ObservableObject {
                     )
                     let debugInfo = try await preparePlayableURLWithDebug(
                         from: resolved.url,
+                        title: candidate.title,
+                        artist: candidate.artist,
+                        album: candidate.album,
+                        sourceName: source.name,
                         requestedSource: requestedSource,
                         resolvedSource: resolvedSource,
                         requestedQuality: requestedQuality,
@@ -554,7 +608,13 @@ final class MusicSourceLibrary: ObservableObject {
         ).url
     }
 
-    func preparePlayableURL(from remoteURL: URL) async throws -> URL {
+    func preparePlayableURL(
+        from remoteURL: URL,
+        title: String? = nil,
+        artist: String? = nil,
+        album: String? = nil,
+        sourceName: String? = nil
+    ) async throws -> URL {
         guard !remoteURL.isFileURL else { return remoteURL }
         guard let scheme = remoteURL.scheme?.lowercased(),
               ["http", "https"].contains(scheme) else { return remoteURL }
@@ -569,7 +629,14 @@ final class MusicSourceLibrary: ObservableObject {
         let fileName = "\(sha1(remoteURL.absoluteString)).\(fileExtension)"
         let destinationURL = mediaCacheDirectoryURL.appendingPathComponent(fileName, isDirectory: false)
         if FileManager.default.fileExists(atPath: destinationURL.path) {
-            touchMediaCacheEntry(for: remoteURL, localURL: destinationURL)
+            touchMediaCacheEntry(
+                for: remoteURL,
+                localURL: destinationURL,
+                title: title,
+                artist: artist,
+                album: album,
+                sourceName: sourceName
+            )
             return destinationURL
         }
 
@@ -577,7 +644,14 @@ final class MusicSourceLibrary: ObservableObject {
         for candidateURL in playableURLCandidates(for: remoteURL) {
             do {
                 try await downloadPlayableMedia(from: candidateURL, to: destinationURL)
-                touchMediaCacheEntry(for: remoteURL, localURL: destinationURL)
+                touchMediaCacheEntry(
+                    for: remoteURL,
+                    localURL: destinationURL,
+                    title: title,
+                    artist: artist,
+                    album: album,
+                    sourceName: sourceName
+                )
                 return destinationURL
             } catch {
                 lastError = error
@@ -606,6 +680,10 @@ final class MusicSourceLibrary: ObservableObject {
 
     func preparePlayableURLWithDebug(
         from remoteURL: URL,
+        title: String? = nil,
+        artist: String? = nil,
+        album: String? = nil,
+        sourceName: String? = nil,
         requestedSource: String?,
         resolvedSource: String?,
         requestedQuality: String?,
@@ -618,7 +696,13 @@ final class MusicSourceLibrary: ObservableObject {
         fieldChecks: [PlaybackFieldCheck],
         requestTrace: [String]
     ) async throws -> PlaybackDebugInfo {
-        let preparedURL = try await preparePlayableURL(from: remoteURL)
+        let preparedURL = try await preparePlayableURL(
+            from: remoteURL,
+            title: title,
+            artist: artist,
+            album: album,
+            sourceName: sourceName
+        )
         let isLocal = preparedURL.isFileURL
         let localPath = isLocal ? preparedURL.path : nil
         let fileExists = localPath.map(FileManager.default.fileExists(atPath:)) ?? false
@@ -883,6 +967,33 @@ final class MusicSourceLibrary: ObservableObject {
         mediaCacheSummary = .empty
     }
 
+    func removeCachedMediaFile(at localURL: URL) throws {
+        let normalizedPath = localURL.standardizedFileURL.path
+        let fileName = localURL.lastPathComponent
+
+        if FileManager.default.fileExists(atPath: normalizedPath) {
+            try FileManager.default.removeItem(at: URL(fileURLWithPath: normalizedPath))
+        }
+
+        mediaCacheIndex = mediaCacheIndex.reduce(into: [:]) { partialResult, item in
+            let indexedURL = mediaCacheDirectoryURL
+                .appendingPathComponent(item.value.fileName, isDirectory: false)
+                .standardizedFileURL
+            guard indexedURL.path != normalizedPath, item.value.fileName != fileName else { return }
+            partialResult[item.key] = item.value
+        }
+
+        do {
+            try persistMediaCacheIndex()
+        } catch {
+            #if DEBUG
+            print("[cache] Failed to persist media cache removal: \(error)")
+            #endif
+        }
+
+        refreshMediaCacheSummaryFromIndex()
+    }
+
     private func persist() throws {
         let directory = storageURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
@@ -918,17 +1029,29 @@ final class MusicSourceLibrary: ObservableObject {
         try data.write(to: mediaCacheIndexURL, options: .atomic)
     }
 
-    private func touchMediaCacheEntry(for remoteURL: URL, localURL: URL) {
+    private func touchMediaCacheEntry(
+        for remoteURL: URL,
+        localURL: URL,
+        title: String? = nil,
+        artist: String? = nil,
+        album: String? = nil,
+        sourceName: String? = nil
+    ) {
         let fileName = localURL.lastPathComponent
         let size = mediaFileSize(at: localURL)
         let key = remoteURL.absoluteString
         let existingCreatedAt = mediaCacheIndex[key]?.createdAt ?? .now
+        let existingEntry = mediaCacheIndex[key]
         mediaCacheIndex[key] = MediaCacheEntry(
             originalURL: key,
             fileName: fileName,
             createdAt: existingCreatedAt,
             lastAccessedAt: .now,
-            fileSize: size
+            fileSize: size,
+            title: title?.nilIfBlank ?? existingEntry?.title,
+            artist: artist?.nilIfBlank ?? existingEntry?.artist,
+            album: album?.nilIfBlank ?? existingEntry?.album,
+            sourceName: sourceName?.nilIfBlank ?? existingEntry?.sourceName
         )
 
         do {

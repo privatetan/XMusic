@@ -61,6 +61,7 @@ struct ContentView: View {
             if showBrowseCached {
                 CachedSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseCached = false } })
                     .environmentObject(player)
+                    .environmentObject(sourceLibrary)
                     .transition(.move(edge: .trailing))
                     .zIndex(10)
             }
