@@ -86,8 +86,18 @@ enum MusicSourceParser {
     }
 
     static func readScript(from data: Data) throws -> String {
+        if data.starts(with: [0xFF, 0xFE]),
+           let content = decodeScript(data, using: .utf16LittleEndian) {
+            return content
+        }
+
+        if data.starts(with: [0xFE, 0xFF]),
+           let content = decodeScript(data, using: .utf16BigEndian) {
+            return content
+        }
+
         for encoding in candidateEncodings {
-            if let content = String(data: data, encoding: encoding) {
+            if let content = decodeScript(data, using: encoding) {
                 return content
             }
         }
@@ -98,11 +108,24 @@ enum MusicSourceParser {
     private static var candidateEncodings: [String.Encoding] {
         return [
             .utf8,
-            .unicode,
-            .utf16,
             .utf16LittleEndian,
             .utf16BigEndian,
+            .unicode,
+            .utf16,
         ]
+    }
+
+    private static func decodeScript(_ data: Data, using encoding: String.Encoding) -> String? {
+        guard var content = String(data: data, encoding: encoding),
+              !content.contains("\u{0}") else {
+            return nil
+        }
+
+        if content.first == "\u{FEFF}" {
+            content.removeFirst()
+        }
+
+        return content
     }
 
     private static func scriptRuntimeEnvironment(fileName: String?, script: String) -> String {

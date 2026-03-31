@@ -6,19 +6,51 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B481F07C5D02D3D706B10C18 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BE8203E822872A913E832902 /* XCTest.framework */; };
+		DB2515C77074DE8A6BCB7358 /* MusicSourceParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676428CF2732D2CD3FF7FC74 /* MusicSourceParserTests.swift */; };
+		F284337EA560BCFD6B955767 /* ModelBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */; };
+		F75FA82FD345FCF00E769504 /* LxLegacySongInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FD0FED5723F689B4A27FE36C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE1879AC2F6D3BE4006C7D16 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE1879B32F6D3BE4006C7D16;
+			remoteInfo = XMusic;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		000B599EC5B3D5EEB4439639 /* XMusicTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XMusicTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		676428CF2732D2CD3FF7FC74 /* MusicSourceParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MusicSourceParserTests.swift; sourceTree = "<group>"; };
+		99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LxLegacySongInfoTests.swift; sourceTree = "<group>"; };
+		BE8203E822872A913E832902 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		CE1879B42F6D3BE4006C7D16 /* XMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ModelBehaviorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CE1879B62F6D3BE4006C7D16 /* XMusic */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = XMusic;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		BFCC756FB9C33F48737476E2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B481F07C5D02D3D706B10C18 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE1879B12F6D3BE4006C7D16 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -29,11 +61,40 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2BAEB7BF15A43133168E141C /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				BE8203E822872A913E832902 /* XCTest.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		2FBBE0F179216226F9F77657 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2BAEB7BF15A43133168E141C /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8EA2B7681762A3B5DC2EC7A2 /* XMusicTests */ = {
+			isa = PBXGroup;
+			children = (
+				676428CF2732D2CD3FF7FC74 /* MusicSourceParserTests.swift */,
+				FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */,
+				99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */,
+			);
+			name = XMusicTests;
+			path = XMusicTests;
+			sourceTree = "<group>";
+		};
 		CE1879AB2F6D3BE4006C7D16 = {
 			isa = PBXGroup;
 			children = (
 				CE1879B62F6D3BE4006C7D16 /* XMusic */,
 				CE1879B52F6D3BE4006C7D16 /* Products */,
+				2FBBE0F179216226F9F77657 /* Frameworks */,
+				8EA2B7681762A3B5DC2EC7A2 /* XMusicTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -41,6 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				CE1879B42F6D3BE4006C7D16 /* XMusic.app */,
+				000B599EC5B3D5EEB4439639 /* XMusicTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,6 +110,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		22A40BFF259985B5183162FA /* XMusicTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A975870A2885B76675D4FCE1 /* Build configuration list for PBXNativeTarget "XMusicTests" */;
+			buildPhases = (
+				1D7452667AEA4E67C85E66A2 /* Sources */,
+				BFCC756FB9C33F48737476E2 /* Frameworks */,
+				F31A516171D2844237C77361 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4A538E432FC668444FBBCA74 /* PBXTargetDependency */,
+			);
+			name = XMusicTests;
+			productName = XMusicTests;
+			productReference = 000B599EC5B3D5EEB4439639 /* XMusicTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CE1879B32F6D3BE4006C7D16 /* XMusic */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CE1879BF2F6D3BE5006C7D16 /* Build configuration list for PBXNativeTarget "XMusic" */;
@@ -64,8 +144,6 @@
 				CE1879B62F6D3BE4006C7D16 /* XMusic */,
 			);
 			name = XMusic;
-			packageProductDependencies = (
-			);
 			productName = XMusic;
 			productReference = CE1879B42F6D3BE4006C7D16 /* XMusic.app */;
 			productType = "com.apple.product-type.application";
@@ -80,6 +158,10 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					22A40BFF259985B5183162FA = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = CE1879B32F6D3BE4006C7D16;
+					};
 					CE1879B32F6D3BE4006C7D16 = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -100,6 +182,7 @@
 			projectRoot = "";
 			targets = (
 				CE1879B32F6D3BE4006C7D16 /* XMusic */,
+				22A40BFF259985B5183162FA /* XMusicTests */,
 			);
 		};
 /* End PBXProject section */
@@ -112,9 +195,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F31A516171D2844237C77361 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1D7452667AEA4E67C85E66A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DB2515C77074DE8A6BCB7358 /* MusicSourceParserTests.swift in Sources */,
+				F284337EA560BCFD6B955767 /* ModelBehaviorTests.swift in Sources */,
+				F75FA82FD345FCF00E769504 /* LxLegacySongInfoTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE1879B02F6D3BE4006C7D16 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -124,7 +224,81 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		4A538E432FC668444FBBCA74 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = XMusic;
+			target = CE1879B32F6D3BE4006C7D16 /* XMusic */;
+			targetProxy = FD0FED5723F689B4A27FE36C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		12277922F42FB70752113565 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8WLSQGT392;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.galio.XMusicTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XMusic.app/XMusic";
+				TEST_TARGET_NAME = XMusic;
+			};
+			name = Debug;
+		};
+		9FDAB1A55A83372114AD17C5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8WLSQGT392;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.galio.XMusicTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XMusic.app/XMusic";
+				TEST_TARGET_NAME = XMusic;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		CE1879BD2F6D3BE5006C7D16 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -337,6 +511,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A975870A2885B76675D4FCE1 /* Build configuration list for PBXNativeTarget "XMusicTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9FDAB1A55A83372114AD17C5 /* Release */,
+				12277922F42FB70752113565 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CE1879AF2F6D3BE4006C7D16 /* Build configuration list for PBXProject "XMusic" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

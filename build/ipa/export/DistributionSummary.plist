@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>XMusic.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>1</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>6E9E90074A09BC63EABDDF988BB839D66CFACB09</string>
+				<key>dateExpires</key>
+				<string>2027/3/24</string>
+				<key>type</key>
+				<string>Apple Development</string>
+			</dict>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>8WLSQGT392.org.galio.XMusic</string>
+				<key>com.apple.developer.team-identifier</key>
+				<string>8WLSQGT392</string>
+				<key>get-task-allow</key>
+				<true/>
+			</dict>
+			<key>name</key>
+			<string>XMusic.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>72605a02-aae0-4b91-909b-9bf9a1b9b94a</string>
+				<key>dateExpires</key>
+				<string>2026/4/1</string>
+				<key>name</key>
+				<string>iOS Team Provisioning Profile: org.galio.XMusic</string>
+			</dict>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>8WLSQGT392</string>
+				<key>name</key>
+				<string></string>
+			</dict>
+			<key>versionNumber</key>
+			<string>1.0</string>
+		</dict>
+	</array>
+</dict>
+</plist>
