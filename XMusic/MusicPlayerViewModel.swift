@@ -199,8 +199,10 @@ final class MusicPlayerViewModel: ObservableObject {
 
     #if os(iOS)
     private var nowPlayingInfo: [String: Any] = [:]
-    private var cachedNowPlayingArtworkTrackID: UUID?
+    private var cachedNowPlayingArtworkKey: String?
     private var cachedNowPlayingArtwork: MPMediaItemArtwork?
+    private var nowPlayingArtworkLoadTask: Task<Void, Never>?
+    private var loadingNowPlayingArtworkURL: URL?
     private var systemVolumeObserver: NSKeyValueObservation?
     private weak var systemVolumeSlider: UISlider?
     #endif
@@ -232,6 +234,7 @@ final class MusicPlayerViewModel: ObservableObject {
 
         #if os(iOS)
         systemVolumeObserver?.invalidate()
+        nowPlayingArtworkLoadTask?.cancel()
         #endif
     }
 
@@ -791,10 +794,27 @@ private extension MusicPlayerViewModel {
 
     func nowPlayingArtwork(for track: Track) -> MPMediaItemArtwork? {
         #if os(iOS)
-        if cachedNowPlayingArtworkTrackID != track.id {
-            let image = makeArtworkImage(for: track)
-            cachedNowPlayingArtworkTrackID = track.id
-            cachedNowPlayingArtwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        let artworkURL = track.searchSong?.artworkURL
+        let artworkKey = nowPlayingArtworkCacheKey(for: track, artworkURL: artworkURL)
+
+        if cachedNowPlayingArtworkKey == artworkKey,
+           let cachedNowPlayingArtwork {
+            return cachedNowPlayingArtwork
+        }
+
+        if cachedNowPlayingArtworkKey != artworkKey {
+            cachedNowPlayingArtworkKey = artworkKey
+            cachedNowPlayingArtwork = nil
+            loadingNowPlayingArtworkURL = nil
+            nowPlayingArtworkLoadTask?.cancel()
+        }
+
+        if let artworkURL {
+            loadNowPlayingArtworkIfNeeded(from: artworkURL, for: track, artworkKey: artworkKey)
+        }
+
+        if cachedNowPlayingArtwork == nil {
+            cachedNowPlayingArtwork = mediaArtwork(from: makeArtworkImage(for: track))
         }
         return cachedNowPlayingArtwork
         #else
@@ -841,6 +861,45 @@ private extension MusicPlayerViewModel {
             let artist = NSString(string: track.artist)
             title.draw(in: CGRect(x: 42, y: 360, width: 428, height: 90), withAttributes: titleAttributes)
             artist.draw(in: CGRect(x: 42, y: 432, width: 428, height: 48), withAttributes: artistAttributes)
+        }
+    }
+
+    func nowPlayingArtworkCacheKey(for track: Track, artworkURL: URL?) -> String {
+        if let artworkURL {
+            return "\(track.id.uuidString)|\(artworkURL.absoluteString)"
+        }
+        return track.id.uuidString
+    }
+
+    func mediaArtwork(from image: UIImage) -> MPMediaItemArtwork {
+        MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+    }
+
+    func loadNowPlayingArtworkIfNeeded(from url: URL, for track: Track, artworkKey: String) {
+        guard loadingNowPlayingArtworkURL != url else { return }
+
+        loadingNowPlayingArtworkURL = url
+        nowPlayingArtworkLoadTask?.cancel()
+        nowPlayingArtworkLoadTask = Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                guard !Task.isCancelled else { return }
+                guard let image = UIImage(data: data), image.size.width > 0, image.size.height > 0 else { return }
+                guard currentTrack?.id == track.id else { return }
+                guard cachedNowPlayingArtworkKey == artworkKey else { return }
+
+                cachedNowPlayingArtwork = mediaArtwork(from: image)
+                loadingNowPlayingArtworkURL = nil
+                updateNowPlayingInfo()
+            } catch {
+                guard !Task.isCancelled else { return }
+                guard currentTrack?.id == track.id else { return }
+                guard cachedNowPlayingArtworkKey == artworkKey else { return }
+
+                loadingNowPlayingArtworkURL = nil
+            }
         }
     }
 }

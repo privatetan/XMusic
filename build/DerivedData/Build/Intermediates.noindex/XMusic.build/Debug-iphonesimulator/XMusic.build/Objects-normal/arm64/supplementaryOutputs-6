@@ -1,0 +1,23 @@
+{
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/MusicPlaylistViewModel.swift" : {
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicPlaylistViewModel.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicPlaylistViewModel.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicPlaylistViewModel.dia",
+    "object" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicPlaylistViewModel.o",
+    "swift-dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicPlaylistViewModel.swiftdeps"
+  },
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/MusicSearchModels.swift" : {
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchModels.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchModels.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchModels.dia",
+    "object" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchModels.o",
+    "swift-dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchModels.swiftdeps"
+  },
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/MusicSearchService.swift" : {
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchService.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchService.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchService.dia",
+    "object" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchService.o",
+    "swift-dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/arm64/MusicSearchService.swiftdeps"
+  }
+}

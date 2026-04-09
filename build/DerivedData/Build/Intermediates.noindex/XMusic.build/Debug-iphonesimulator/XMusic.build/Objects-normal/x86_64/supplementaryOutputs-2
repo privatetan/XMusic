@@ -1,0 +1,23 @@
+{
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/BrowseView.swift" : {
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/BrowseView.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/BrowseView.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/BrowseView.dia",
+    "object" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/BrowseView.o",
+    "swift-dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/BrowseView.swiftdeps"
+  },
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/ContentView.swift" : {
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ContentView.dia",
+    "object" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ContentView.swiftdeps"
+  },
+  "/Users/galio/Documents/Developer/AI/XMusic/XMusic/ListenNowView.swift" : {
+    "const-values" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ListenNowView.swiftconstvalues",
+    "dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ListenNowView.d",
+    "diagnostics" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ListenNowView.dia",
+    "object" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ListenNowView.o",
+    "swift-dependencies" : "/Users/galio/Documents/Developer/AI/XMusic/build/DerivedData/Build/Intermediates.noindex/XMusic.build/Debug-iphonesimulator/XMusic.build/Objects-normal/x86_64/ListenNowView.swiftdeps"
+  }
+}

@@ -35,8 +35,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CE1879B62F6D3BE4006C7D16 /* XMusic */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = XMusic;
 			sourceTree = "<group>";
 		};
@@ -84,7 +82,6 @@
 				FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */,
 				99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */,
 			);
-			name = XMusicTests;
 			path = XMusicTests;
 			sourceTree = "<group>";
 		};

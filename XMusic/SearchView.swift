@@ -522,61 +522,49 @@ private struct OnlineSearchResultRow: View {
     let onCreateCustomPlaylist: () -> Void
 
     var body: some View {
+        let track = Track.searchResultTrack(from: song)
+
         HStack(spacing: 12) {
             Button(action: action) {
-                HStack(spacing: 14) {
-                    AsyncImage(url: song.artworkURL) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        TrackArtworkFallbackView(
-                            platformTitle: song.source.title,
-                            trackTitle: song.title,
-                            cornerRadius: 18,
-                            tintColors: [Color(red: 0.20, green: 0.32, blue: 0.54), Color(red: 0.08, green: 0.11, blue: 0.20)]
-                        )
-                    }
-                    .frame(width: 62, height: 62)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                HStack(spacing: 12) {
+                    ArtworkView(track: track, cornerRadius: 10, iconSize: 16)
+                        .frame(width: 50, height: 50)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
-                            Text(song.title)
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-
-                            Text(song.source.title)
-                                .font(.caption2.weight(.bold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.white.opacity(0.08), in: Capsule())
-                                .foregroundStyle(Color.white.opacity(0.72))
-                        }
-
-                        Text("\(song.artist) • \(song.album)")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.64))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(song.title)
+                            .font(.body)
+                            .foregroundStyle(.white)
                             .lineLimit(1)
 
-                        Text("\(song.durationText) · \(sourceLibrary.preferredPlaybackQuality(for: song))")
-                            .font(.caption)
-                            .foregroundStyle(Color.white.opacity(0.48))
+                        Text(song.artist)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.white.opacity(0.5))
+                            .lineLimit(1)
                     }
-
-                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(isResolving)
 
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(song.source.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.52))
+                    .lineLimit(1)
+
+                Text(sourceLibrary.preferredPlaybackQuality(for: song))
+                    .font(.caption2)
+                    .foregroundStyle(Color.white.opacity(0.36))
+                    .lineLimit(1)
+            }
+
             if isResolving {
                 ProgressView()
                     .tint(.white)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 36, height: 44)
             } else {
                 Menu {
                     Button(isInLibrary ? "已在资料库" : "加入资料库", systemImage: isInLibrary ? "checkmark" : "square.and.arrow.down") {
@@ -591,7 +579,7 @@ private struct OnlineSearchResultRow: View {
                             onCreateCustomPlaylist()
                         }
                     } else {
-                        Menu("加入自定义歌单", systemImage: "music.note.list") {
+                        Section("加入自定义歌单") {
                             ForEach(customPlaylists) { playlist in
                                 if playlistContainsTrack(playlist) {
                                     Button("\(playlist.title) 已添加", systemImage: "checkmark") {
@@ -603,30 +591,25 @@ private struct OnlineSearchResultRow: View {
                                     }
                                 }
                             }
+                        }
 
-                            Divider()
+                        Divider()
 
-                            Button("新建歌单", systemImage: "plus.circle") {
-                                onCreateCustomPlaylist()
-                            }
+                        Button("新建歌单", systemImage: "plus.circle") {
+                            onCreateCustomPlaylist()
                         }
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .frame(width: 34, height: 34)
-                        .background(Color.white.opacity(0.08), in: Circle())
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.3))
+                        .frame(width: 36, height: 44)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(12)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 }
 

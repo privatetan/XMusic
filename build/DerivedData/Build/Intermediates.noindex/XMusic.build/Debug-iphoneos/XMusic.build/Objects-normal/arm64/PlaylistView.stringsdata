@@ -1,0 +1,232 @@
+{
+  "source": "/Users/galio/Documents/Developer/AI/XMusic/XMusic/PlaylistView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "新建歌单",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "歌单会保存在这台设备上，重启后也还在。",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 239
+        }
+      },
+      {
+        "comment": "",
+        "key": "正在从 %@ 加载歌单…",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 310
+        }
+      },
+      {
+        "comment": "",
+        "key": "先建一张自己的歌单",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 386
+        }
+      },
+      {
+        "comment": "",
+        "key": "名字、简介和选歌都可以自己定，保存后会一直留在这台设备上。",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 390
+        }
+      },
+      {
+        "comment": "",
+        "key": "创建第一张歌单",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 398
+        }
+      },
+      {
+        "comment": "",
+        "key": "编辑歌单",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 527
+        }
+      },
+      {
+        "comment": "",
+        "key": "新建歌单",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 527
+        }
+      },
+      {
+        "comment": "",
+        "key": "详细描述",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 476
+        }
+      },
+      {
+        "comment": "",
+        "key": "还没有可选歌曲。先去搜索结果里把歌加入资料库，或者从搜索结果直接新建歌单。",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 502
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 531
+        }
+      },
+      {
+        "comment": "",
+        "key": "保存",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 538
+        }
+      },
+      {
+        "comment": "",
+        "key": "创建",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 538
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 571
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ · %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 649
+        }
+      },
+      {
+        "comment": "",
+        "key": "播放歌单",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 838
+        }
+      },
+      {
+        "comment": "",
+        "key": "随机播放",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 854
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除这张歌单？",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 1117
+        }
+      },
+      {
+        "comment": "",
+        "key": "正在加载歌单曲目…",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 992
+        }
+      },
+      {
+        "comment": "",
+        "key": "这张歌单暂时还没有可展示的曲目",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1004
+        }
+      },
+      {
+        "comment": "",
+        "key": "编辑歌单",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1075
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除歌单",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1079
+        }
+      },
+      {
+        "comment": "",
+        "key": "播放歌单",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1086
+        }
+      },
+      {
+        "comment": "",
+        "key": "随机播放",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1089
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1118
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1122
+        }
+      },
+      {
+        "comment": "",
+        "key": "“%@” 会从这台设备里移除，里面的选歌也会一起删除。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1125
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1351
+        }
+      }
+    ]
+  },
+  "version": 1
+}
