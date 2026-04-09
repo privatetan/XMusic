@@ -28,11 +28,11 @@ enum MusicSourceParser {
         "local": [],
     ]
     private static let supportedActions: [String: [MusicSourceAction]] = [
-        "kw": [.musicUrl],
-        "kg": [.musicUrl],
-        "tx": [.musicUrl],
-        "wy": [.musicUrl],
-        "mg": [.musicUrl],
+        "kw": [.musicUrl, .lyric, .pic],
+        "kg": [.musicUrl, .lyric, .pic],
+        "tx": [.musicUrl, .lyric, .pic],
+        "wy": [.musicUrl, .lyric, .pic],
+        "mg": [.musicUrl, .lyric, .pic],
         "local": [.musicUrl, .lyric, .pic],
     ]
 

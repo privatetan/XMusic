@@ -53,7 +53,7 @@ final class MusicSourceParserTests: XCTestCase {
 
         let kwCapability = try XCTUnwrap(imported.capabilities.first(where: { $0.source == "kw" }))
         XCTAssertEqual(kwCapability.type, .music)
-        XCTAssertEqual(kwCapability.actions, [.musicUrl])
+        XCTAssertEqual(kwCapability.actions, [.musicUrl, .lyric])
         XCTAssertEqual(kwCapability.qualitys, ["320k", "flac"])
 
         let localCapability = try XCTUnwrap(imported.capabilities.first(where: { $0.source == "local" }))

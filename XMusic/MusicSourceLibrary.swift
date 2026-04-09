@@ -932,8 +932,17 @@ final class MusicSourceLibrary: ObservableObject {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let snapshot = try decoder.decode(MusicSourceSnapshot.self, from: data)
-            sources = snapshot.sources.sorted { $0.importedAt > $1.importedAt }
+            let reparsedSources = snapshot.sources.map { source in
+                (try? MusicSourceParser.importSource(
+                    script: source.script,
+                    fileName: source.originalFileName,
+                    existingID: source.id,
+                    importedAt: source.importedAt
+                )) ?? source
+            }
+            sources = reparsedSources.sorted { $0.importedAt > $1.importedAt }
             activeSourceID = snapshot.activeSourceID
+            try? persist()
         } catch {
             sources = []
             activeSourceID = nil

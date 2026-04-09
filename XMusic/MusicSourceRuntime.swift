@@ -20,6 +20,40 @@ struct MusicSourceLyricResult: Hashable {
     let lxlyric: String?
 }
 
+enum MusicSourceLyricNormalizer {
+    static func normalize(_ rawValue: Any) -> MusicSourceLyricResult? {
+        if let lyric = rawValue as? String {
+            return MusicSourceLyricResult(lyric: lyric, tlyric: nil, rlyric: nil, lxlyric: nil)
+        }
+
+        guard let data = rawValue as? [String: Any] else { return nil }
+
+        let lyricKeys = ["lyric", "lrc"]
+        let tlyricKeys = ["tlyric", "tlrc"]
+        let rlyricKeys = ["rlyric", "rlrc"]
+        let lxlyricKeys = ["lxlyric", "lxlrc"]
+
+        guard let lyric = firstString(in: data, keys: lyricKeys) else { return nil }
+
+        return MusicSourceLyricResult(
+            lyric: lyric,
+            tlyric: firstString(in: data, keys: tlyricKeys),
+            rlyric: firstString(in: data, keys: rlyricKeys),
+            lxlyric: firstString(in: data, keys: lxlyricKeys)
+        )
+    }
+
+    private static func firstString(in data: [String: Any], keys: [String]) -> String? {
+        for key in keys {
+            guard let value = data[key] else { continue }
+            if let text = value as? String {
+                return text
+            }
+        }
+        return nil
+    }
+}
+
 struct MusicSourceDebugDisplayInfo {
     let title: String
     let artist: String
@@ -443,17 +477,11 @@ final class MusicSourceRuntimeService {
             quality: nil
         )
 
-        guard let data = rawResult["data"] as? [String: Any],
-              let lyric = data["lyric"] as? String else {
+        guard let normalized = MusicSourceLyricNormalizer.normalize(rawResult["data"] as Any) else {
             throw MusicSourceRuntimeError.invalidResponse("lyric")
         }
 
-        return MusicSourceLyricResult(
-            lyric: lyric,
-            tlyric: data["tlyric"] as? String,
-            rlyric: data["rlyric"] as? String,
-            lxlyric: data["lxlyric"] as? String
-        )
+        return normalized
     }
 
     func resolvePicture(
@@ -973,11 +1001,11 @@ final class MusicSourceRuntimeService {
             "local": [],
         ]
         let supportedActions: [String: [MusicSourceAction]] = [
-            "kw": [.musicUrl],
-            "kg": [.musicUrl],
-            "tx": [.musicUrl],
-            "wy": [.musicUrl],
-            "mg": [.musicUrl],
+            "kw": [.musicUrl, .lyric, .pic],
+            "kg": [.musicUrl, .lyric, .pic],
+            "tx": [.musicUrl, .lyric, .pic],
+            "wy": [.musicUrl, .lyric, .pic],
+            "mg": [.musicUrl, .lyric, .pic],
             "local": [.musicUrl, .lyric, .pic],
         ]
 
@@ -1703,12 +1731,26 @@ enum MusicSourceRuntimePreload {
       };
 
       const verifyLyricInfo = function(info) {
-        if (!info || typeof info !== 'object' || typeof info.lyric !== 'string') throw new Error('failed');
+        if (typeof info === 'string') {
+          return {
+            lyric: info,
+            tlyric: null,
+            rlyric: null,
+            lxlyric: null,
+          };
+        }
+        if (!info || typeof info !== 'object') throw new Error('failed');
+
+        const lyric = typeof info.lyric === 'string'
+          ? info.lyric
+          : (typeof info.lrc === 'string' ? info.lrc : null);
+        if (typeof lyric !== 'string') throw new Error('failed');
+
         return {
-          lyric: info.lyric,
-          tlyric: typeof info.tlyric === 'string' ? info.tlyric : null,
-          rlyric: typeof info.rlyric === 'string' ? info.rlyric : null,
-          lxlyric: typeof info.lxlyric === 'string' ? info.lxlyric : null,
+          lyric,
+          tlyric: typeof info.tlyric === 'string' ? info.tlyric : (typeof info.tlrc === 'string' ? info.tlrc : null),
+          rlyric: typeof info.rlyric === 'string' ? info.rlyric : (typeof info.rlrc === 'string' ? info.rlrc : null),
+          lxlyric: typeof info.lxlyric === 'string' ? info.lxlyric : (typeof info.lxlrc === 'string' ? info.lxlrc : null),
         };
       };
 

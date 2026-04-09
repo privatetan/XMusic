@@ -196,6 +196,8 @@ final class MusicPlayerViewModel: ObservableObject {
     private var lastAutoAdvancedTrackID: UUID?
     private var currentLoadToken = UUID()
     private var hasPreparedSystemPlayback = false
+    private var interruptionObserver: NSObjectProtocol?
+    private var shouldResumeAfterInterruption = false
 
     #if os(iOS)
     private var nowPlayingInfo: [String: Any] = [:]
@@ -230,6 +232,10 @@ final class MusicPlayerViewModel: ObservableObject {
 
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
+        }
+
+        if let interruptionObserver {
+            NotificationCenter.default.removeObserver(interruptionObserver)
         }
 
         #if os(iOS)
@@ -692,9 +698,62 @@ private extension MusicPlayerViewModel {
         #if os(iOS)
         guard !hasPreparedSystemPlayback else { return }
         configureAudioSession()
+        bindAudioSessionInterruptions()
         configureRemoteCommandCenter()
         UIApplication.shared.beginReceivingRemoteControlEvents()
         hasPreparedSystemPlayback = true
+        #endif
+    }
+
+    func bindAudioSessionInterruptions() {
+        #if os(iOS)
+        guard interruptionObserver == nil else { return }
+
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor [weak self] in
+                self?.handleAudioSessionInterruption(notification)
+            }
+        }
+        #endif
+    }
+
+    func handleAudioSessionInterruption(_ notification: Notification) {
+        #if os(iOS)
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+
+        switch type {
+        case .began:
+            shouldResumeAfterInterruption = isPlaying
+            if isPlaying {
+                player.pause()
+                isPlaying = false
+                updateNowPlayingInfo()
+            }
+
+        case .ended:
+            guard shouldResumeAfterInterruption else { return }
+            shouldResumeAfterInterruption = false
+
+            let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+            guard options.contains(.shouldResume), currentTrack != nil else { return }
+
+            activateAudioSession()
+            player.play()
+            isPlaying = true
+            updateNowPlayingInfo()
+
+        @unknown default:
+            shouldResumeAfterInterruption = false
+        }
         #endif
     }
 

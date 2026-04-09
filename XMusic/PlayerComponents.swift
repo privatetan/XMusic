@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 
 #if os(iOS)
+import AVKit
 import MediaPlayer
 #endif
 
@@ -26,6 +27,88 @@ private struct StableGeometry {
                 ? fallbackSize
                 : UIScreen.main.bounds.size
             safeAreaInsets = proposed.safeAreaInsets
+        }
+    }
+}
+
+private struct ParsedLyricLine: Identifiable, Equatable {
+    let id: String
+    let time: Int
+    let text: String
+    var extendedLyrics: [String]
+}
+
+private struct SyncedLyricsListView: View {
+    let lines: [ParsedLyricLine]
+    let activeLineID: String?
+    let compactHeight: Bool
+
+    @State private var lastScrolledLineID: String?
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: compactHeight ? 14 : 16) {
+                    Spacer()
+                        .frame(height: compactHeight ? 120 : 150)
+
+                    ForEach(lines) { line in
+                        lyricLineView(line)
+                            .id(line.id)
+                    }
+
+                    Spacer()
+                        .frame(height: compactHeight ? 180 : 220)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+            }
+            .onAppear {
+                scrollToActiveLine(with: proxy, animated: false)
+            }
+            .onChange(of: activeLineID) { _ in
+                scrollToActiveLine(with: proxy, animated: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func lyricLineView(_ line: ParsedLyricLine) -> some View {
+        let isActive = line.id == activeLineID
+
+        VStack(spacing: line.extendedLyrics.isEmpty ? 0 : 8) {
+            Text(line.text)
+                .font(.system(size: compactHeight ? (isActive ? 22 : 18) : (isActive ? 24 : 19), weight: isActive ? .bold : .semibold))
+                .foregroundStyle(Color.white.opacity(isActive ? 0.98 : 0.46))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+
+            ForEach(line.extendedLyrics, id: \.self) { extendedLine in
+                Text(extendedLine)
+                    .font(.system(size: compactHeight ? 14 : 15, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(isActive ? 0.78 : 0.34))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, compactHeight ? 6 : 8)
+        .scaleEffect(isActive ? 1 : 0.96)
+        .animation(.spring(response: 0.32, dampingFraction: 0.84), value: isActive)
+    }
+
+    private func scrollToActiveLine(with proxy: ScrollViewProxy, animated: Bool) {
+        guard let activeLineID, activeLineID != lastScrolledLineID else { return }
+        lastScrolledLineID = activeLineID
+
+        let action = {
+            proxy.scrollTo(activeLineID, anchor: .center)
+        }
+        if animated {
+            withAnimation(.easeInOut(duration: 0.28)) {
+                action()
+            }
+        } else {
+            action()
         }
     }
 }
@@ -470,6 +553,9 @@ struct InlineNowPlayingPanel: View {
     @State private var loadedLyricsTrackID: UUID?
     @State private var lyricResult: MusicSourceLyricResult?
     @State private var lyricsErrorMessage: String?
+    @State private var isExternalAudioRouteActive = false
+    @State private var isRouteSheetPresented = false
+    @State private var routePickerTrigger = 0
     let animation: Namespace.ID
     /// 从父视图传入的稳定尺寸，避免 GeometryReader 在转场动画期间
     /// 拿到 .zero / 不正确的值导致布局卡死。
@@ -669,8 +755,7 @@ struct InlineNowPlayingPanel: View {
 
                                     Spacer()
 
-                                    bottomActionButton(systemName: "airplayaudio", size: actionIconSize) {
-                                    }
+                                    airPlayRouteButton(size: actionIconSize)
 
                                     Spacer()
 
@@ -746,6 +831,16 @@ struct InlineNowPlayingPanel: View {
                         )
                         .zIndex(120)
                     }
+
+                    if isRouteSheetPresented {
+                        routeSheetOverlay(
+                            track: track,
+                            safeBottom: safeBottom,
+                            horizontalPadding: horizontalPadding,
+                            compactHeight: compactHeight
+                        )
+                        .zIndex(121)
+                    }
                 }
                 // 屏幕上半部分下滑可关闭播放页（通过背景探针挂载手势到宿主视图）。
                 #if canImport(UIKit)
@@ -777,6 +872,10 @@ struct InlineNowPlayingPanel: View {
             }
             .ignoresSafeArea()
             .onAppear(perform: resetTransientPresentationState)
+            .onAppear(perform: refreshAudioRouteState)
+            .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in
+                refreshAudioRouteState()
+            }
         }
     }
 
@@ -855,6 +954,211 @@ struct InlineNowPlayingPanel: View {
     }
 
     @ViewBuilder
+    private func airPlayRouteButton(size: CGFloat) -> some View {
+        #if os(iOS)
+        Button {
+            #if targetEnvironment(simulator)
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                isRouteSheetPresented = true
+            }
+            #else
+            routePickerTrigger += 1
+            #endif
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(isExternalAudioRouteActive ? 0.14 : 0.001))
+
+                Image(systemName: "airplayaudio")
+                    .font(.system(size: size, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(isExternalAudioRouteActive ? 0.96 : 0.74))
+            }
+            .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .background {
+            SystemRoutePickerView(trigger: routePickerTrigger)
+                .frame(width: 44, height: 44)
+                .allowsHitTesting(false)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("音频输出")
+        .accessibilityHint("切换 AirPlay、蓝牙耳机或扬声器")
+        #else
+        bottomActionButton(systemName: "airplayaudio", size: size) {}
+        #endif
+    }
+
+    @ViewBuilder
+    private func routeSheetOverlay(
+        track: Track,
+        safeBottom: CGFloat,
+        horizontalPadding: CGFloat,
+        compactHeight: Bool
+    ) -> some View {
+        let deviceName = UIDevice.current.name
+        let currentRouteName = AVAudioSession.sharedInstance().currentRoute.outputs.first?.portName ?? deviceName
+        let panelWidth = min(UIScreen.main.bounds.width - horizontalPadding * 2, compactHeight ? 320 : 352)
+        let bottomInset = max(safeBottom + 96, 104)
+        let panelBackground = Color(red: 0.28, green: 0.23, blue: 0.31).opacity(0.97)
+        let panelStroke = Color.white.opacity(0.07)
+
+        ZStack(alignment: .bottom) {
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.03),
+                    Color.black.opacity(0.16),
+                    Color.black.opacity(0.28)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+                .ignoresSafeArea()
+                .transition(.opacity)
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                        isRouteSheetPresented = false
+                    }
+                }
+
+            VStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    VStack(spacing: 6) {
+                        Image(systemName: "airplayaudio")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.82))
+
+                        Text("AirPlay")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 14)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        routeRow(
+                            systemName: "iphone",
+                            title: "iPhone"
+                        )
+                        routeDivider()
+                        routeRow(
+                            systemName: "airpodspro",
+                            title: currentRouteName,
+                            subtitle: "Battery: 39%",
+                            trailingSystemName: "checkmark.circle.fill",
+                            isSelected: true
+                        )
+                        routeDivider()
+
+                        Button {
+                        } label: {
+                            HStack {
+                                Text("Share Audio...")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.90))
+                                Spacer()
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.plain)
+
+                        routeDivider()
+                            .padding(.bottom, 14)
+
+                        Text("Speakers & TVs")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.42))
+                            .padding(.horizontal, 18)
+                            .padding(.bottom, 10)
+
+                        routeRow(
+                            systemName: "desktopcomputer",
+                            title: "Galio's MacBook Air"
+                        )
+                    }
+                    .padding(.top, 12)
+                    .padding(.bottom, 10)
+                    .background(panelBackground.opacity(0.9))
+                }
+            }
+            .frame(width: panelWidth)
+            .background(panelBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .stroke(panelStroke, lineWidth: 1)
+            )
+            .overlay(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(panelBackground)
+                    .frame(width: 20, height: 20)
+                    .rotationEffect(.degrees(45))
+                .offset(y: 10)
+            }
+            .padding(.horizontal, horizontalPadding)
+            .padding(.bottom, bottomInset)
+            .shadow(color: Color.black.opacity(0.30), radius: 30, x: 0, y: 18)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder
+    private func routeRow(
+        systemName: String,
+        title: String,
+        subtitle: String? = nil,
+        trailingSystemName: String? = nil,
+        isSelected: Bool = false
+    ) -> some View {
+        Button {
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: systemName)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.90))
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: subtitle == nil ? 0 : 3) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(Color.white.opacity(0.52))
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if let trailingSystemName {
+                    Image(systemName: trailingSystemName)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 15)
+            .background(Color.white.opacity(isSelected ? 0.02 : 0.001))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func routeDivider() -> some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.06))
+            .frame(height: 1)
+            .padding(.horizontal, 18)
+    }
+
+    @ViewBuilder
     private func lyricsOverlay(
         for track: Track,
         availableHeight: CGFloat,
@@ -863,7 +1167,8 @@ struct InlineNowPlayingPanel: View {
         compactHeight: Bool
     ) -> some View {
         let panelHeight = min(max(availableHeight * (compactHeight ? 0.60 : 0.64), 320), compactHeight ? 450 : 540)
-        let lines = cleanedLyricLines(for: track)
+        let lines = parsedLyricLines(for: track)
+        let activeLineID = currentLyricLineID(for: track, lines: lines)
 
         ZStack(alignment: .bottom) {
             Color.black.opacity(0.34)
@@ -953,19 +1258,11 @@ struct InlineNowPlayingPanel: View {
                         .padding(.horizontal, 28)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if !lines.isEmpty {
-                        ScrollView(.vertical, showsIndicators: false) {
-                            VStack(spacing: compactHeight ? 12 : 14) {
-                                ForEach(lines.indices, id: \.self) { index in
-                                    Text(lines[index])
-                                        .font(.system(size: compactHeight ? 17 : 18, weight: .medium))
-                                        .foregroundStyle(.white)
-                                        .multilineTextAlignment(.center)
-                                        .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 28)
-                        }
+                        SyncedLyricsListView(
+                            lines: lines,
+                            activeLineID: activeLineID,
+                            compactHeight: compactHeight
+                        )
                     } else {
                         VStack(spacing: 12) {
                             Image(systemName: "text.quote")
@@ -1090,33 +1387,161 @@ struct InlineNowPlayingPanel: View {
         return sourceLibrary.activeSource
     }
 
-    private func cleanedLyricLines(for track: Track) -> [String] {
+    private func parsedLyricLines(for track: Track) -> [ParsedLyricLine] {
         guard loadedLyricsTrackID == track.id, let lyricResult else { return [] }
+        let primaryLyric = preferredPrimaryLyric(from: lyricResult)
+        let parsedPrimary = parseTimedLyricEntries(from: primaryLyric)
 
-        let normalized = lyricResult.lyric
+        guard !parsedPrimary.isEmpty else { return [] }
+
+        var mergedLines: [ParsedLyricLine] = []
+        var lineIndexByTime: [Int: Int] = [:]
+
+        for entry in parsedPrimary {
+            if let existingIndex = lineIndexByTime[entry.time] {
+                if mergedLines[existingIndex].text != entry.text,
+                   !mergedLines[existingIndex].extendedLyrics.contains(entry.text) {
+                    mergedLines[existingIndex].extendedLyrics.append(entry.text)
+                }
+                continue
+            }
+
+            let newIndex = mergedLines.count
+            mergedLines.append(
+                ParsedLyricLine(
+                    id: "\(entry.time)-\(newIndex)",
+                    time: entry.time,
+                    text: entry.text,
+                    extendedLyrics: []
+                )
+            )
+            lineIndexByTime[entry.time] = newIndex
+        }
+
+        for extraLyric in [lyricResult.tlyric, lyricResult.rlyric].compactMap({ $0 }) {
+            for entry in parseTimedLyricEntries(from: extraLyric) {
+                guard let index = lineIndexByTime[entry.time] else { continue }
+                guard entry.text != mergedLines[index].text else { continue }
+                guard !mergedLines[index].extendedLyrics.contains(entry.text) else { continue }
+                mergedLines[index].extendedLyrics.append(entry.text)
+            }
+        }
+
+        return mergedLines
+    }
+
+    private func currentLyricLineID(for track: Track, lines: [ParsedLyricLine]) -> String? {
+        guard loadedLyricsTrackID == track.id, !lines.isEmpty else { return nil }
+
+        let currentTime = Int((isScrubbing ? draftTime : player.currentTime) * 1000)
+        guard currentTime >= 0 else { return nil }
+
+        var low = 0
+        var high = lines.count - 1
+        var candidateIndex: Int?
+
+        while low <= high {
+            let middle = (low + high) / 2
+            if lines[middle].time <= currentTime {
+                candidateIndex = middle
+                low = middle + 1
+            } else {
+                high = middle - 1
+            }
+        }
+
+        return candidateIndex.map { lines[$0].id }
+    }
+
+    private func preferredPrimaryLyric(from result: MusicSourceLyricResult) -> String {
+        let primary = result.lyric.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !primary.isEmpty {
+            return primary
+        }
+
+        return result.lxlyric?
+            .replacingOccurrences(
+                of: #"<\d+,\d+>"#,
+                with: "",
+                options: .regularExpression
+            ) ?? ""
+    }
+
+    private func parseTimedLyricEntries(from text: String) -> [(time: Int, text: String)] {
+        let normalized = text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
 
-        return normalized
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { cleanedLyricLine(from: String($0)) }
-            .filter { !$0.isEmpty }
-    }
+        let linePattern = #"\[(\d{1,3}(?::\d{1,3}){0,2}(?:\.\d{1,3})?)\]"#
+        guard let regex = try? NSRegularExpression(pattern: linePattern) else { return [] }
 
-    private func cleanedLyricLine(from line: String) -> String {
-        let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedLine.isEmpty else { return "" }
+        var entries: [(time: Int, text: String)] = []
 
-        if trimmedLine.range(of: #"^\[(ti|ar|al|by|offset):.*\]$"#, options: .regularExpression) != nil {
-            return ""
+        for rawLine in normalized.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else { continue }
+
+            if line.range(of: #"^\[(ti|ar|al|by|offset):.*\]$"#, options: .regularExpression) != nil {
+                continue
+            }
+
+            let nsLine = line as NSString
+            let matches = regex.matches(in: line, range: NSRange(location: 0, length: nsLine.length))
+            guard !matches.isEmpty else { continue }
+
+            var content = line
+            for match in matches.reversed() {
+                content = (content as NSString).replacingCharacters(in: match.range, with: "")
+            }
+
+            let cleanedContent = content
+                .replacingOccurrences(of: #"<\d+,\d+>"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard !cleanedContent.isEmpty else { continue }
+
+            for match in matches {
+                let timeLabel = nsLine.substring(with: match.range(at: 1))
+                guard let milliseconds = lyricTimeMilliseconds(from: timeLabel) else { continue }
+                entries.append((time: milliseconds, text: cleanedContent))
+            }
         }
 
-        let withoutTimestamps = trimmedLine.replacingOccurrences(
-            of: #"\[[0-9]{1,2}:[0-9]{2}(?:\.[0-9]{1,3})?\]"#,
-            with: "",
-            options: .regularExpression
-        )
-        return withoutTimestamps.trimmingCharacters(in: .whitespacesAndNewlines)
+        return entries.sorted { lhs, rhs in
+            if lhs.time == rhs.time {
+                return lhs.text < rhs.text
+            }
+            return lhs.time < rhs.time
+        }
+    }
+
+    private func lyricTimeMilliseconds(from label: String) -> Int? {
+        let mainParts = label.split(separator: ":")
+        guard !mainParts.isEmpty, mainParts.count <= 3 else { return nil }
+
+        var timeParts = mainParts.map(String.init)
+        while timeParts.count < 3 {
+            timeParts.insert("0", at: 0)
+        }
+
+        let hour = Int(timeParts[0]) ?? 0
+        let minute = Int(timeParts[1]) ?? 0
+
+        let secondPart = timeParts[2].split(separator: ".", omittingEmptySubsequences: false)
+        guard let second = Int(secondPart[0]) else { return nil }
+
+        let millisecond: Int
+        if secondPart.count > 1 {
+            var decimal = String(secondPart[1].prefix(3))
+            while decimal.count < 3 {
+                decimal.append("0")
+            }
+            millisecond = Int(decimal) ?? 0
+        } else {
+            millisecond = 0
+        }
+
+        return hour * 3_600_000 + minute * 60_000 + second * 1_000 + millisecond
     }
 
     private func format(time: TimeInterval) -> String {
@@ -1126,6 +1551,22 @@ struct InlineNowPlayingPanel: View {
         let minutes = whole / 60
         let seconds = whole % 60
         return "\(minutes):\(String(format: "%02d", seconds))"
+    }
+
+    private func refreshAudioRouteState() {
+        #if os(iOS)
+        let route = AVAudioSession.sharedInstance().currentRoute
+        let outputs = route.outputs
+
+        isExternalAudioRouteActive = outputs.contains { output in
+            switch output.portType {
+            case .builtInSpeaker, .builtInReceiver:
+                return false
+            default:
+                return true
+            }
+        }
+        #endif
     }
 }
 
@@ -1152,6 +1593,61 @@ private struct SystemVolumeBridgeView: UIViewRepresentable {
     private func attachSlider(from volumeView: MPVolumeView) {
         guard let slider = volumeView.subviews.compactMap({ $0 as? UISlider }).first else { return }
         player.attachSystemVolumeSlider(slider)
+    }
+}
+
+private struct SystemRoutePickerView: UIViewRepresentable {
+    let trigger: Int
+
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let routePickerView = AVRoutePickerView(frame: .zero)
+        routePickerView.backgroundColor = .clear
+        routePickerView.tintColor = .clear
+        routePickerView.activeTintColor = .clear
+        routePickerView.prioritizesVideoDevices = false
+        routePickerView.isUserInteractionEnabled = false
+        context.coordinator.routePickerView = routePickerView
+        return routePickerView
+    }
+
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
+        uiView.tintColor = .clear
+        uiView.activeTintColor = .clear
+        context.coordinator.routePickerView = uiView
+
+        guard context.coordinator.lastTrigger != trigger else { return }
+        context.coordinator.lastTrigger = trigger
+        context.coordinator.presentRoutePicker()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        weak var routePickerView: AVRoutePickerView?
+        var lastTrigger = 0
+
+        func presentRoutePicker() {
+            guard let routePickerView else { return }
+            DispatchQueue.main.async {
+                guard let button = self.findButton(in: routePickerView) else { return }
+                button.sendActions(for: .touchUpInside)
+            }
+        }
+
+        private func findButton(in view: UIView) -> UIButton? {
+            if let button = view as? UIButton {
+                return button
+            }
+
+            for subview in view.subviews {
+                if let button = findButton(in: subview) {
+                    return button
+                }
+            }
+            return nil
+        }
     }
 }
 #endif
