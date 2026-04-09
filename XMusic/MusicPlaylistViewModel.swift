@@ -12,6 +12,7 @@ import SwiftUI
 struct CustomPlaylistDraft {
     var playlistID: String?
     var title = ""
+    var coverImageData: Data?
     var summary = ""
     var description = ""
     var tagsText = ""
@@ -108,6 +109,7 @@ final class MusicLibraryViewModel: ObservableObject {
 private struct StoredCustomPlaylist: Codable, Identifiable {
     let id: String
     let title: String
+    let coverImageData: Data?
     let summary: String
     let description: String
     let categories: [String]
@@ -310,6 +312,7 @@ final class MusicPlaylistViewModel: ObservableObject {
         return CustomPlaylistDraft(
             playlistID: storedPlaylist.id,
             title: storedPlaylist.title,
+            coverImageData: storedPlaylist.coverImageData,
             summary: storedPlaylist.summary,
             description: storedPlaylist.description,
             tagsText: editableTags,
@@ -324,6 +327,7 @@ final class MusicPlaylistViewModel: ObservableObject {
     ) -> CustomPlaylistDraft {
         let availableTracks = trackSelectionPool(including: prefilledTracks, libraryTracks: libraryTracks)
         return CustomPlaylistDraft(
+            coverImageData: nil,
             selectedTrackKeys: Set(prefilledTracks.map(\.storageKey)),
             availableTracks: availableTracks
         )
@@ -354,6 +358,7 @@ final class MusicPlaylistViewModel: ObservableObject {
         let record = StoredCustomPlaylist(
             id: playlistID,
             title: title,
+            coverImageData: draft.coverImageData,
             summary: summary,
             description: description,
             categories: categories,
@@ -393,6 +398,7 @@ final class MusicPlaylistViewModel: ObservableObject {
         storedPlaylist = StoredCustomPlaylist(
             id: storedPlaylist.id,
             title: storedPlaylist.title,
+            coverImageData: storedPlaylist.coverImageData,
             summary: updatedSummary,
             description: storedPlaylist.description,
             categories: storedPlaylist.categories,
@@ -497,6 +503,7 @@ final class MusicPlaylistViewModel: ObservableObject {
             categories: record.categories.isEmpty ? ["自定义"] : record.categories,
             tracks: tracks,
             artwork: artwork,
+            customArtworkData: record.coverImageData,
             playCount: 0,
             followerCount: 0,
             updatedLabel: updatedLabel(for: record.updatedAt),
@@ -527,6 +534,7 @@ final class MusicPlaylistViewModel: ObservableObject {
         return StoredCustomPlaylist(
             id: record.id,
             title: record.title,
+            coverImageData: record.coverImageData,
             summary: record.summary,
             description: record.description,
             categories: record.categories,

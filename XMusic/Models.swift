@@ -152,6 +152,7 @@ struct Playlist: Identifiable {
     let categories: [String]
     let tracks: [Track]
     let artwork: ArtworkPalette
+    let customArtworkData: Data?
     let remoteArtworkURL: URL?
     let playCount: Int
     let followerCount: Int
@@ -171,6 +172,7 @@ struct Playlist: Identifiable {
         categories: [String],
         tracks: [Track],
         artwork: ArtworkPalette,
+        customArtworkData: Data? = nil,
         remoteArtworkURL: URL? = nil,
         playCount: Int,
         followerCount: Int,
@@ -189,6 +191,7 @@ struct Playlist: Identifiable {
         self.categories = categories
         self.tracks = tracks
         self.artwork = artwork
+        self.customArtworkData = customArtworkData
         self.remoteArtworkURL = remoteArtworkURL?.preferredArtworkURL
         self.playCount = playCount
         self.followerCount = followerCount

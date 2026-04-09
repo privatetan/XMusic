@@ -184,7 +184,7 @@ struct TrackArtworkFallbackView: View {
 
 struct PageHeader: View {
     let title: String
-    let subtitle: String
+    var subtitle: String = ""
     var showsSettingsButton: Bool = false
 
     var body: some View {
@@ -198,9 +198,11 @@ struct PageHeader: View {
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
 
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.7))
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.7))
+                }
             }
             .layoutPriority(1)
 
@@ -280,20 +282,27 @@ struct SettingsView: View {
             AppBackground()
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
-                    settingsHeroCard
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("设置")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
 
                     SettingsPanel(
-                        title: "播放偏好",
-                        subtitle: "把默认音质放到一处，切换后立刻生效。"
+                        title: "播放偏好"
                     ) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Label("默认音质", systemImage: "music.note")
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .center, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("默认音质")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
 
-                                Spacer()
+                                    Text(sourceLibrary.defaultPlaybackQuality.title)
+                                        .font(.caption)
+                                        .foregroundStyle(Color.white.opacity(0.58))
+                                }
+
+                                Spacer(minLength: 0)
 
                                 Text(sourceLibrary.defaultPlaybackQuality.shortLabel)
                                     .font(.subheadline.weight(.semibold))
@@ -313,128 +322,60 @@ struct SettingsView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(sourceLibrary.defaultPlaybackQuality.title)
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-
-                                Text(sourceLibrary.defaultPlaybackQuality.subtitle)
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.white.opacity(0.66))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                            )
-
-                            Text("实际播放时会优先使用你选中的默认音质；如果目标平台没有这个音质，会自动切到最近可用的档位。")
-                                .font(.caption)
-                                .foregroundStyle(Color.white.opacity(0.58))
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 
                     SettingsPanel(
-                        title: "音源与解析",
-                        subtitle: "集中放置跟搜索、解析和当前音源相关的开关。"
+                        title: "音源与解析"
                     ) {
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Toggle(isOn: $sourceLibrary.enableAutomaticSourceFallback) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("自动切换可用音源")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-
-                                    Text("当前音源不支持目标平台时，自动尝试切到可解析的平台。")
-                                        .font(.subheadline)
-                                        .foregroundStyle(Color.white.opacity(0.66))
-                                }
+                                Text("自动切换可用音源")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
                             }
                             .tint(Color(red: 0.48, green: 0.92, blue: 0.72))
 
-                            SettingsStatusRow(
-                                title: "当前激活音源",
-                                value: sourceLibrary.activeSource?.name ?? "未激活"
-                            )
-
-                            Button {
+                            SettingsInlineActionRow(
+                                title: "当前音源",
+                                value: sourceLibrary.activeSource?.name ?? "未激活",
+                                actionTitle: "管理",
+                                symbol: "waveform.and.magnifyingglass"
+                            ) {
                                 isSourceManagerPresented = true
-                            } label: {
-                                SettingsActionRow(
-                                    title: "管理音乐源",
-                                    subtitle: "导入、切换、重解析或删除音乐源",
-                                    symbol: "waveform.and.magnifyingglass"
-                                )
                             }
-                            .buttonStyle(.plain)
                         }
                     }
 
                     SettingsPanel(
-                        title: "数据与缓存",
-                        subtitle: "清理历史记录和临时缓存，保持应用轻一点。"
+                        title: "数据与缓存"
                     ) {
-                        VStack(alignment: .leading, spacing: 14) {
-                            SettingsStatusRow(
+                        VStack(alignment: .leading, spacing: 12) {
+                            SettingsInlineActionRow(
                                 title: "搜索历史",
-                                value: musicSearch.searchHistory.isEmpty ? "暂无记录" : "\(musicSearch.searchHistory.count) 条"
-                            )
-
-                            Button {
+                                value: musicSearch.searchHistory.isEmpty ? "暂无记录" : "\(musicSearch.searchHistory.count) 条",
+                                actionTitle: "清空",
+                                symbol: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                                isDisabled: musicSearch.searchHistory.isEmpty
+                            ) {
                                 musicSearch.clearSearchHistory()
-                            } label: {
-                                SettingsActionRow(
-                                    title: "清空搜索历史",
-                                    subtitle: musicSearch.searchHistory.isEmpty ? "当前没有可清理的搜索记录" : "删除最近搜索关键词",
-                                    symbol: "clock.arrow.trianglehead.counterclockwise.rotate.90"
-                                )
-                                .opacity(musicSearch.searchHistory.isEmpty ? 0.55 : 1)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(musicSearch.searchHistory.isEmpty)
 
-                            SettingsStatusRow(
+                            SettingsInlineActionRow(
                                 title: "媒体缓存",
                                 value: sourceLibrary.mediaCacheSummary.isEmpty
                                     ? "暂无缓存"
-                                    : "\(sourceLibrary.mediaCacheSummary.fileCount) 个文件 · \(sourceLibrary.mediaCacheSummary.formattedSize)"
-                            )
-
-                            Button {
+                                    : "\(sourceLibrary.mediaCacheSummary.fileCount) 个文件 · \(sourceLibrary.mediaCacheSummary.formattedSize)",
+                                actionTitle: "清理",
+                                symbol: "externaldrive.badge.minus",
+                                isDisabled: sourceLibrary.mediaCacheSummary.isEmpty
+                            ) {
                                 do {
                                     try sourceLibrary.clearMediaCache()
                                 } catch {
                                     alertMessage = error.localizedDescription
                                 }
-                            } label: {
-                                SettingsActionRow(
-                                    title: "清理媒体缓存",
-                                    subtitle: sourceLibrary.mediaCacheSummary.isEmpty ? "当前没有缓存文件" : "删除已缓存的音频文件",
-                                    symbol: "externaldrive.badge.minus"
-                                )
-                                .opacity(sourceLibrary.mediaCacheSummary.isEmpty ? 0.55 : 1)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(sourceLibrary.mediaCacheSummary.isEmpty)
-                        }
-                    }
-
-                    SettingsPanel(
-                        title: "关于当前会话",
-                        subtitle: "把当前状态整理成一张小卡片，方便快速确认。"
-                    ) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            SettingsStatusRow(title: "当前页面", value: player.selectedTab.title)
-                            SettingsStatusRow(
-                                title: "当前播放",
-                                value: player.currentTrack?.title ?? "尚未开始播放"
-                            )
                         }
                     }
                 }
@@ -477,51 +418,16 @@ struct SettingsView: View {
             }
         )
     }
-
-    private var settingsHeroCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("XMusic 设置")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text("把常用控制收进一个入口里。现在可以直接从底部导航进入设置，不用再到各个页面里找入口。")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.72))
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 10) {
-                SettingsInfoPill(
-                    title: "音源",
-                    value: sourceLibrary.sources.isEmpty ? "0 个" : "\(sourceLibrary.sources.count) 个"
-                )
-
-                SettingsInfoPill(
-                    title: "搜索记录",
-                    value: musicSearch.searchHistory.isEmpty ? "空" : "\(musicSearch.searchHistory.count) 条"
-                )
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(Color.white.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
 }
 
 private struct SettingsPanel<Content: View>: View {
     let title: String
-    let subtitle: String
+    var subtitle: String = ""
     let content: Content
 
     init(
         title: String,
-        subtitle: String,
+        subtitle: String = "",
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
@@ -530,12 +436,12 @@ private struct SettingsPanel<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
 
+            if !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(Color.white.opacity(0.62))
@@ -543,57 +449,61 @@ private struct SettingsPanel<Content: View>: View {
 
             content
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.white.opacity(0.06))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
 }
 
-private struct SettingsActionRow: View {
+private struct SettingsInlineActionRow: View {
     let title: String
-    let subtitle: String
+    let value: String
+    let actionTitle: String
     let symbol: String
+    var isDisabled = false
+    let action: () -> Void
 
     var body: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.08))
-                .overlay {
-                    Image(systemName: symbol)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                .frame(width: 48, height: 48)
-
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-
-                Text(subtitle)
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.white.opacity(0.66))
-                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
 
             Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.34))
+            Button(action: action) {
+                Label(actionTitle, systemImage: symbol)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(Color.white.opacity(0.08), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(isDisabled)
+            .opacity(isDisabled ? 0.55 : 1)
         }
-        .padding(16)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.white.opacity(0.06), lineWidth: 1)
         )
     }
@@ -616,11 +526,11 @@ private struct SettingsStatusRow: View {
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.trailing)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.white.opacity(0.06), lineWidth: 1)
         )
     }
@@ -631,9 +541,9 @@ private struct SettingsQualityIconOption: View {
     let isSelected: Bool
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
                         isSelected
                             ? Color(red: 0.48, green: 0.92, blue: 0.72).opacity(0.18)
@@ -644,7 +554,7 @@ private struct SettingsQualityIconOption: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(isSelected ? .white : Color.white.opacity(0.74))
             }
-            .frame(width: 54, height: 54)
+            .frame(width: 42, height: 42)
 
             Text(quality.shortLabel)
                 .font(.caption2.weight(.semibold))
@@ -652,12 +562,12 @@ private struct SettingsQualityIconOption: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-        .frame(maxWidth: .infinity, minHeight: 100)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(isSelected ? 0.08 : 0.04), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .frame(maxWidth: .infinity, minHeight: 68)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(isSelected ? 0.08 : 0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(
                     isSelected ? Color(red: 0.48, green: 0.92, blue: 0.72).opacity(0.28) : Color.white.opacity(0.06),
                     lineWidth: 1
@@ -666,33 +576,9 @@ private struct SettingsQualityIconOption: View {
     }
 }
 
-private struct SettingsInfoPill: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(Color.white.opacity(0.48))
-
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-}
-
 struct SectionHeading: View {
     let title: String
-    let subtitle: String
+    var subtitle: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -700,9 +586,11 @@ struct SectionHeading: View {
                 .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
 
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.62))
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.62))
+            }
         }
     }
 }

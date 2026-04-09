@@ -74,6 +74,7 @@ final class MusicSourceLibrary: ObservableObject {
         }
     }
     @Published private(set) var mediaCacheSummary: MediaCacheSummary = .empty
+    @Published private(set) var cachedMediaFilesSnapshot: [CachedMediaFile] = []
 
     private let storageURL: URL
     private let mediaCacheDirectoryURL: URL
@@ -118,24 +119,7 @@ final class MusicSourceLibrary: ObservableObject {
     }
 
     var cachedMediaFiles: [CachedMediaFile] {
-        mediaCacheIndex.values.compactMap { entry in
-            let localURL = mediaCacheDirectoryURL.appendingPathComponent(entry.fileName, isDirectory: false)
-            guard FileManager.default.fileExists(atPath: localURL.path) else { return nil }
-            return CachedMediaFile(
-                id: entry.originalURL,
-                originalURL: URL(string: entry.originalURL),
-                localURL: localURL,
-                fileName: entry.fileName,
-                fileSize: entry.fileSize,
-                createdAt: entry.createdAt,
-                lastAccessedAt: entry.lastAccessedAt,
-                title: entry.title,
-                artist: entry.artist,
-                album: entry.album,
-                sourceName: entry.sourceName
-            )
-        }
-        .sorted { $0.lastAccessedAt > $1.lastAccessedAt }
+        cachedMediaFilesSnapshot
     }
 
     func preferredPlaybackQuality(for song: SearchSong) -> String {
@@ -965,6 +949,7 @@ final class MusicSourceLibrary: ObservableObject {
         }
         mediaCacheIndex.removeAll()
         mediaCacheSummary = .empty
+        cachedMediaFilesSnapshot = []
     }
 
     func removeCachedMediaFile(at localURL: URL) throws {
@@ -991,6 +976,7 @@ final class MusicSourceLibrary: ObservableObject {
             #endif
         }
 
+        rebuildCachedMediaFilesSnapshot()
         refreshMediaCacheSummaryFromIndex()
     }
 
@@ -1015,6 +1001,7 @@ final class MusicSourceLibrary: ObservableObject {
         } catch {
             mediaCacheIndex = [:]
         }
+        rebuildCachedMediaFilesSnapshot()
         refreshMediaCacheSummaryFromIndex()
     }
 
@@ -1027,6 +1014,7 @@ final class MusicSourceLibrary: ObservableObject {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(mediaCacheIndex)
         try data.write(to: mediaCacheIndexURL, options: .atomic)
+        rebuildCachedMediaFilesSnapshot()
     }
 
     private func touchMediaCacheEntry(
@@ -1081,6 +1069,28 @@ final class MusicSourceLibrary: ObservableObject {
             print("[cache] Failed to reconcile media cache index: \(error)")
             #endif
         }
+        rebuildCachedMediaFilesSnapshot()
+    }
+
+    private func rebuildCachedMediaFilesSnapshot() {
+        cachedMediaFilesSnapshot = mediaCacheIndex.values.compactMap { entry in
+            let localURL = mediaCacheDirectoryURL.appendingPathComponent(entry.fileName, isDirectory: false)
+            guard FileManager.default.fileExists(atPath: localURL.path) else { return nil }
+            return CachedMediaFile(
+                id: entry.originalURL,
+                originalURL: URL(string: entry.originalURL),
+                localURL: localURL,
+                fileName: entry.fileName,
+                fileSize: entry.fileSize,
+                createdAt: entry.createdAt,
+                lastAccessedAt: entry.lastAccessedAt,
+                title: entry.title,
+                artist: entry.artist,
+                album: entry.album,
+                sourceName: entry.sourceName
+            )
+        }
+        .sorted { $0.lastAccessedAt > $1.lastAccessedAt }
     }
 
     private func refreshMediaCacheSummary() {

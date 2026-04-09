@@ -2,6 +2,7 @@ import SwiftUI
 #if canImport(UIKit)
 import UIKit
 #endif
+import UniformTypeIdentifiers
 
 private struct PlaylistNavigationContainer<Content: View>: View {
     let content: Content
@@ -123,16 +124,15 @@ struct PlaylistView: View {
         PlaylistNavigationContainer {
             ScrollView(showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 28) {
-                    PageHeader(
-                        title: "歌单",
-                        subtitle: "在线歌单和你自己整理的收藏，都放在这里"
-                    )
+                    Text("歌单")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
 
                     customPlaylistSection
 
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(alignment: .top, spacing: 12) {
-                            SectionHeading(title: "在线歌单", subtitle: "跟随当前激活音源支持的平台实时加载")
+                            SectionHeading(title: "在线歌单")
 
                             Spacer(minLength: 0)
                         }
@@ -206,7 +206,7 @@ struct PlaylistView: View {
     private var customPlaylistSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
-                SectionHeading(title: "自定义歌单", subtitle: "本地保存，随时编辑，也可以慢慢往里挑歌")
+                SectionHeading(title: "自定义歌单")
 
                 Spacer(minLength: 0)
 
@@ -235,11 +235,6 @@ struct PlaylistView: View {
                     ) {
                     }
                     .allowsHitTesting(false)
-
-                    Text("歌单会保存在这台设备上，重启后也还在。")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.58))
-                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 playlistGrid(playlists: playlistModel.customPlaylists)
@@ -252,16 +247,16 @@ struct PlaylistView: View {
         if sourceLibrary.activeSource == nil {
             playlistNoticeCard(
                 title: "还没有激活音乐源",
-                message: "在线歌单会按当前激活音源支持的平台去加载。先去设置页导入并激活一个音源，再回来浏览。"
+                message: "去设置页激活音乐源后再试。"
             )
         } else if playlistModel.supportedSources.isEmpty {
             playlistNoticeCard(
                 title: "当前音源不包含在线平台",
-                message: "这个音源没有声明可用的歌单平台能力，所以暂时没法加载平台歌单。你可以去设置页切换到支持 kw / kg / tx / wy / mg 的音源。"
+                message: "切换支持歌单的平台音源后再试。"
             )
         } else {
             VStack(alignment: .leading, spacing: 16) {
-                SectionHeading(title: "数据来源", subtitle: "歌单列表会跟随当前激活音源支持的平台变化")
+                SectionHeading(title: "数据来源")
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -316,7 +311,7 @@ struct PlaylistView: View {
                 } else if playlistModel.remotePlaylists.isEmpty {
                     playlistNoticeCard(
                         title: "这一页没有在线歌单",
-                        message: "当前平台返回了空列表。你可以换一个支持的平台，或者重新导入别的音源试试。"
+                        message: "切换平台后再试。"
                     )
                 } else {
                     playlistGrid(playlists: playlistModel.remotePlaylists)
@@ -386,11 +381,6 @@ private struct PlaylistCustomEmptyCard: View {
                     Text("先建一张自己的歌单")
                         .font(.headline)
                         .foregroundStyle(.white)
-
-                    Text("名字、简介和选歌都可以自己定，保存后会一直留在这台设备上。")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.68))
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -421,10 +411,11 @@ struct PlaylistCustomEditorSheet: View {
     private let availableTracks: [Track]
     @State private var playlistID: String?
     @State private var title: String
-    @State private var summary: String
-    @State private var descriptionText: String
-    @State private var tagsText: String
+    @State private var coverImageData: Data?
     @State private var selectedTrackKeys: Set<String>
+    @State private var isCoverFileImporterPresented = false
+    @State private var isPhotoLibraryPresented = false
+    @State private var isTrackPickerPresented = false
 
     init(
         draft: CustomPlaylistDraft,
@@ -436,9 +427,7 @@ struct PlaylistCustomEditorSheet: View {
         availableTracks = draft.availableTracks
         _playlistID = State(initialValue: draft.playlistID)
         _title = State(initialValue: draft.title)
-        _summary = State(initialValue: draft.summary)
-        _descriptionText = State(initialValue: draft.description)
-        _tagsText = State(initialValue: draft.tagsText)
+        _coverImageData = State(initialValue: draft.coverImageData)
         _selectedTrackKeys = State(initialValue: draft.selectedTrackKeys)
     }
 
@@ -448,74 +437,20 @@ struct PlaylistCustomEditorSheet: View {
                 AppBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 16) {
                         PlaylistEditorSectionCard(
-                            title: "基本信息",
-                            subtitle: "名字是必填，简介和标签可以慢慢补。"
+                            title: "歌单信息"
                         ) {
                             VStack(alignment: .leading, spacing: 14) {
+                                playlistCoverPicker
+
                                 editorTextField(
                                     title: "歌单名称",
                                     text: $title,
                                     prompt: "比如：夜骑回家"
                                 )
 
-                                editorTextField(
-                                    title: "一句简介",
-                                    text: $summary,
-                                    prompt: "会显示在歌单卡片里"
-                                )
-
-                                editorTextField(
-                                    title: "标签",
-                                    text: $tagsText,
-                                    prompt: "用逗号分隔，例如：夜晚, 通勤, 电子"
-                                )
-
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("详细描述")
-                                        .font(.footnote.weight(.semibold))
-                                        .foregroundStyle(Color.white.opacity(0.68))
-
-                                    TextEditor(text: $descriptionText)
-                                        .frame(minHeight: 120)
-                                        .padding(10)
-                                        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                                        )
-                                        .foregroundStyle(.white)
-                                }
-                            }
-                        }
-
-                        PlaylistEditorSectionCard(
-                            title: "挑歌",
-                            subtitle: availableTracks.isEmpty
-                                ? "先去搜索页把歌加入资料库，之后就能在这里挑了。"
-                                : selectedTrackKeys.isEmpty
-                                ? "从你已经收进资料库或歌单的歌曲里挑几首，空歌单也可以直接保存。"
-                                : "已选 \(selectedTrackKeys.count) 首，点一下就能取消。"
-                        ) {
-                            if availableTracks.isEmpty {
-                                Text("还没有可选歌曲。先去搜索结果里把歌加入资料库，或者从搜索结果直接新建歌单。")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.white.opacity(0.68))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(16)
-                                    .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                            } else {
-                                VStack(spacing: 12) {
-                                    ForEach(availableTracks, id: \.storageKey) { track in
-                                        PlaylistCustomTrackPickerRow(
-                                            track: track,
-                                            isSelected: selectedTrackKeys.contains(track.storageKey)
-                                        ) {
-                                            toggleTrackSelection(track)
-                                        }
-                                    }
-                                }
+                                addSongsButton
                             }
                         }
                     }
@@ -540,9 +475,10 @@ struct PlaylistCustomEditorSheet: View {
                             CustomPlaylistDraft(
                                 playlistID: playlistID,
                                 title: title,
-                                summary: summary,
-                                description: descriptionText,
-                                tagsText: tagsText,
+                                coverImageData: coverImageData,
+                                summary: "",
+                                description: "",
+                                tagsText: "",
                                 selectedTrackKeys: selectedTrackKeys,
                                 availableTracks: availableTracks
                             )
@@ -555,14 +491,86 @@ struct PlaylistCustomEditorSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+        .fileImporter(
+            isPresented: $isCoverFileImporterPresented,
+            allowedContentTypes: [.image],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case let .success(urls):
+                guard let url = urls.first else { return }
+                guard url.startAccessingSecurityScopedResource() else { return }
+                defer { url.stopAccessingSecurityScopedResource() }
+                if let data = try? Data(contentsOf: url) {
+                    coverImageData = PlaylistCoverImageProcessor.makeCoverImageData(from: data)
+                }
+            case .failure:
+                break
+            }
+        }
+        .sheet(isPresented: $isPhotoLibraryPresented) {
+            PlaylistImagePicker { image in
+                coverImageData = PlaylistCoverImageProcessor.makeCoverImageData(from: image)
+            }
+        }
+        .sheet(isPresented: $isTrackPickerPresented) {
+            PlaylistTrackPickerSheet(
+                tracks: availableTracks,
+                selectedTrackKeys: $selectedTrackKeys
+            )
+        }
     }
 
-    @ViewBuilder
-    private func editorTextField(
-        title: String,
-        text: Binding<String>,
-        prompt: String
-    ) -> some View {
+    private var playlistCoverPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("封面")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.68))
+
+            HStack(alignment: .center, spacing: 14) {
+                
+                Spacer()
+                ZStack(alignment: .bottomTrailing) {
+                    PlaylistCustomCoverPreview(imageData: coverImageData)
+                        .frame(width: 92, height: 92)
+                    Menu {
+                        Button("从图片库选择", systemImage: "photo.on.rectangle") {
+                            isPhotoLibraryPresented = true
+                        }
+
+                        Button("从文件选择", systemImage: "folder") {
+                            isCoverFileImporterPresented = true
+                        }
+
+                        if coverImageData != nil {
+                            Divider()
+
+                            Button("移除封面", systemImage: "trash", role: .destructive) {
+                                coverImageData = nil
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 32, height: 32)
+                            .background(Color.black.opacity(0.55), in: Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 4, y: 4)
+                }
+
+
+                Spacer()
+            }
+        }
+    }
+
+    private func editorTextField(title: String, text: Binding<String>, prompt: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.footnote.weight(.semibold))
@@ -570,7 +578,7 @@ struct PlaylistCustomEditorSheet: View {
 
             TextField("", text: text, prompt: Text(prompt).foregroundColor(Color.white.opacity(0.28)))
                 .padding(.horizontal, 14)
-                .padding(.vertical, 13)
+                .padding(.vertical, 12)
                 .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -580,23 +588,45 @@ struct PlaylistCustomEditorSheet: View {
         }
     }
 
-    private func toggleTrackSelection(_ track: Track) {
-        if selectedTrackKeys.contains(track.storageKey) {
-            selectedTrackKeys.remove(track.storageKey)
-        } else {
-            selectedTrackKeys.insert(track.storageKey)
+    private var addSongsButton: some View {
+        Button {
+            isTrackPickerPresented = true
+        } label: {
+            HStack(spacing: 12) {
+                Label("添加歌曲", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+
+                Spacer(minLength: 0)
+
+                Text(selectedTrackKeys.isEmpty ? "未选择" : "\(selectedTrackKeys.count) 首")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.56))
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.white.opacity(0.32))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
         }
+        .buttonStyle(.plain)
     }
 }
 
 private struct PlaylistEditorSectionCard<Content: View>: View {
     let title: String
-    let subtitle: String
+    var subtitle: String = ""
     let content: Content
 
     init(
         title: String,
-        subtitle: String,
+        subtitle: String = "",
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
@@ -605,21 +635,23 @@ private struct PlaylistEditorSectionCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.62))
-                    .fixedSize(horizontal: false, vertical: true)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.62))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             content
         }
-        .padding(18)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
@@ -629,49 +661,212 @@ private struct PlaylistEditorSectionCard<Content: View>: View {
     }
 }
 
-private struct PlaylistCustomTrackPickerRow: View {
-    let track: Track
-    let isSelected: Bool
-    let action: () -> Void
+private struct PlaylistCustomCoverPreview: View {
+    let imageData: Data?
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                ArtworkView(track: track, cornerRadius: 18, iconSize: 18)
-                    .frame(width: 58, height: 58)
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.10), Color.white.opacity(0.04), Color.black.opacity(0.36)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(track.title)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
+            if let imageData,
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                VStack(spacing: 6) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.82))
 
-                    Text("\(track.artist) · \(track.album)")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.62))
-                        .lineLimit(1)
+                    Text("封面")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.48))
                 }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.26))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(isSelected ? Color.white.opacity(0.12) : Color.white.opacity(0.04))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.white.opacity(isSelected ? 0.16 : 0.08), lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
     }
 }
+
+private struct PlaylistTrackPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let tracks: [Track]
+    @Binding var selectedTrackKeys: Set<String>
+
+    var body: some View {
+        PlaylistNavigationContainer {
+            ZStack {
+                AppBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if tracks.isEmpty {
+                            Text("资料库还没有歌曲。")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.white.opacity(0.62))
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(tracks.enumerated()), id: \.element.storageKey) { index, track in
+                                    Button {
+                                        toggle(track)
+                                    } label: {
+                                        HStack(spacing: 12) {
+                                            ArtworkView(track: track, cornerRadius: 10, iconSize: 16)
+                                                .frame(width: 50, height: 50)
+
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(track.title)
+                                                    .font(.body)
+                                                    .foregroundStyle(.white)
+                                                    .lineLimit(1)
+
+                                                Text(track.artist)
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(Color.white.opacity(0.5))
+                                                    .lineLimit(1)
+                                            }
+
+                                            Spacer(minLength: 0)
+
+                                            Image(systemName: selectedTrackKeys.contains(track.storageKey) ? "checkmark.circle.fill" : "circle")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(selectedTrackKeys.contains(track.storageKey) ? .white : Color.white.opacity(0.26))
+                                        }
+                                        .padding(.vertical, 10)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if index < tracks.count - 1 {
+                                        Divider()
+                                            .background(Color.white.opacity(0.07))
+                                            .padding(.leading, 62)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 28)
+                }
+            }
+            .navigationTitle("添加歌曲")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func toggle(_ track: Track) {
+        if selectedTrackKeys.contains(track.storageKey) {
+            selectedTrackKeys.remove(track.storageKey)
+        } else {
+            selectedTrackKeys.insert(track.storageKey)
+        }
+    }
+}
+
+#if canImport(UIKit)
+private enum PlaylistCoverImageProcessor {
+    static func makeCoverImageData(from data: Data) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        return makeCoverImageData(from: image)
+    }
+
+    static func makeCoverImageData(from image: UIImage) -> Data? {
+        image.croppedSquareImage()?.jpegData(compressionQuality: 0.9)
+    }
+}
+
+private struct PlaylistImagePicker: UIViewControllerRepresentable {
+    let onSelect: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onSelect: onSelect, dismiss: dismiss)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let controller = UIImagePickerController()
+        controller.sourceType = .photoLibrary
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
+    }
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let onSelect: (UIImage) -> Void
+        let dismiss: DismissAction
+
+        init(onSelect: @escaping (UIImage) -> Void, dismiss: DismissAction) {
+            self.onSelect = onSelect
+            self.dismiss = dismiss
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            dismiss()
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                onSelect(image)
+            }
+            dismiss()
+        }
+    }
+}
+
+private extension UIImage {
+    func croppedSquareImage() -> UIImage? {
+        guard let cgImage else { return nil }
+
+        let width = CGFloat(cgImage.width)
+        let height = CGFloat(cgImage.height)
+        let side = min(width, height)
+        let x = (width - side) / 2
+        let y = (height - side) / 2
+        let rect = CGRect(x: x, y: y, width: side, height: side)
+
+        guard let cropped = cgImage.cropping(to: rect) else { return nil }
+        return UIImage(cgImage: cropped, scale: scale, orientation: imageOrientation)
+    }
+}
+#endif
 
 private struct PlaylistDetailHeroCard: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
@@ -1314,22 +1509,11 @@ private struct PlaylistRowCard: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: horizontalSizeClass == .compact ? 10 : 14) {
+        HStack(alignment: .center, spacing: horizontalSizeClass == .compact ? 12 : 14) {
             PlaylistCoverView(playlist: playlist, cornerRadius: 26, iconSize: 24)
                 .frame(width: coverSize, height: coverSize)
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .center, spacing: 8) {
-                    PlaylistSelectionBadge(
-                        title: isSelected ? "已浏览" : playlist.primaryCategory,
-                        systemImage: isSelected ? "checkmark.circle.fill" : "square.stack.3d.up.fill",
-                        isHighlighted: isSelected,
-                        tint: playlist.artwork.glow
-                    )
-
-                    Spacer(minLength: 0)
-                }
-
+            VStack(alignment: .leading, spacing: 6) {
                 Text(playlist.title)
                     .font(.headline)
                     .foregroundStyle(.white)
@@ -1337,42 +1521,10 @@ private struct PlaylistRowCard: View {
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(playlist.curator)
+                Text(sourceText)
                     .font(.subheadline)
                     .foregroundStyle(Color.white.opacity(0.68))
                     .lineLimit(1)
-
-                Text(playlist.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(isSelected ? 0.72 : 0.58))
-                    .lineLimit(isSelected ? 3 : 2)
-
-                HStack(spacing: 12) {
-                    Label("\(playlist.trackCount)", systemImage: "music.note.list")
-                    if playlist.hasPlayCount {
-                        Label(playlist.playCountText, systemImage: "headphones")
-                    }
-                }
-                .font(.caption.weight(.medium))
-                .foregroundStyle(Color.white.opacity(0.62))
-
-                HStack(spacing: 8) {
-                    ForEach(Array(playlist.categories.prefix(3)), id: \.self) { category in
-                        Text(category)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(isSelected ? .white : .white.opacity(0.82))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule()
-                                    .fill(isSelected ? playlist.artwork.glow.opacity(0.22) : Color.white.opacity(0.08))
-                            )
-                            .overlay(
-                                Capsule()
-                                    .stroke(Color.white.opacity(isSelected ? 0.12 : 0), lineWidth: 1)
-                            )
-                    }
-                }
             }
             .layoutPriority(1)
 
@@ -1429,28 +1581,9 @@ private struct PlaylistRowCard: View {
     private var cardCornerRadius: CGFloat {
         30
     }
-}
 
-private struct PlaylistSelectionBadge: View {
-    let title: String
-    let systemImage: String
-    let isHighlighted: Bool
-    let tint: Color
-
-    var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white.opacity(isHighlighted ? 0.96 : 0.72))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(isHighlighted ? tint.opacity(0.22) : Color.white.opacity(0.06))
-            )
-            .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(isHighlighted ? 0.12 : 0.08), lineWidth: 1)
-            )
+    private var sourceText: String {
+        playlist.source?.title ?? playlist.primaryCategory
     }
 }
 
@@ -1531,7 +1664,12 @@ private struct PlaylistCoverView: View {
 
     @ViewBuilder
     private var coverArtwork: some View {
-        if let remoteArtworkURL = playlist.remoteArtworkURL {
+        if let customArtworkData = playlist.customArtworkData,
+           let uiImage = UIImage(data: customArtworkData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else if let remoteArtworkURL = playlist.remoteArtworkURL {
             AsyncImage(url: remoteArtworkURL) { phase in
                 switch phase {
                 case let .success(image):

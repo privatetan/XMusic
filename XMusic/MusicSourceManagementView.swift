@@ -54,12 +54,12 @@ private extension View {
 struct MusicSourceManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
-    @EnvironmentObject private var player: MusicPlayerViewModel
 
     @State private var isFileImporterPresented = false
     @State private var isPasteSheetPresented = false
     @State private var alertMessage: String?
     @State private var isImporting = false
+    @State private var isRuntimeLabExpanded = false
 
     var body: some View {
         CompatibleNavigationContainer {
@@ -67,8 +67,10 @@ struct MusicSourceManagementView: View {
                 AppBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
-                        introCard
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("音乐源管理")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
 
                         HStack(spacing: 12) {
                             ActionPill(title: "导入文件", symbol: "square.and.arrow.down") {
@@ -86,9 +88,7 @@ struct MusicSourceManagementView: View {
                             emptyState
                         } else {
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("已导入的音乐源")
-                                    .font(.title2.weight(.bold))
-                                    .foregroundStyle(.white)
+                                sectionHeader(title: "已导入的音乐源")
 
                                 ForEach(sourceLibrary.sources) { source in
                                     MusicSourceCard(
@@ -103,7 +103,7 @@ struct MusicSourceManagementView: View {
                         }
 
                         if let activeSource = sourceLibrary.activeSource {
-                            MusicSourceRuntimeLab(source: activeSource)
+                            runtimeLabSection(activeSource: activeSource)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -178,47 +178,32 @@ struct MusicSourceManagementView: View {
         }
     }
 
-    private var introCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("已接入 LX Music 风格的音乐源读取与解析流程")
-                .font(.headline)
-                .foregroundStyle(.white)
+    @ViewBuilder
+    private func runtimeLabSection(activeSource: ImportedMusicSource) -> some View {
+        DisclosureGroup(
+            isExpanded: $isRuntimeLabExpanded,
+            content: {
+                MusicSourceRuntimeLab(source: activeSource)
+                    .padding(.top, 12)
+            },
+            label: {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("运行测试")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                    }
 
-            Text("支持从文件或脚本文本导入，先解析头部注释里的 name / description / author / homepage / version，再用 JavaScriptCore 尝试还原 sources / actions / qualitys。")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.72))
-                .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
 
-            if let activeSource = sourceLibrary.activeSource {
-                Label("当前激活：\(activeSource.name)", systemImage: "checkmark.seal.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color(red: 0.48, green: 0.92, blue: 0.72))
+                    Text(isRuntimeLabExpanded ? "收起" : "展开")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.56))
+                }
             }
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(Color.white.opacity(0.08))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("还没有导入任何音乐源")
-                .font(.headline)
-                .foregroundStyle(.white)
-
-            Text("导入一个 `lx-music-mobile` 风格的自定义源脚本后，这里会显示元信息和解析出的能力清单。")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .tint(.white)
+        .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(Color.white.opacity(0.05))
@@ -229,29 +214,47 @@ struct MusicSourceManagementView: View {
         )
     }
 
-    private var mediaCacheCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("媒体缓存")
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("还没有导入任何音乐源")
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            Text(cacheDescription)
+            Text("导入一个脚本后会显示在这里。")
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.72))
-                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(Color.white.opacity(0.68))
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
 
-            HStack(spacing: 12) {
-                Label("\(sourceLibrary.mediaCacheSummary.fileCount) 个文件", systemImage: "externaldrive.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.78))
+    private var mediaCacheCard: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("媒体缓存")
+                    .font(.headline)
+                    .foregroundStyle(.white)
 
-                Label(sourceLibrary.mediaCacheSummary.formattedSize, systemImage: "internaldrive")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.78))
+                Text(sourceLibrary.mediaCacheSummary.isEmpty
+                     ? "暂无缓存"
+                     : "\(sourceLibrary.mediaCacheSummary.fileCount) 个文件 · \(sourceLibrary.mediaCacheSummary.formattedSize)")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.62))
+                    .lineLimit(1)
             }
 
+            Spacer(minLength: 0)
+
             MiniActionButton(
-                title: "清理缓存",
+                title: "清理",
                 symbol: "trash",
                 role: .destructive,
                 isDisabled: sourceLibrary.mediaCacheSummary.fileCount == 0
@@ -261,23 +264,16 @@ struct MusicSourceManagementView: View {
                 }
             }
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color.white.opacity(0.05))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-    }
-
-    private var cacheDescription: String {
-        if sourceLibrary.mediaCacheSummary.fileCount == 0 {
-            return "还没有缓存音频。播放过的 http / https 音频会自动缓存到本地，下次播放会优先复用。"
-        }
-        return "当前已缓存 \(sourceLibrary.mediaCacheSummary.fileCount) 个音频文件，占用 \(sourceLibrary.mediaCacheSummary.formattedSize)。"
     }
 
     private var supportedFileTypes: [UTType] {
@@ -314,6 +310,14 @@ struct MusicSourceManagementView: View {
             }
         }
     }
+
+    private func sectionHeader(title: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.white)
+        }
+    }
 }
 
 private struct MusicSourceCard: View {
@@ -324,9 +328,9 @@ private struct MusicSourceCard: View {
     let onRemove: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Text(source.name)
                             .font(.title3.weight(.bold))
@@ -340,43 +344,29 @@ private struct MusicSourceCard: View {
                                 .background(Color(red: 0.48, green: 0.92, blue: 0.72).opacity(0.18), in: Capsule())
                                 .foregroundStyle(Color(red: 0.48, green: 0.92, blue: 0.72))
                         }
+
+                        if source.parseErrorMessage != nil {
+                            Text("异常")
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.orange.opacity(0.14), in: Capsule())
+                                .foregroundStyle(Color.orange)
+                        }
                     }
 
-                    Text(source.description.isEmpty ? "没有 description 字段" : source.description)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.72))
-
                     Text(detailLine)
-                        .font(.caption)
-                        .foregroundStyle(Color.white.opacity(0.52))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.62))
+                        .lineLimit(1)
                 }
 
                 Spacer(minLength: 12)
             }
 
-            if !source.capabilities.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("解析结果")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.82))
-
-                    ForEach(source.capabilities) { capability in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(capability.source.uppercased())
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(Color.white.opacity(0.56))
-
-                            FlexibleSourceTags(
-                                items: capability.actions.map(\.title) + capability.qualitys
-                            )
-                        }
-                    }
-                }
-            }
-
             if let parseErrorMessage = source.parseErrorMessage {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("脚本运行解析失败")
+                    Text("脚本解析失败")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
 
@@ -385,8 +375,8 @@ private struct MusicSourceCard: View {
                         .foregroundStyle(Color.white.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(14)
-                .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(12)
+                .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
 
             HStack(spacing: 10) {
@@ -411,13 +401,13 @@ private struct MusicSourceCard: View {
                 )
             }
         }
-        .padding(18)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.white.opacity(0.06))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
@@ -957,27 +947,5 @@ private struct MiniActionButton: View {
         .buttonStyle(.plain)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.55 : 1)
-    }
-}
-
-private struct FlexibleSourceTags: View {
-    let items: [String]
-    private let columns = [GridItem(.adaptive(minimum: 78), spacing: 8)]
-
-    var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(items, id: \.self) { item in
-                Text(item)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(Color.white.opacity(0.08), in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    )
-            }
-        }
     }
 }

@@ -40,10 +40,7 @@ struct BrowseView: View {
     }
 
     private var cachedTrackCount: Int {
-        mergedCachedTracks(
-            playerTracks: player.cachedTracks,
-            cachedFiles: sourceLibrary.cachedMediaFiles
-        ).count
+        sourceLibrary.mediaCacheSummary.fileCount
     }
 
     private var recentlyAddedHeight: CGFloat {
@@ -447,19 +444,14 @@ struct CachedSongsSheet: View {
 
     @State private var searchText = ""
     @State private var trackPendingRemoval: Track?
+    @State private var allTracks: [Track] = []
+    @State private var hasLoadedContent = false
     @FocusState private var searchFocused: Bool
-
-    private var tracks: [Track] {
-        mergedCachedTracks(
-            playerTracks: player.cachedTracks,
-            cachedFiles: sourceLibrary.cachedMediaFiles
-        )
-    }
 
     private var filteredTracks: [Track] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return tracks }
-        return tracks.filter {
+        guard !q.isEmpty else { return allTracks }
+        return allTracks.filter {
             $0.title.localizedCaseInsensitiveContains(q) ||
             $0.artist.localizedCaseInsensitiveContains(q)
         }
@@ -517,7 +509,12 @@ struct CachedSongsSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
 
-                if tracks.isEmpty {
+                if !hasLoadedContent {
+                    Spacer()
+                    ProgressView()
+                        .tint(.white)
+                    Spacer()
+                } else if allTracks.isEmpty {
                     Spacer()
                     Text("还没有缓存的歌曲")
                         .font(.subheadline)
@@ -592,6 +589,21 @@ struct CachedSongsSheet: View {
                 Text("“\(trackPendingRemoval.title)” 的本地缓存文件会被移除。")
             }
         }
+        .onAppear {
+            guard !hasLoadedContent else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                hasLoadedContent = true
+                reloadTracks()
+            }
+        }
+        .onChange(of: player.cachedTracks) { _ in
+            guard hasLoadedContent else { return }
+            reloadTracks()
+        }
+        .onChange(of: sourceLibrary.mediaCacheSummary) { _ in
+            guard hasLoadedContent else { return }
+            reloadTracks()
+        }
     }
 
     private func removeCachedTrack(_ track: Track) {
@@ -605,6 +617,13 @@ struct CachedSongsSheet: View {
             print("[cache] Failed to remove cached media file: \(error)")
             #endif
         }
+    }
+
+    private func reloadTracks() {
+        allTracks = mergedCachedTracks(
+            playerTracks: player.cachedTracks,
+            cachedFiles: sourceLibrary.cachedMediaFilesSnapshot
+        )
     }
 }
 
@@ -631,17 +650,13 @@ private func mergedCachedTracks(
 }
 
 private func cachedMediaPlaceholderTrack(from file: CachedMediaFile) -> Track {
-    let assetMetadata = cachedAudioMetadata(from: file.localURL)
     let baseName = URL(fileURLWithPath: file.fileName).deletingPathExtension().lastPathComponent
     let inferredTitle = file.title?.nilIfBlank
-        ?? assetMetadata.title?.nilIfBlank
         ?? (baseName.isEmpty ? "缓存音频" : baseName)
     let inferredArtist = file.artist?.nilIfBlank
-        ?? assetMetadata.artist?.nilIfBlank
         ?? file.originalURL?.host?.replacingOccurrences(of: "www.", with: "")
         ?? "媒体缓存"
     let inferredAlbum = file.album?.nilIfBlank
-        ?? assetMetadata.album?.nilIfBlank
         ?? "本地缓存"
 
     return Track(
@@ -659,31 +674,6 @@ private func cachedMediaPlaceholderTrack(from file: CachedMediaFile) -> Track {
             label: "Cache"
         ),
         sourceName: file.sourceName?.nilIfBlank ?? "媒体缓存"
-    )
-}
-
-private struct CachedAudioMetadata {
-    let title: String?
-    let artist: String?
-    let album: String?
-}
-
-private func cachedAudioMetadata(from url: URL) -> CachedAudioMetadata {
-    let asset = AVURLAsset(url: url)
-    let metadata = asset.commonMetadata
-
-    func value(for identifier: AVMetadataIdentifier) -> String? {
-        metadata
-            .first(where: { $0.identifier == identifier })?
-            .stringValue?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .nilIfBlank
-    }
-
-    return CachedAudioMetadata(
-        title: value(for: .commonIdentifierTitle),
-        artist: value(for: .commonIdentifierArtist),
-        album: value(for: .commonIdentifierAlbumName)
     )
 }
 

@@ -162,6 +162,7 @@ struct AppTabBar: View {
     var onSearchSubmit: (() -> Void)? = nil
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var navigationAnimation
+    @State private var lastNonSearchTab: AppTab = .browse
     private let activeColor = Color(red: 0.50, green: 0.52, blue: 1.0)
 
     private var isSearchMode: Bool { selectedTab == .search }
@@ -170,14 +171,14 @@ struct AppTabBar: View {
         HStack(spacing: isCompactLayout ? 12 : 16) {
             // Left cluster: full tabs OR collapsed home button
             if isSearchMode {
-                // Collapsed: single round "home" button
+                // Collapsed: return to the page that opened search
                 Button {
                     isSearchFieldFocused.wrappedValue = false
                     withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
-                        selectedTab = .browse
+                        selectedTab = lastNonSearchTab
                     }
                 } label: {
-                    Image(systemName: "house.fill")
+                    Image(systemName: lastNonSearchTab.symbol)
                         .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: barHeight, height: barHeight)
@@ -248,6 +249,16 @@ struct AppTabBar: View {
             }
         }
         .animation(.spring(response: 0.40, dampingFraction: 0.80), value: isSearchMode)
+        .onAppear {
+            if selectedTab != .search {
+                lastNonSearchTab = selectedTab
+            }
+        }
+        .onChange(of: selectedTab) { newValue in
+            if newValue != .search {
+                lastNonSearchTab = newValue
+            }
+        }
     }
 
     private func tabButton(for tab: AppTab, isSearchShortcut: Bool = false) -> some View {

@@ -23,11 +23,10 @@ struct SearchView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 22) {
-                PageHeader(
-                    title: "搜索",
-                    subtitle: "内置多平台搜歌，播放时走当前激活音源解析地址"
-                )
+            VStack(alignment: .leading, spacing: 18) {
+                Text("搜索")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -56,10 +55,7 @@ struct SearchView: View {
                 if musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(alignment: .firstTextBaseline) {
-                            SectionHeading(
-                                title: "搜索记录",
-                                subtitle: musicSearch.searchHistory.isEmpty ? "你搜过的关键词会出现在这里" : (isEditingHistory ? "点 × 删除单条记录" : "点一下就能重新搜索")
-                            )
+                            SectionHeading(title: "搜索记录")
                             Spacer()
                             if !musicSearch.searchHistory.isEmpty {
                                 Button(isEditingHistory ? "完成" : "编辑") {
@@ -73,7 +69,7 @@ struct SearchView: View {
                         }
 
                         if musicSearch.searchHistory.isEmpty {
-                            Text("还没有搜索记录。输入关键词后，搜索记录会自动保存在这里。")
+                            Text("还没有搜索记录。")
                                 .font(.subheadline)
                                 .foregroundStyle(Color.white.opacity(0.62))
                                 .padding(16)
@@ -98,15 +94,10 @@ struct SearchView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 16) {
-                        SectionHeading(title: "播放说明", subtitle: "搜索来自内置平台，播放依赖当前激活音源")
-
-                        SearchStatusCard(
-                            activeSourceName: sourceLibrary.activeSource?.name,
-                            supportedSources: searchableSources.filter { $0 != .all }.map(\.title),
-                            fallbackEnabled: sourceLibrary.enableAutomaticSourceFallback
-                        )
-                    }
+                    SearchStatusCard(
+                        activeSourceName: sourceLibrary.activeSource?.name,
+                        fallbackEnabled: sourceLibrary.enableAutomaticSourceFallback
+                    )
                 } else if musicSearch.isLoading && musicSearch.results.isEmpty {
                     VStack(spacing: 16) {
                         ProgressView()
@@ -120,10 +111,17 @@ struct SearchView: View {
                     .padding(.vertical, 36)
                 } else {
                     VStack(alignment: .leading, spacing: 16) {
-                        SectionHeading(
-                            title: "搜索结果",
-                            subtitle: "\(musicSearch.selectedSource.title) · \(musicSearch.results.count) 首"
-                        )
+                        HStack(alignment: .center, spacing: 12) {
+                            Text("搜索结果")
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(.white)
+
+                            Spacer(minLength: 0)
+
+                            Text("\(musicSearch.results.count) 首")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.white.opacity(0.58))
+                        }
 
                         if let playbackError {
                             Text(playbackError)
@@ -479,31 +477,35 @@ private struct SearchSourcePill: View {
 
 private struct SearchStatusCard: View {
     let activeSourceName: String?
-    let supportedSources: [String]
     let fallbackEnabled: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(activeSourceName == nil ? "当前还没有激活音源" : "当前音源：\(activeSourceName!)")
-                .font(.headline)
-                .foregroundStyle(.white)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("当前音源")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.white.opacity(0.66))
 
-            Text(activeSourceName == nil
-                 ? "你可以先直接搜索看看结果，真正点播放前再去设置页激活一个音源。"
-                 : "当前激活音源可用于这些平台：\(supportedSources.joined(separator: " / "))")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
-                .fixedSize(horizontal: false, vertical: true)
+                Text(activeSourceName ?? "未激活")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
 
-            Text(fallbackEnabled ? "自动换源：已启用" : "自动换源：已禁用，仅测试原平台")
-                .font(.footnote.weight(.semibold))
+            Spacer(minLength: 0)
+
+            Text(fallbackEnabled ? "自动换源已开启" : "自动换源已关闭")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(fallbackEnabled ? Color(red: 0.57, green: 0.86, blue: 0.73) : Color(red: 1.00, green: 0.72, blue: 0.47))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.08), in: Capsule())
         }
-        .padding(18)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
