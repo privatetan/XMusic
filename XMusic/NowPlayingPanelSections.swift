@@ -4,7 +4,7 @@ struct NowPlayingArtworkSection: View {
     let track: Track
     let animation: Namespace.ID
     let compactHeight: Bool
-    let sectionHeight: CGFloat
+    let topSectionHeight: CGFloat
     let topReservedHeight: CGFloat
     let topSectionBottomPadding: CGFloat
     let artworkSize: CGFloat
@@ -31,7 +31,7 @@ struct NowPlayingArtworkSection: View {
 
             Spacer(minLength: topSectionBottomPadding)
         }
-        .frame(height: sectionHeight, alignment: .top)
+        .frame(height: topSectionHeight, alignment: .top)
     }
 
     @ViewBuilder
@@ -43,21 +43,38 @@ struct NowPlayingArtworkSection: View {
         }
     }
 
+    //播放页封面+ 歌名 + 歌手名
     @ViewBuilder
     private var artworkHeroContent: some View {
-        HStack(spacing: 0) {
-            Spacer(minLength: 0)
-
+        //Spacer(minLength: compactHeight ? 10 : 14)
+        VStack(spacing: compactHeight ? 18 : 22) {
             ArtworkView(track: track, cornerRadius: 28, iconSize: compactHeight ? 28 : 32)
                 .frame(width: artworkSize, height: artworkSize)
                 .clipped()
+                .matchedGeometryEffect(id: "Artwork", in: animation)
                 .shadow(color: Color.black.opacity(0.14), radius: 24, x: 0, y: 12)
-
-            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+
+        Spacer(minLength: compactHeight ? 10 : 14)
+        
+        VStack(alignment: .leading, spacing: 4) {
+            Text(track.title)
+                .font(.system(size: compactHeight ? 28 : 32, weight: .bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .truncationMode(.tail)
+
+            Text(track.artist)
+                .font(.system(size: compactHeight ? 18 : 20, weight: .regular))
+                .foregroundStyle(Color.white.opacity(0.88))
+                .lineLimit(1)
+        }
+        .frame(width: artworkSize, alignment: .leading)
     }
 
+    //歌词展示
     @ViewBuilder
     private var lyricsHeroContent: some View {
         if isLoadingLyrics {
@@ -113,10 +130,8 @@ struct NowPlayingArtworkSection: View {
 struct NowPlayingControlsSection: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
 
-    let track: Track
     let compactHeight: Bool
-    let sectionHeight: CGFloat
-    let titleSectionSpacing: CGFloat
+    let bottomSectionHeight: CGFloat
     let secondaryGap: CGFloat
     let controlsGap: CGFloat
     let volumeGap: CGFloat
@@ -138,30 +153,7 @@ struct NowPlayingControlsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Spacer(minLength: compactHeight ? 16 : 20)
-
-            VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(track.title)
-                        .font(.system(size: compactHeight ? 28 : 32, weight: .bold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .truncationMode(.tail)
-
-                    Text(track.artist)
-                        .font(.system(size: compactHeight ? 18 : 20, weight: .regular))
-                        .foregroundStyle(Color.white.opacity(0.88))
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(1)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 20)
-                .scaleEffect(x: 1.0 - (squeezeProgress * 0.12), y: 1.0)
-            }
-
-            Spacer().frame(height: titleSectionSpacing)
+         
 
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: secondaryGap)
@@ -281,7 +273,7 @@ struct NowPlayingControlsSection: View {
 
             Spacer(minLength: compactHeight ? 12 : 16)
         }
-        .frame(height: sectionHeight, alignment: .top)
+        .frame(height: bottomSectionHeight, alignment: .top)
     }
 
     @ViewBuilder
@@ -358,5 +350,138 @@ struct NowPlayingControlsSection: View {
         let minutes = whole / 60
         let seconds = whole % 60
         return "\(minutes):\(String(format: "%02d", seconds))"
+    }
+}
+
+#Preview("Now Playing Artwork") {
+    NowPlayingPanelSectionsPreview(isLyricsPresented: false)
+}
+
+#Preview("Now Playing Lyrics") {
+    NowPlayingPanelSectionsPreview(isLyricsPresented: true)
+}
+
+private struct NowPlayingPanelSectionsPreview: View {
+    @StateObject private var player = MusicPlayerViewModel()
+    @Namespace private var animation
+    @State private var isScrubbing = false
+    @State private var draftTime: Double = 39
+    @State private var isLyricsPresented: Bool
+    @State private var isRouteSheetPresented = false
+    @State private var routePickerTrigger = 0
+
+    init(isLyricsPresented: Bool) {
+        _isLyricsPresented = State(initialValue: isLyricsPresented)
+    }
+
+    var body: some View {
+        let compactHeight = false
+        let availableHeight: CGFloat = 844
+        let topSectionHeight = availableHeight * 0.6
+        let bottomSectionHeight = availableHeight * 0.4
+        let topReservedHeight: CGFloat = 86
+        let artworkSize: CGFloat = 320
+        let previewTrack = previewTrack
+        let previewLines = previewLyrics
+        let activeLineID = previewLines.dropFirst().first?.id
+
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.67, green: 0.64, blue: 0.64),
+                    Color(red: 0.58, green: 0.55, blue: 0.55),
+                    Color(red: 0.53, green: 0.50, blue: 0.50)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                NowPlayingArtworkSection(
+                    track: previewTrack,
+                    animation: animation,
+                    compactHeight: compactHeight,
+                    topSectionHeight: topSectionHeight,
+                    topReservedHeight: topReservedHeight,
+                    topSectionBottomPadding: 24,
+                    artworkSize: artworkSize,
+                    squeezeProgress: 0,
+                    lines: previewLines,
+                    activeLineID: activeLineID,
+                    isLoadingLyrics: false,
+                    lyricsErrorMessage: nil,
+                    isLyricsPresented: isLyricsPresented,
+                    showContent: true,
+                    onRetryLyrics: {}
+                )
+
+                NowPlayingControlsSection(
+                    compactHeight: compactHeight,
+                    bottomSectionHeight: bottomSectionHeight,
+                    secondaryGap: 10,
+                    controlsGap: 28,
+                    volumeGap: 34,
+                    bottomGap: 16,
+                    actionIconSize: 24,
+                    safeBottom: 34,
+                    showContent: true,
+                    squeezeProgress: 0,
+                    isExternalAudioRouteActive: true,
+                    isScrubbing: $isScrubbing,
+                    draftTime: $draftTime,
+                    isLyricsPresented: $isLyricsPresented,
+                    isRouteSheetPresented: $isRouteSheetPresented,
+                    routePickerTrigger: $routePickerTrigger,
+                    onPrevious: {},
+                    onTogglePlayback: {},
+                    onNext: {},
+                    onLyricsTap: {
+                        isLyricsPresented.toggle()
+                    }
+                )
+                .environmentObject(player)
+            }
+            .frame(width: 390, height: availableHeight)
+            .padding(.horizontal, 28)
+            .padding(.top, 16)
+        }
+        .frame(width: 430, height: 900)
+        .task {
+            player.play(previewTrack, from: [previewTrack])
+            player.seek(to: draftTime)
+            player.setVolume(0.82)
+        }
+    }
+
+    private var previewTrack: Track {
+        Track(
+            title: "紫光夜 (pporappippam)",
+            artist: "宣美",
+            album: "1/6",
+            blurb: "Preview track",
+            genre: "K-Pop",
+            duration: 206,
+            audioURL: nil,
+            artwork: ArtworkPalette(
+                colors: [
+                    Color(red: 0.96, green: 0.82, blue: 0.93),
+                    Color(red: 0.70, green: 0.76, blue: 0.92)
+                ],
+                glow: Color(red: 0.94, green: 0.74, blue: 0.92),
+                symbol: "music.note",
+                label: "Preview"
+            )
+        )
+    }
+
+    private var previewLyrics: [ParsedLyricLine] {
+        [
+            ParsedLyricLine(id: "0", time: 0, text: "Purple night, shining softly", extendedLyrics: []),
+            ParsedLyricLine(id: "1", time: 19_000, text: "紫光夜在窗边慢慢落下", extendedLyrics: ["pporappippam, pporappippam"]),
+            ParsedLyricLine(id: "2", time: 27_000, text: "我沿着月光走向你", extendedLyrics: []),
+            ParsedLyricLine(id: "3", time: 35_000, text: "整座城市都安静下来", extendedLyrics: []),
+            ParsedLyricLine(id: "4", time: 43_000, text: "只剩心跳和微弱霓虹", extendedLyrics: [])
+        ]
     }
 }

@@ -98,22 +98,24 @@ struct HeroLyricsPreview: View {
             Text(line.text)
                 .font(
                     .system(
-                        size: compactHeight ? (isActive ? 28 : 22) : (isActive ? 34 : 26),
+                        size: compactHeight ? (isActive ? 24 : 20) : (isActive ? 29 : 23),
                         weight: isActive ? .bold : .semibold
                     )
                 )
                 .foregroundStyle(Color.white)
                 .multilineTextAlignment(.leading)
-                .lineLimit(3)
+                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if isActive {
                 ForEach(line.extendedLyrics, id: \.self) { extendedLine in
                     Text(extendedLine)
-                        .font(.system(size: compactHeight ? 17 : 19, weight: .medium))
+                        .font(.system(size: compactHeight ? 15 : 17, weight: .medium))
                         .foregroundStyle(Color.white.opacity(0.70))
                         .multilineTextAlignment(.leading)
-                        .lineLimit(3)
+                        .lineLimit(4)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -126,19 +128,19 @@ struct HeroLyricsPreview: View {
 
     private func opacity(for distance: Int) -> Double {
         switch distance {
-        case ..<0: return 0.18
+        case ..<0: return 0.28
         case 0: return 0.96
-        case 1: return 0.38
-        default: return 0.2
+        case 1: return 0.48
+        default: return 0.3
         }
     }
 
     private func blurRadius(for distance: Int) -> CGFloat {
         switch distance {
-        case ..<0: return compactHeight ? 5 : 6
+        case ..<0: return compactHeight ? 2.2 : 2.8
         case 0: return 0
-        case 1: return compactHeight ? 2.5 : 3
-        default: return compactHeight ? 4.5 : 5
+        case 1: return compactHeight ? 1.4 : 1.8
+        default: return compactHeight ? 2.0 : 2.4
         }
     }
 

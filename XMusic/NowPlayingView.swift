@@ -45,20 +45,20 @@ struct InlineNowPlayingPanel: View {
                 let availableHeight = geometry.size.height - safeTop - safeBottom
                 let compactHeight = availableHeight < 780
                 let topButtonPadding = max(safeTop + 2.0, 10.0)
-                let sectionHeight = max(availableHeight * 0.5, 0.0)
+                let topSectionHeight = max(availableHeight * 0.7, 0.0)
+                let bottomSectionHeight = max(availableHeight - topSectionHeight, 0.0)
                 let contentWidth = max(geometry.size.width - horizontalPadding * 2.0, 0.0)
                 let topReservedHeight = max(topButtonPadding + 52.0, compactHeight ? 74.0 : 82.0)
                 let artworkSize = min(
                     contentWidth * 0.82,
-                    compactHeight ? 224.0 : 300.0,
-                    max(sectionHeight - topReservedHeight - (compactHeight ? 24.0 : 32.0), 140.0)
+                    compactHeight ? 236.0 : 320.0,
+                    max(topSectionHeight - topReservedHeight - (compactHeight ? 40.0 : 48.0), 140.0)
                 )
                 let topSectionBottomPadding = compactHeight ? 18.0 : 24.0
-                let titleSectionSpacing = compactHeight ? 4.0 : 6.0
-                let secondaryGap = compactHeight ? 14.0 : 18.0
-                let controlsGap = compactHeight ? 28.0 : 34.0
-                let volumeGap = compactHeight ? 40.0 : 54.0
-                let bottomGap = compactHeight ? 18.0 : 20.0
+                let secondaryGap = compactHeight ? 6.0 : 10.0
+                let controlsGap = compactHeight ? 24.0 : 28.0
+                let volumeGap = compactHeight ? 28.0 : 34.0
+                let bottomGap = compactHeight ? 14.0 : 16.0
                 let actionIconSize = compactHeight ? 20.0 : 24.0
                 let lyricLines = parsedLyricLines(for: track)
                 let activeLineID = currentLyricLineID(for: track, lines: lyricLines)
@@ -86,7 +86,7 @@ struct InlineNowPlayingPanel: View {
                             track: track,
                             animation: animation,
                             compactHeight: compactHeight,
-                            sectionHeight: sectionHeight,
+                            topSectionHeight: topSectionHeight,
                             topReservedHeight: topReservedHeight,
                             topSectionBottomPadding: topSectionBottomPadding,
                             artworkSize: artworkSize,
@@ -101,10 +101,8 @@ struct InlineNowPlayingPanel: View {
                         )
 
                         NowPlayingControlsSection(
-                            track: track,
                             compactHeight: compactHeight,
-                            sectionHeight: sectionHeight,
-                            titleSectionSpacing: titleSectionSpacing,
+                            bottomSectionHeight: bottomSectionHeight,
                             secondaryGap: secondaryGap,
                             controlsGap: controlsGap,
                             volumeGap: volumeGap,
