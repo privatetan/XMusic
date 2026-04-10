@@ -9,28 +9,104 @@ struct NowPlayingArtworkSection: View {
     let topSectionBottomPadding: CGFloat
     let artworkSize: CGFloat
     let squeezeProgress: CGFloat
+    let lines: [ParsedLyricLine]
+    let activeLineID: String?
+    let isLoadingLyrics: Bool
+    let lyricsErrorMessage: String?
+    let isLyricsPresented: Bool
+    let showContent: Bool
+    let onRetryLyrics: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer(minLength: topReservedHeight)
 
-            HStack(spacing: 0) {
-                Spacer(minLength: 0)
-
-                ArtworkView(track: track, cornerRadius: 26, iconSize: compactHeight ? 26 : 30)
-                    .frame(width: artworkSize, height: artworkSize)
-                    .matchedGeometryEffect(id: "Artwork", in: animation)
-                    .clipped()
-                    .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 8)
-
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity)
-            .scaleEffect(1.0 - (squeezeProgress * 0.08))
+            heroContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .opacity(showContent ? 1 : 0)
+                .offset(y: showContent ? 0 : 22)
+            .padding(.horizontal, compactHeight ? 2 : 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .scaleEffect(1.0 - (squeezeProgress * 0.05))
 
             Spacer(minLength: topSectionBottomPadding)
         }
-        .frame(height: sectionHeight, alignment: .center)
+        .frame(height: sectionHeight, alignment: .top)
+    }
+
+    @ViewBuilder
+    private var heroContent: some View {
+        if !isLyricsPresented {
+            artworkHeroContent
+        } else {
+            lyricsHeroContent
+        }
+    }
+
+    @ViewBuilder
+    private var artworkHeroContent: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            ArtworkView(track: track, cornerRadius: 28, iconSize: compactHeight ? 28 : 32)
+                .frame(width: artworkSize, height: artworkSize)
+                .clipped()
+                .shadow(color: Color.black.opacity(0.14), radius: 24, x: 0, y: 12)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private var lyricsHeroContent: some View {
+        if isLoadingLyrics {
+            VStack(alignment: .leading, spacing: 12) {
+                ProgressView()
+                    .tint(.white.opacity(0.84))
+
+                Text("正在加载歌词…")
+                    .font(.system(size: compactHeight ? 16 : 17, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.72))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        } else if let lyricsErrorMessage {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(lyricsErrorMessage)
+                    .font(.system(size: compactHeight ? 16 : 17, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.72))
+                    .multilineTextAlignment(.leading)
+
+                Button(action: onRetryLyrics) {
+                    Label("重新加载歌词", systemImage: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else if !lines.isEmpty {
+            HeroLyricsPreview(
+                track: track,
+                lines: lines,
+                activeLineID: activeLineID,
+                compactHeight: compactHeight
+            )
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("当前歌曲暂无可显示的歌词")
+                    .font(.system(size: compactHeight ? 18 : 20, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.68))
+
+                Text("播放页上半部分会优先展示同步歌词。")
+                    .font(.system(size: compactHeight ? 14 : 15, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.42))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
     }
 }
 

@@ -60,6 +60,8 @@ struct InlineNowPlayingPanel: View {
                 let volumeGap = compactHeight ? 40.0 : 54.0
                 let bottomGap = compactHeight ? 18.0 : 20.0
                 let actionIconSize = compactHeight ? 20.0 : 24.0
+                let lyricLines = parsedLyricLines(for: track)
+                let activeLineID = currentLyricLineID(for: track, lines: lyricLines)
 
                 ZStack {
                     RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
@@ -88,7 +90,14 @@ struct InlineNowPlayingPanel: View {
                             topReservedHeight: topReservedHeight,
                             topSectionBottomPadding: topSectionBottomPadding,
                             artworkSize: artworkSize,
-                            squeezeProgress: squeezeProgress
+                            squeezeProgress: squeezeProgress,
+                            lines: lyricLines,
+                            activeLineID: activeLineID,
+                            isLoadingLyrics: isLoadingLyrics,
+                            lyricsErrorMessage: lyricsErrorMessage,
+                            isLyricsPresented: isLyricsPresented,
+                            showContent: showContent,
+                            onRetryLyrics: { loadLyrics(for: track, force: true) }
                         )
 
                         NowPlayingControlsSection(
@@ -157,17 +166,6 @@ struct InlineNowPlayingPanel: View {
                         .opacity(showContent ? 1 : 0)
                         .allowsHitTesting(false)
 
-                    if isLyricsPresented {
-                        lyricsOverlay(
-                            for: track,
-                            availableHeight: availableHeight,
-                            horizontalPadding: horizontalPadding,
-                            safeBottom: safeBottom,
-                            compactHeight: compactHeight
-                        )
-                        .zIndex(120)
-                    }
-
                     if isRouteSheetPresented {
                         routeSheetOverlay(
                             track: track,
@@ -205,7 +203,9 @@ struct InlineNowPlayingPanel: View {
                 }
             }
             .ignoresSafeArea()
-            .onAppear(perform: resetTransientPresentationState)
+            .onAppear {
+                resetTransientPresentationState()
+            }
             .onAppear(perform: refreshAudioRouteState)
             .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in
                 refreshAudioRouteState()
@@ -242,6 +242,7 @@ struct InlineNowPlayingPanel: View {
         isScrubbing = false
         draftTime = player.currentTime
         dragOffset = 0
+        isLyricsPresented = false
 
         showContent = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -511,22 +512,14 @@ struct InlineNowPlayingPanel: View {
     }
 
     private func handleLyricsButtonTap(for track: Track) {
-        if isLyricsPresented {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                isLyricsPresented = false
-            }
-            return
-        }
-
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-            isLyricsPresented = true
-        }
+        isLyricsPresented.toggle()
+        guard isLyricsPresented else { return }
         loadLyrics(for: track, force: false)
     }
 
     private func handleTrackChange(_ track: Track) {
         guard isLyricsPresented else {
-            resetLyricsState(keepPresentation: false)
+            resetLyricsState(keepPresentation: true)
             return
         }
 
