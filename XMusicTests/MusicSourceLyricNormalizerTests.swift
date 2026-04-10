@@ -26,4 +26,17 @@ final class MusicSourceLyricNormalizerTests: XCTestCase {
         XCTAssertEqual(result.rlyric, "[00:00.00]ni hao")
         XCTAssertEqual(result.lxlyric, "<0,500>hello")
     }
+
+    func testNormalizeFallsBackToLxLyricWhenPrimaryLyricIsMissing() throws {
+        let result = try XCTUnwrap(
+            MusicSourceLyricNormalizer.normalize([
+                "lxlrc": "[00:00.00]<0,500>hello",
+            ])
+        )
+
+        XCTAssertEqual(result.lyric, "[00:00.00]<0,500>hello")
+        XCTAssertEqual(result.lxlyric, "[00:00.00]<0,500>hello")
+        XCTAssertNil(result.tlyric)
+        XCTAssertNil(result.rlyric)
+    }
 }

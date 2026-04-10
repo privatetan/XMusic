@@ -115,6 +115,12 @@ struct ImportedMusicSource: Codable, Hashable, Identifiable {
     var hasRuntimeParseError: Bool {
         parseErrorMessage != nil
     }
+
+    func supports(source platformSource: String, action: MusicSourceAction) -> Bool {
+        capabilities.contains { capability in
+            capability.source == platformSource && capability.actions.contains(action)
+        }
+    }
 }
 
 struct MusicSourceSnapshot: Codable {

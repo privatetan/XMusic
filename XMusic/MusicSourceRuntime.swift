@@ -33,13 +33,15 @@ enum MusicSourceLyricNormalizer {
         let rlyricKeys = ["rlyric", "rlrc"]
         let lxlyricKeys = ["lxlyric", "lxlrc"]
 
-        guard let lyric = firstString(in: data, keys: lyricKeys) else { return nil }
+        let primaryLyric = firstString(in: data, keys: lyricKeys)
+        let lxlyric = firstString(in: data, keys: lxlyricKeys)
+        guard let lyric = primaryLyric ?? lxlyric else { return nil }
 
         return MusicSourceLyricResult(
             lyric: lyric,
             tlyric: firstString(in: data, keys: tlyricKeys),
             rlyric: firstString(in: data, keys: rlyricKeys),
-            lxlyric: firstString(in: data, keys: lxlyricKeys)
+            lxlyric: lxlyric
         )
     }
 
@@ -1741,16 +1743,19 @@ enum MusicSourceRuntimePreload {
         }
         if (!info || typeof info !== 'object') throw new Error('failed');
 
+        const lxlyric = typeof info.lxlyric === 'string'
+          ? info.lxlyric
+          : (typeof info.lxlrc === 'string' ? info.lxlrc : null);
         const lyric = typeof info.lyric === 'string'
           ? info.lyric
-          : (typeof info.lrc === 'string' ? info.lrc : null);
+          : (typeof info.lrc === 'string' ? info.lrc : lxlyric);
         if (typeof lyric !== 'string') throw new Error('failed');
 
         return {
           lyric,
           tlyric: typeof info.tlyric === 'string' ? info.tlyric : (typeof info.tlrc === 'string' ? info.tlrc : null),
           rlyric: typeof info.rlyric === 'string' ? info.rlyric : (typeof info.rlrc === 'string' ? info.rlrc : null),
-          lxlyric: typeof info.lxlyric === 'string' ? info.lxlyric : (typeof info.lxlrc === 'string' ? info.lxlrc : null),
+          lxlyric,
         };
       };
 
@@ -1764,11 +1769,11 @@ enum MusicSourceRuntimePreload {
       };
 
       const supportActions = {
-        kw: ['musicUrl'],
-        kg: ['musicUrl'],
-        tx: ['musicUrl'],
-        wy: ['musicUrl'],
-        mg: ['musicUrl'],
+        kw: ['musicUrl', 'lyric', 'pic'],
+        kg: ['musicUrl', 'lyric', 'pic'],
+        tx: ['musicUrl', 'lyric', 'pic'],
+        wy: ['musicUrl', 'lyric', 'pic'],
+        mg: ['musicUrl', 'lyric', 'pic'],
         local: ['musicUrl', 'lyric', 'pic'],
       };
 

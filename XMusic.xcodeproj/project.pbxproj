@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		B481F07C5D02D3D706B10C18 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BE8203E822872A913E832902 /* XCTest.framework */; };
 		DB2515C77074DE8A6BCB7358 /* MusicSourceParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676428CF2732D2CD3FF7FC74 /* MusicSourceParserTests.swift */; };
+		E0125DE3DE25D7F1C1C04E2B /* MusicSourceLyricNormalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE89BD273F83C9B0010FF9C /* MusicSourceLyricNormalizerTests.swift */; };
 		F284337EA560BCFD6B955767 /* ModelBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */; };
 		F75FA82FD345FCF00E769504 /* LxLegacySongInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 		99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LxLegacySongInfoTests.swift; sourceTree = "<group>"; };
 		BE8203E822872A913E832902 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		CE1879B42F6D3BE4006C7D16 /* XMusic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EEE89BD273F83C9B0010FF9C /* MusicSourceLyricNormalizerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MusicSourceLyricNormalizerTests.swift; sourceTree = "<group>"; };
 		FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ModelBehaviorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,6 +83,7 @@
 				676428CF2732D2CD3FF7FC74 /* MusicSourceParserTests.swift */,
 				FFD3EB78BF75F9E284C7F0B6 /* ModelBehaviorTests.swift */,
 				99B9AF222C8FAEE15CC2F632 /* LxLegacySongInfoTests.swift */,
+				EEE89BD273F83C9B0010FF9C /* MusicSourceLyricNormalizerTests.swift */,
 			);
 			path = XMusicTests;
 			sourceTree = "<group>";
@@ -207,6 +210,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB2515C77074DE8A6BCB7358 /* MusicSourceParserTests.swift in Sources */,
+				E0125DE3DE25D7F1C1C04E2B /* MusicSourceLyricNormalizerTests.swift in Sources */,
 				F284337EA560BCFD6B955767 /* ModelBehaviorTests.swift in Sources */,
 				F75FA82FD345FCF00E769504 /* LxLegacySongInfoTests.swift in Sources */,
 			);
