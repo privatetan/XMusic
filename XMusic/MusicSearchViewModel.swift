@@ -83,6 +83,19 @@ final class MusicSearchViewModel: ObservableObject {
         }
     }
 
+    func startSearch(
+        query: String,
+        source: SearchPlatformSource? = nil,
+        allowedSources: [SearchPlatformSource]
+    ) {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.query = trimmed
+        if let source {
+            selectedSource = source
+        }
+        reload(allowedSources: allowedSources)
+    }
+
     func clearSearchHistory() {
         searchHistory = []
         UserDefaults.standard.removeObject(forKey: historyKey)

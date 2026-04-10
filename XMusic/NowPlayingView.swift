@@ -13,6 +13,7 @@ import UIKit
 struct InlineNowPlayingPanel: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
+    @EnvironmentObject private var musicSearch: MusicSearchViewModel
     @State private var isScrubbing = false
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
@@ -45,7 +46,7 @@ struct InlineNowPlayingPanel: View {
                 let availableHeight = geometry.size.height - safeTop - safeBottom
                 let compactHeight = availableHeight < 780
                 let topButtonPadding = max(safeTop + 2.0, 10.0)
-                let topSectionHeight = max(availableHeight * 0.7, 0.0)
+                let topSectionHeight = max(availableHeight * 0.65, 0.0)
                 let bottomSectionHeight = max(availableHeight - topSectionHeight, 0.0)
                 let contentWidth = max(geometry.size.width - horizontalPadding * 2.0, 0.0)
                 let topReservedHeight = max(topButtonPadding + 52.0, compactHeight ? 74.0 : 82.0)
@@ -97,6 +98,7 @@ struct InlineNowPlayingPanel: View {
                             lyricsErrorMessage: lyricsErrorMessage,
                             isLyricsPresented: isLyricsPresented,
                             showContent: showContent,
+                            onArtistTap: { openArtistSearch(for: track) },
                             onRetryLyrics: { loadLyrics(for: track, force: true) }
                         )
 
@@ -252,6 +254,20 @@ struct InlineNowPlayingPanel: View {
 
     private func dismissPanel() {
         close()
+    }
+
+    private var searchableSources: [SearchPlatformSource] {
+        let sourceNames = sourceLibrary.activeSource?.capabilities.compactMap { SearchPlatformSource(rawValue: $0.source) } ?? []
+        return sourceNames.isEmpty ? SearchPlatformSource.builtIn : sourceNames
+    }
+
+    private func openArtistSearch(for track: Track) {
+        let artist = track.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !artist.isEmpty else { return }
+
+        musicSearch.startSearch(query: artist, allowedSources: searchableSources)
+        player.selectedTab = .search
+        dismissPanel()
     }
 
     @ViewBuilder

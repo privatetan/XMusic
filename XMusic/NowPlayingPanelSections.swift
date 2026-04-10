@@ -15,6 +15,7 @@ struct NowPlayingArtworkSection: View {
     let lyricsErrorMessage: String?
     let isLyricsPresented: Bool
     let showContent: Bool
+    let onArtistTap: () -> Void
     let onRetryLyrics: () -> Void
 
     var body: some View {
@@ -66,10 +67,18 @@ struct NowPlayingArtworkSection: View {
                 .minimumScaleFactor(0.8)
                 .truncationMode(.tail)
 
-            Text(track.artist)
+            Button(action: onArtistTap) {
+                HStack(spacing: 6) {
+                    Text(track.artist)
+                        .lineLimit(1)
+                }
                 .font(.system(size: compactHeight ? 18 : 20, weight: .regular))
                 .foregroundStyle(Color.white.opacity(0.88))
-                .lineLimit(1)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("搜索歌手 \(track.artist)")
+            .accessibilityHint("跳转到搜索结果页")
         }
         .frame(width: artworkSize, alignment: .leading)
     }
@@ -154,9 +163,8 @@ struct NowPlayingControlsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
          
-
             VStack(alignment: .leading, spacing: 0) {
-                Spacer().frame(height: secondaryGap)
+               // Spacer().frame(height: secondaryGap)
 
                 NowPlayingSliderBar(
                     value: Binding(
@@ -413,6 +421,7 @@ private struct NowPlayingPanelSectionsPreview: View {
                     lyricsErrorMessage: nil,
                     isLyricsPresented: isLyricsPresented,
                     showContent: true,
+                    onArtistTap: {},
                     onRetryLyrics: {}
                 )
 

@@ -109,6 +109,7 @@ struct ContentView: View {
                     .id(player.nowPlayingPresentationID)
                     .environmentObject(player)
                     .environmentObject(sourceLibrary)
+                    .environmentObject(musicSearch)
                     .transition(.asymmetric(
                         insertion: .identity,
                         removal: .scale(scale: 0.95, anchor: .center).combined(with: .opacity)
