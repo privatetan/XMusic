@@ -730,25 +730,37 @@ private struct FlexibleTags: View {
     var isEditing: Bool = false
     let action: (String) -> Void
     var onDelete: ((String) -> Void)? = nil
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 10)]
+    private let columns = [
+        GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: 10, alignment: .top),
+        GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: 10, alignment: .top),
+        GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: 10, alignment: .top)
+    ]
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
             ForEach(items, id: \.self) { item in
                 ZStack(alignment: .topTrailing) {
-                    Button(item) {
+                    Button {
                         if !isEditing { action(item) }
+                    } label: {
+                        Text(item)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.07))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
                     }
                     .buttonStyle(.plain)
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.08), in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    )
 
                     if isEditing {
                         Button {

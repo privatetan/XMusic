@@ -1102,6 +1102,7 @@ private struct CompactPlaylistMetricChip: View {
 
 struct PlaylistDetailPage: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var library: MusicLibraryViewModel
     @ObservedObject var playlistModel: MusicPlaylistViewModel
@@ -1115,121 +1116,123 @@ struct PlaylistDetailPage: View {
     private let accentColor = Color(red: 0.89, green: 0.28, blue: 0.32)
 
     var body: some View {
-        ZStack {
-            AppBackground()
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                AppBackground()
+                    .ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 26) {
-                    if let playlist = currentPlaylist {
-                        VStack(spacing: 26) {
-                            PlaylistCoverView(
-                                playlist: playlist,
-                                cornerRadius: 26,
-                                iconSize: 32,
-                                showsGradientOverlay: false
-                            )
-                            .frame(width: coverSize, height: coverSize)
-                            .padding(.top, 10)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 26) {
+                        if let playlist = currentPlaylist {
+                            VStack(spacing: 26) {
+                                PlaylistCoverView(
+                                    playlist: playlist,
+                                    cornerRadius: 26,
+                                    iconSize: 32,
+                                    showsGradientOverlay: false
+                                )
+                                .frame(width: coverSize, height: coverSize)
+                                .padding(.top, 10)
 
-                            VStack(spacing: 8) {
-                                Text(playlist.title)
-                                    .font(.system(size: 31, weight: .bold, design: .rounded))
-                                    .foregroundStyle(Color.white)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(3)
+                                VStack(spacing: 8) {
+                                    Text(playlist.title)
+                                        .font(.system(size: 31, weight: .bold, design: .rounded))
+                                        .foregroundStyle(Color.white)
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(3)
 
-                                Text(playlist.curator)
-                                    .font(.title3.weight(.medium))
-                                    .foregroundStyle(accentColor)
-                                    .lineLimit(1)
+                                    Text(playlist.curator)
+                                        .font(.title3.weight(.medium))
+                                        .foregroundStyle(accentColor)
+                                        .lineLimit(1)
 
-                                Text(subtitleText(for: playlist))
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.white.opacity(0.46))
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: 320)
+                                    Text(subtitleText(for: playlist))
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.white.opacity(0.46))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: 320)
 
-                            HStack(spacing: 12) {
-                            PlaylistDetailActionButton(
-                                title: "播放",
-                                systemImage: "play.fill",
-                                tint: accentColor
-                            ) {
-                                startPlayback(shuffled: false)
-                            }
+                                HStack(spacing: 12) {
+                                    PlaylistDetailActionButton(
+                                        title: "播放",
+                                        systemImage: "play.fill",
+                                        tint: accentColor
+                                    ) {
+                                        startPlayback(shuffled: false)
+                                    }
 
-                            PlaylistDetailActionButton(
-                                title: "随机",
-                                systemImage: "shuffle",
-                                tint: accentColor
-                            ) {
-                                startPlayback(shuffled: true)
-                            }
-                        }
-                        .disabled(isStartingPlayback)
-                        }
-                        .background(
-                            GeometryReader { geometry in
-                                Color.clear
-                                    .preference(
-                                        key: PlaylistDetailScrollOffsetKey.self,
-                                        value: geometry.frame(in: .named("playlist-detail-scroll")).maxY
-                                    )
-                            }
-                        )
-
-                        if currentTracks.isEmpty, playlistModel.isLoadingDetail {
-                            VStack(spacing: 12) {
-                                ProgressView()
-                                    .tint(accentColor)
-                                Text("正在加载歌单曲目…")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.white.opacity(0.52))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                        } else if currentTracks.isEmpty {
-                            VStack(spacing: 10) {
-                                Image(systemName: "music.note.list")
-                                    .font(.title2)
-                                    .foregroundStyle(Color.white.opacity(0.35))
-
-                                Text("这张歌单暂时还没有可展示的曲目")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.white.opacity(0.54))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 28)
-                        } else {
-                            LazyVStack(spacing: 0) {
-                                ForEach(Array(currentTracks.enumerated()), id: \.element.id) { index, track in
-                                    PlaylistDetailTrackRow(
-                                        track: track,
-                                        index: index + 1,
-                                        tracks: currentTracks,
-                                        accentColor: accentColor
-                                    )
-
-                                    if index < currentTracks.count - 1 {
-                                        Divider()
-                                            .padding(.leading, 66)
+                                    PlaylistDetailActionButton(
+                                        title: "随机",
+                                        systemImage: "shuffle",
+                                        tint: accentColor
+                                    ) {
+                                        startPlayback(shuffled: true)
                                     }
                                 }
+                                .disabled(isStartingPlayback)
                             }
-                            .padding(.horizontal, 6)
+                            .background(
+                                GeometryReader { geometry in
+                                    Color.clear
+                                        .preference(
+                                            key: PlaylistDetailScrollOffsetKey.self,
+                                            value: geometry.frame(in: .named("playlist-detail-scroll")).maxY
+                                        )
+                                }
+                            )
+
+                            if currentTracks.isEmpty, playlistModel.isLoadingDetail {
+                                VStack(spacing: 12) {
+                                    ProgressView()
+                                        .tint(accentColor)
+                                    Text("正在加载歌单曲目…")
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.white.opacity(0.52))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                            } else if currentTracks.isEmpty {
+                                VStack(spacing: 10) {
+                                    Image(systemName: "music.note.list")
+                                        .font(.title2)
+                                        .foregroundStyle(Color.white.opacity(0.35))
+
+                                    Text("这张歌单暂时还没有可展示的曲目")
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.white.opacity(0.54))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 28)
+                            } else {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(Array(currentTracks.enumerated()), id: \.element.id) { index, track in
+                                        PlaylistDetailTrackRow(
+                                            track: track,
+                                            index: index + 1,
+                                            tracks: currentTracks,
+                                            accentColor: accentColor
+                                        )
+
+                                        if index < currentTracks.count - 1 {
+                                            Divider()
+                                                .padding(.leading, 66)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 6)
+                            }
+                        } else {
+                            ProgressView()
+                                .tint(accentColor)
+                                .padding(.top, 40)
                         }
-                    } else {
-                        ProgressView()
-                            .tint(accentColor)
-                            .padding(.top, 40)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, detailBottomScrollInset(in: geometry))
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 36)
+                .coordinateSpace(name: "playlist-detail-scroll")
             }
-            .coordinateSpace(name: "playlist-detail-scroll")
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -1349,6 +1352,24 @@ struct PlaylistDetailPage: View {
 
     private var coverSize: CGFloat {
         224
+    }
+
+    private var bottomChromeHeight: CGFloat {
+        let tabBarHeight = ChromeBarMetrics.height(for: horizontalSizeClass)
+        let tabBarContainerHeight = tabBarHeight + 18
+
+        guard player.currentTrack != nil else {
+            return tabBarContainerHeight
+        }
+
+        let miniPlayerHeight = ChromeBarMetrics.height(for: horizontalSizeClass)
+        return tabBarContainerHeight + miniPlayerHeight + 12
+    }
+
+    private func detailBottomScrollInset(in geometry: GeometryProxy) -> CGFloat {
+        let safeBottom = geometry.safeAreaInsets.bottom
+        let centerLift = geometry.size.height * 0.28
+        return bottomChromeHeight + safeBottom + centerLift
     }
 
     private func subtitleText(for playlist: Playlist) -> String {

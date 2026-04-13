@@ -79,9 +79,22 @@ struct BrowseView: View {
                 .padding(.leading, 52)
 
             LibraryCategoryRow(
-                symbol: "arrow.down.circle.fill",
+                symbol: "arrow.down.circle.dotted",
                 symbolColor: Color(red: 0.20, green: 0.78, blue: 0.55),
                 title: "已缓存",
+                count: cachedTrackCount
+            ) {
+                withAnimation(.easeInOut(duration: 0.28)) { showingCached = true }
+            }
+
+            Divider()
+                .background(Color.white.opacity(0.08))
+                .padding(.leading, 52)
+
+            LibraryCategoryRow(
+                symbol: "arrow.down.circle",
+                symbolColor: Color(red: 0.24, green: 0.70, blue: 0.92),
+                title: "下载",
                 count: cachedTrackCount
             ) {
                 withAnimation(.easeInOut(duration: 0.28)) { showingCached = true }
@@ -670,7 +683,7 @@ private func cachedMediaPlaceholderTrack(from file: CachedMediaFile) -> Track {
         artwork: ArtworkPalette(
             colors: [Color(red: 0.23, green: 0.56, blue: 0.42), Color(red: 0.09, green: 0.18, blue: 0.16)],
             glow: Color(red: 0.34, green: 0.86, blue: 0.62),
-            symbol: "arrow.down.circle.fill",
+            symbol: "arrow.down.circle.dotted",
             label: "Cache"
         ),
         sourceName: file.sourceName?.nilIfBlank ?? "媒体缓存"
