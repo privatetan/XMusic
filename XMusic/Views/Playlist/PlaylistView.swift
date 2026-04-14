@@ -4,38 +4,6 @@ import UIKit
 #endif
 import UniformTypeIdentifiers
 
-private struct PlaylistNavigationContainer<Content: View>: View {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        if #available(iOS 16.0, *) {
-            NavigationStack {
-                content
-            }
-        } else {
-            NavigationView {
-                content
-            }
-            .navigationViewStyle(.stack)
-        }
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func playlistRootNavigationHidden() -> some View {
-        if #available(iOS 16.0, *) {
-            self.toolbar(.hidden, for: .navigationBar)
-        } else {
-            self.navigationBarHidden(true)
-        }
-    }
-}
-
 private struct PlaylistDetailScrollOffsetKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
@@ -121,7 +89,7 @@ struct PlaylistView: View {
     @State private var playlistEditorSession: CustomPlaylistEditorSession?
 
     var body: some View {
-        PlaylistNavigationContainer {
+        AppNavigationContainerView {
             ScrollView(showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 28) {
                     Text("歌单")
@@ -132,7 +100,7 @@ struct PlaylistView: View {
 
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(alignment: .top, spacing: 12) {
-                            SectionHeading(title: "在线歌单")
+                            SectionHeadingView(title: "在线歌单")
 
                             Spacer(minLength: 0)
                         }
@@ -144,15 +112,15 @@ struct PlaylistView: View {
                 .padding(.top, 24)
                 .padding(.bottom, 12)
             }
-            .playlistRootNavigationHidden()
+            .appRootNavigationHidden()
         }
         .onAppear {
             syncPlaylists()
         }
-        .onChange(of: sourceLibrary.activeSourceID) { _ in
+        .appOnChange(of: sourceLibrary.activeSourceID) {
             syncPlaylists()
         }
-        .onChange(of: playlistModel.selectedSource) { _ in
+        .appOnChange(of: playlistModel.selectedSource) {
             if !playlistModel.availableSorts.contains(playlistModel.selectedSort),
                let firstSort = playlistModel.availableSorts.first {
                 playlistModel.selectedSort = firstSort
@@ -161,7 +129,7 @@ struct PlaylistView: View {
                 playlistModel.reload()
             }
         }
-        .onChange(of: playlistModel.selectedSort) { _ in
+        .appOnChange(of: playlistModel.selectedSort) {
             if playlistModel.selectedSource != nil {
                 playlistModel.reload()
             }
@@ -206,7 +174,7 @@ struct PlaylistView: View {
     private var customPlaylistSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
-                SectionHeading(title: "自定义歌单")
+                SectionHeadingView(title: "自定义歌单")
 
                 Spacer(minLength: 0)
 
@@ -256,7 +224,7 @@ struct PlaylistView: View {
             )
         } else {
             VStack(alignment: .leading, spacing: 16) {
-                SectionHeading(title: "数据来源")
+                SectionHeadingView(title: "数据来源")
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -432,9 +400,9 @@ struct PlaylistCustomEditorSheet: View {
     }
 
     var body: some View {
-        PlaylistNavigationContainer {
+        AppNavigationContainerView {
             ZStack {
-                AppBackground()
+                AppBackgroundView()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -706,9 +674,9 @@ private struct PlaylistTrackPickerSheet: View {
     @Binding var selectedTrackKeys: Set<String>
 
     var body: some View {
-        PlaylistNavigationContainer {
+        AppNavigationContainerView {
             ZStack {
-                AppBackground()
+                AppBackgroundView()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
@@ -726,7 +694,7 @@ private struct PlaylistTrackPickerSheet: View {
                                         toggle(track)
                                     } label: {
                                         HStack(spacing: 12) {
-                                            ArtworkView(track: track, cornerRadius: 10, iconSize: 16)
+                                            CoverImgView(track: track, cornerRadius: 10, iconSize: 16)
                                                 .frame(width: 50, height: 50)
 
                                             VStack(alignment: .leading, spacing: 4) {
@@ -1118,7 +1086,7 @@ struct PlaylistDetailPage: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                AppBackground()
+                AppBackgroundView()
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
@@ -1725,9 +1693,10 @@ private struct PlaylistCoverView: View {
 }
 
 struct PlaylistView_Preview: View {
-    @Namespace var animation
-    @StateObject var player: MusicPlayerViewModel
-    @StateObject var sourceLibrary = MusicSourceLibrary()
+    @Namespace private var animation
+    @StateObject private var player: MusicPlayerViewModel
+    @StateObject private var sourceLibrary = MusicSourceLibrary()
+    @StateObject private var musicSearch = MusicSearchViewModel()
 
     init() {
         let p = MusicPlayerViewModel()
@@ -1750,10 +1719,11 @@ struct PlaylistView_Preview: View {
     }
 
     var body: some View {
-        InlineNowPlayingPanel(animation: animation) {
+        PlayPagePanelView(animation: animation) {
         }
         .environmentObject(player)
         .environmentObject(sourceLibrary)
+        .environmentObject(musicSearch)
     }
 }
 

@@ -8,27 +8,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-private struct CompatibleNavigationContainer<Content: View>: View {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        if #available(iOS 16.0, *) {
-            NavigationStack {
-                content
-            }
-        } else {
-            NavigationView {
-                content
-            }
-            .navigationViewStyle(.stack)
-        }
-    }
-}
-
 private extension View {
     @ViewBuilder
     func compatibleSheetPresentation() -> some View {
@@ -62,9 +41,9 @@ struct MusicSourceManagementView: View {
     @State private var isRuntimeLabExpanded = false
 
     var body: some View {
-        CompatibleNavigationContainer {
+        AppNavigationContainerView {
             ZStack {
-                AppBackground()
+                AppBackgroundView()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -434,7 +413,7 @@ private struct MusicSourcePasteView: View {
     let onImport: (String) -> Void
 
     var body: some View {
-        CompatibleNavigationContainer {
+        AppNavigationContainerView {
             VStack(spacing: 16) {
                 TextEditor(text: $script)
                     .compatibleScrollContentBackgroundHidden()
@@ -470,7 +449,7 @@ private struct MusicSourcePasteView: View {
                 .opacity(script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.55 : 1)
             }
             .padding(20)
-            .background(AppBackground())
+            .background(AppBackgroundView())
             .navigationTitle("粘贴音乐源")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -707,7 +686,7 @@ private struct MusicSourceRuntimeLab: View {
                 songInfoJSON = LxLegacySongInfo.template(for: selectedPlatformSource)
             }
         }
-        .onChange(of: selectedPlatformSource) { _ in
+        .appOnChange(of: selectedPlatformSource) {
             if !qualityOptions.contains(selectedQuality) {
                 selectedQuality = qualityOptions.first ?? "128k"
             }

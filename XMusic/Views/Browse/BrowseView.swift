@@ -1,0 +1,36 @@
+import SwiftUI
+
+struct BrowseView: View {
+  
+    @Binding var showingSongs: Bool
+    @Binding var showingPlaylists: Bool
+    @Binding var showingCached: Bool
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("资料库")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
+                    .padding(.bottom, 22)
+
+                BrowseListView(
+                    showingSongs: $showingSongs,
+                    showingPlaylists: $showingPlaylists,
+                    showingCached: $showingCached
+                )
+                    .padding(.horizontal, 20)
+
+                RowDividerView()
+                    .padding(.top, 8)
+
+                RecentlyAddedView()
+                    .padding(.top, 28)
+
+                Spacer(minLength: 80)
+            }
+        }
+    }
+}

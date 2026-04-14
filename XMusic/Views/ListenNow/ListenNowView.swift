@@ -7,7 +7,7 @@ struct ListenNowView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
-                PageHeader(
+                PageHeaderView(
                     title: "现在听",
                     subtitle: player.currentTrack == nil
                         ? "只显示你正在播放和已经收进来的歌曲"
@@ -19,9 +19,9 @@ struct ListenNowView: View {
                 }
 
                 if library.savedTracks.isEmpty {
-                    ListenNowEmptyCard()
+                    ListenNowEmptyCardView()
                 } else {
-                    TrackStack(
+                    TrackStackView(
                         title: "资料库里的歌",
                         subtitle: "共 \(library.savedTracks.count) 首，按加入时间倒序排列",
                         tracks: library.savedTracks,
@@ -48,7 +48,7 @@ private struct ListenNowCurrentTrackCard: View {
                 .textCase(.uppercase)
 
             HStack(alignment: .center, spacing: 16) {
-                ArtworkView(track: track, cornerRadius: 28, iconSize: 30)
+                CoverImgView(track: track, cornerRadius: 28, iconSize: 30)
                     .frame(width: 118, height: 118)
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -101,24 +101,3 @@ private struct ListenNowCurrentTrackCard: View {
     }
 }
 
-private struct ListenNowEmptyCard: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("还没有可继续播放的歌曲")
-                .font(.headline)
-                .foregroundStyle(.white)
-
-            Text("去搜索页找到想听的歌，加入资料库之后，这里和资料库页都会同步显示。")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-}

@@ -573,7 +573,7 @@ private enum BuiltInLyricError: LocalizedError {
     }
 }
 
-private extension String {
+private nonisolated extension String {
     func firstMatch(of pattern: String) -> (full: String, first: String, second: String)? {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
         let range = NSRange(startIndex..., in: self)

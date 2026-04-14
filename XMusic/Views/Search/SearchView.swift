@@ -55,7 +55,7 @@ struct SearchView: View {
                 if musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(alignment: .firstTextBaseline) {
-                            SectionHeading(title: "搜索记录")
+                            SectionHeadingView(title: "搜索记录")
                             Spacer()
                             if !musicSearch.searchHistory.isEmpty {
                                 Button(isEditingHistory ? "完成" : "编辑") {
@@ -205,7 +205,7 @@ struct SearchView: View {
                 musicSearch.reload(allowedSources: searchableSources)
             }
         }
-        .onChange(of: sourceLibrary.activeSourceID) { _ in
+        .appOnChange(of: sourceLibrary.activeSourceID) {
             if !searchableSourceTabs.contains(musicSearch.selectedSource) {
                 musicSearch.selectedSource = .all
             }
@@ -222,9 +222,9 @@ struct SearchView: View {
                 actionMessage = "已创建自定义歌单。"
             }
         }
-        .onChange(of: musicSearch.query) { newValue in
+        .appOnChange(of: musicSearch.query) {
             musicSearch.scheduleSearch(allowedSources: searchableSources)
-            if !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if !musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 isEditingHistory = false
             }
         }
@@ -529,7 +529,7 @@ private struct OnlineSearchResultRow: View {
         HStack(spacing: 12) {
             Button(action: action) {
                 HStack(spacing: 12) {
-                    ArtworkView(track: track, cornerRadius: 10, iconSize: 16)
+                    CoverImgView(track: track, cornerRadius: 10, iconSize: 16)
                         .frame(width: 50, height: 50)
 
                     VStack(alignment: .leading, spacing: 4) {

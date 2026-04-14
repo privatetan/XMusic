@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct NowPlayingSliderBar: View {
+struct PlayPageSliderBarView: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let activeColor: Color

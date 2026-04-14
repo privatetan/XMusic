@@ -917,7 +917,6 @@ struct MusicPlaylistService {
         let title = decodeEntity(stringValue(raw["songname"]))
         let artist = joinKugouAuthors(raw["authors"]).nilIfEmpty
             ?? decodeEntity(stringValue(raw["singername"]).replacingOccurrences(of: "、", with: "、"))
-            ?? ""
         let albumName = decodeEntity(stringValue(raw["album_name"]))
         let artworkURL = (
             stringValue((raw["trans_param"] as? [String: Any])?["union_cover"]).nilIfEmpty

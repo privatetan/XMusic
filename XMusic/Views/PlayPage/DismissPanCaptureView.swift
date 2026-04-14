@@ -1,100 +1,11 @@
 import SwiftUI
 
-#if os(iOS)
-import AVKit
-import MediaPlayer
-#endif
-
 #if canImport(UIKit)
 import UIKit
-#endif
 
-#if os(iOS)
-struct SystemVolumeBridgeView: UIViewRepresentable {
-    @EnvironmentObject private var player: MusicPlayerViewModel
-
-    func makeUIView(context: Context) -> MPVolumeView {
-        let volumeView = MPVolumeView(frame: .zero)
-        volumeView.alpha = 0.01
-        volumeView.isUserInteractionEnabled = false
-        DispatchQueue.main.async {
-            attachSlider(from: volumeView)
-        }
-        return volumeView
-    }
-
-    func updateUIView(_ uiView: MPVolumeView, context: Context) {
-        DispatchQueue.main.async {
-            attachSlider(from: uiView)
-        }
-    }
-
-    private func attachSlider(from volumeView: MPVolumeView) {
-        guard let slider = volumeView.subviews.compactMap({ $0 as? UISlider }).first else { return }
-        player.attachSystemVolumeSlider(slider)
-    }
-}
-
-struct SystemRoutePickerView: UIViewRepresentable {
-    let trigger: Int
-
-    func makeUIView(context: Context) -> AVRoutePickerView {
-        let routePickerView = AVRoutePickerView(frame: .zero)
-        routePickerView.backgroundColor = .clear
-        routePickerView.tintColor = .clear
-        routePickerView.activeTintColor = .clear
-        routePickerView.prioritizesVideoDevices = false
-        routePickerView.isUserInteractionEnabled = false
-        context.coordinator.routePickerView = routePickerView
-        return routePickerView
-    }
-
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {
-        uiView.tintColor = .clear
-        uiView.activeTintColor = .clear
-        context.coordinator.routePickerView = uiView
-
-        guard context.coordinator.lastTrigger != trigger else { return }
-        context.coordinator.lastTrigger = trigger
-        context.coordinator.presentRoutePicker()
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    final class Coordinator {
-        weak var routePickerView: AVRoutePickerView?
-        var lastTrigger = 0
-
-        func presentRoutePicker() {
-            guard let routePickerView else { return }
-            DispatchQueue.main.async {
-                guard let button = self.findButton(in: routePickerView) else { return }
-                button.sendActions(for: .touchUpInside)
-            }
-        }
-
-        private func findButton(in view: UIView) -> UIButton? {
-            if let button = view as? UIButton {
-                return button
-            }
-
-            for subview in view.subviews {
-                if let button = findButton(in: subview) {
-                    return button
-                }
-            }
-            return nil
-        }
-    }
-}
-#endif
-
-#if canImport(UIKit)
 /// 通过零尺寸背景探针 UIView 将 UIPanGestureRecognizer 挂载到宿主视图上，
 /// 实现「屏幕上半部分下滑关闭播放页」。
-struct DismissPanCapture: UIViewRepresentable {
+struct DismissPanCaptureView: UIViewRepresentable {
     let onChanged: (CGFloat) -> Void
     let onEnded: (CGFloat, CGFloat) -> Void
 
@@ -121,13 +32,13 @@ struct DismissPanCapture: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        var parent: DismissPanCapture
+        var parent: DismissPanCaptureView
         private let pan = UIPanGestureRecognizer()
         private weak var attachedHost: UIView?
         private weak var scrollView: UIScrollView?
         private var disabledScrollView: UIScrollView?
 
-        init(parent: DismissPanCapture) {
+        init(parent: DismissPanCaptureView) {
             self.parent = parent
             super.init()
             pan.addTarget(self, action: #selector(handlePan(_:)))
@@ -194,9 +105,7 @@ struct DismissPanCapture: UIViewRepresentable {
             }
         }
 
-        func gestureRecognizerShouldBegin(
-            _ gestureRecognizer: UIGestureRecognizer
-        ) -> Bool {
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
                   let host = pan.view else { return false }
 

@@ -413,28 +413,31 @@ final class MusicPlayerViewModel: ObservableObject {
         let player = self.player
 
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            guard let self else { return }
             let seconds = CMTimeGetSeconds(time)
             let itemDuration = CMTimeGetSeconds(player.currentItem?.duration ?? .zero)
 
-            if seconds.isFinite {
-                currentTime = seconds
-            }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
 
-            if itemDuration.isFinite, itemDuration > 0 {
-                duration = itemDuration
-            }
+                if seconds.isFinite {
+                    currentTime = seconds
+                }
 
-            let effectiveDuration = itemDuration.isFinite && itemDuration > 0 ? itemDuration : duration
-            if let currentTrack,
-               isPlaying,
-               effectiveDuration > 1,
-               seconds.isFinite,
-               seconds >= effectiveDuration - 0.2 {
-                advanceQueueIfNeeded(afterFinishing: currentTrack.id)
-            }
+                if itemDuration.isFinite, itemDuration > 0 {
+                    duration = itemDuration
+                }
 
-            updateNowPlayingInfo()
+                let effectiveDuration = itemDuration.isFinite && itemDuration > 0 ? itemDuration : duration
+                if let currentTrack,
+                   isPlaying,
+                   effectiveDuration > 1,
+                   seconds.isFinite,
+                   seconds >= effectiveDuration - 0.2 {
+                    advanceQueueIfNeeded(afterFinishing: currentTrack.id)
+                }
+
+                updateNowPlayingInfo()
+            }
         }
 
         endObserver = NotificationCenter.default.addObserver(
@@ -442,9 +445,11 @@ final class MusicPlayerViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            guard let trackID = currentTrack?.id else { return }
-            advanceQueueIfNeeded(afterFinishing: trackID)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard let trackID = currentTrack?.id else { return }
+                advanceQueueIfNeeded(afterFinishing: trackID)
+            }
         }
     }
 
@@ -714,17 +719,20 @@ private extension MusicPlayerViewModel {
             object: AVAudioSession.sharedInstance(),
             queue: .main
         ) { [weak self] notification in
+            let userInfo = notification.userInfo
+            let typeValue = userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let optionsValue = userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+
             Task { @MainActor [weak self] in
-                self?.handleAudioSessionInterruption(notification)
+                self?.handleAudioSessionInterruption(typeValue: typeValue, optionsValue: optionsValue)
             }
         }
         #endif
     }
 
-    func handleAudioSessionInterruption(_ notification: Notification) {
+    func handleAudioSessionInterruption(typeValue: UInt?, optionsValue: UInt) {
         #if os(iOS)
-        guard let userInfo = notification.userInfo,
-              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+        guard let typeValue,
               let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
             return
         }
@@ -742,7 +750,6 @@ private extension MusicPlayerViewModel {
             guard shouldResumeAfterInterruption else { return }
             shouldResumeAfterInterruption = false
 
-            let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
             let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
             guard options.contains(.shouldResume), currentTrack != nil else { return }
 

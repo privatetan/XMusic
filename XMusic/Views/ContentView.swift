@@ -15,7 +15,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppBackground()
+            AppBackgroundView()
 
             Group {
                 switch player.selectedTab {
@@ -28,7 +28,7 @@ struct ContentView: View {
                 case .radio:
                     PlaylistView()
                 case .settings:
-                    SettingsView()
+                    AppSettingsView()
                 case .search:
                     SearchView()
                 }
@@ -69,7 +69,7 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.28), value: showBrowseSongs)
         .animation(.easeInOut(duration: 0.28), value: showBrowsePlaylists)
         .animation(.easeInOut(duration: 0.28), value: showBrowseCached)
-        .onChange(of: player.selectedTab) { _ in
+        .appOnChange(of: player.selectedTab) {
             showBrowseSongs = false
             showBrowsePlaylists = false
             showBrowseCached = false
@@ -78,18 +78,18 @@ struct ContentView: View {
         .onAppear {
             installSearchPlaybackResolver()
         }
-        .onChange(of: sourceLibrary.activeSourceID) { _ in
+        .appOnChange(of: sourceLibrary.activeSourceID) {
             installSearchPlaybackResolver()
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 12) {
                 if player.currentTrack != nil && !(player.selectedTab == .search && isSearchFieldFocused) {
-                    MiniPlayerView(animation: playerAnimation)
+                    PlayBarView(animation: playerAnimation)  //播放栏
                         .environmentObject(player)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                AppTabBar(
+                MenuBarView(    //菜单栏
                     selectedTab: $player.selectedTab,
                     searchQuery: $musicSearch.query,
                     isSearchFieldFocused: $isSearchFieldFocused,
@@ -103,7 +103,7 @@ struct ContentView: View {
         .overlay {
             GeometryReader { proxy in
                 if player.isNowPlayingPresented, player.currentTrack != nil {
-                    InlineNowPlayingPanel(animation: playerAnimation, containerSize: proxy.size) {
+                    PlayPagePanelView(animation: playerAnimation, containerSize: proxy.size) {
                         player.dismissNowPlaying(animated: true)
                     }
                     .id(player.nowPlayingPresentationID)

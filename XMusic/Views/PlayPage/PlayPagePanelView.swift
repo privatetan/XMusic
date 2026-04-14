@@ -10,7 +10,7 @@ import MediaPlayer
 import UIKit
 #endif
 
-struct InlineNowPlayingPanel: View {
+struct PlayPagePanelView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @EnvironmentObject private var musicSearch: MusicSearchViewModel
@@ -40,27 +40,10 @@ struct InlineNowPlayingPanel: View {
                     proposed: geometry,
                     fallbackSize: containerSize
                 )
-                let safeTop = geometry.safeAreaInsets.top
-                let safeBottom = geometry.safeAreaInsets.bottom
-                let horizontalPadding = min(max(geometry.size.width * 0.075, 24.0), 32.0)
-                let availableHeight = geometry.size.height - safeTop - safeBottom
-                let compactHeight = availableHeight < 780
-                let topButtonPadding = max(safeTop + 2.0, 10.0)
-                let topSectionHeight = max(availableHeight * 0.65, 0.0)
-                let bottomSectionHeight = max(availableHeight - topSectionHeight, 0.0)
-                let contentWidth = max(geometry.size.width - horizontalPadding * 2.0, 0.0)
-                let topReservedHeight = max(topButtonPadding + 52.0, compactHeight ? 74.0 : 82.0)
-                let artworkSize = min(
-                    contentWidth * 0.82,
-                    compactHeight ? 236.0 : 320.0,
-                    max(topSectionHeight - topReservedHeight - (compactHeight ? 40.0 : 48.0), 140.0)
+                let layout = PlayPagePanelLayout(
+                    size: geometry.size,
+                    safeAreaInsets: geometry.safeAreaInsets
                 )
-                let topSectionBottomPadding = compactHeight ? 18.0 : 24.0
-                let secondaryGap = compactHeight ? 6.0 : 10.0
-                let controlsGap = compactHeight ? 24.0 : 28.0
-                let volumeGap = compactHeight ? 28.0 : 34.0
-                let bottomGap = compactHeight ? 14.0 : 16.0
-                let actionIconSize = compactHeight ? 20.0 : 24.0
                 let lyricLines = parsedLyricLines(for: track)
                 let activeLineID = currentLyricLineID(for: track, lines: lyricLines)
 
@@ -83,14 +66,10 @@ struct InlineNowPlayingPanel: View {
                         .opacity(backgroundOpacity)
 
                     VStack(spacing: 0) {
-                        NowPlayingArtworkSection(
+                        PlayPageArtworkSectionView(
                             track: track,
                             animation: animation,
-                            compactHeight: compactHeight,
-                            topSectionHeight: topSectionHeight,
-                            topReservedHeight: topReservedHeight,
-                            topSectionBottomPadding: topSectionBottomPadding,
-                            artworkSize: artworkSize,
+                            layout: layout,
                             squeezeProgress: squeezeProgress,
                             lines: lyricLines,
                             activeLineID: activeLineID,
@@ -102,15 +81,8 @@ struct InlineNowPlayingPanel: View {
                             onRetryLyrics: { loadLyrics(for: track, force: true) }
                         )
 
-                        NowPlayingControlsSection(
-                            compactHeight: compactHeight,
-                            bottomSectionHeight: bottomSectionHeight,
-                            secondaryGap: secondaryGap,
-                            controlsGap: controlsGap,
-                            volumeGap: volumeGap,
-                            bottomGap: bottomGap,
-                            actionIconSize: actionIconSize,
-                            safeBottom: safeBottom,
+                        PlayPageControlsSectionView(
+                            layout: layout,
                             showContent: showContent,
                             squeezeProgress: squeezeProgress,
                             isExternalAudioRouteActive: isExternalAudioRouteActive,
@@ -125,9 +97,9 @@ struct InlineNowPlayingPanel: View {
                             onLyricsTap: { handleLyricsButtonTap(for: track) }
                         )
                     }
-                    .frame(width: contentWidth, height: availableHeight, alignment: .top)
-                    .padding(.top, safeTop)
-                    .padding(.horizontal, horizontalPadding)
+                    .frame(width: layout.contentWidth, height: layout.availableHeight, alignment: .top)
+                    .padding(.top, layout.safeTop)
+                    .padding(.horizontal, layout.horizontalPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
                     VStack(spacing: 0) {
@@ -149,8 +121,8 @@ struct InlineNowPlayingPanel: View {
 
                             Spacer(minLength: 0)
                         }
-                        .padding(.top, topButtonPadding)
-                        .padding(.horizontal, horizontalPadding)
+                        .padding(.top, layout.topButtonPadding)
+                        .padding(.horizontal, layout.horizontalPadding)
 
                         Spacer(minLength: 0)
                     }
@@ -169,16 +141,16 @@ struct InlineNowPlayingPanel: View {
                     if isRouteSheetPresented {
                         routeSheetOverlay(
                             track: track,
-                            safeBottom: safeBottom,
-                            horizontalPadding: horizontalPadding,
-                            compactHeight: compactHeight
+                            safeBottom: layout.safeBottom,
+                            horizontalPadding: layout.horizontalPadding,
+                            compactHeight: layout.compactHeight
                         )
                         .zIndex(121)
                     }
                 }
                 #if canImport(UIKit)
                 .background(
-                    DismissPanCapture(
+                    DismissPanCaptureView(
                         onChanged: { dragOffset = $0 },
                         onEnded: { ty, vy in
                             let shouldDismiss = ty > 120 || (ty > 44 && vy > 900)
@@ -195,7 +167,7 @@ struct InlineNowPlayingPanel: View {
                 #endif
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                 .offset(y: dragOffset)
-                .onChange(of: track.id) { _ in
+                .appOnChange(of: track.id) {
                     handleTrackChange(track)
                 }
                 .onDisappear {
@@ -490,7 +462,7 @@ struct InlineNowPlayingPanel: View {
                         .padding(.horizontal, 28)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if !lines.isEmpty {
-                        SyncedLyricsListView(
+                        PlayPageSyncedLyricsListView(
                             lines: lines,
                             activeLineID: activeLineID,
                             compactHeight: compactHeight
