@@ -47,8 +47,10 @@ struct NowPlayingArtworkSection: View {
     //播放页封面+ 歌名 + 歌手名
     @ViewBuilder
     private var artworkHeroContent: some View {
-        //Spacer(minLength: compactHeight ? 10 : 14)
-        VStack(spacing: compactHeight ? 18 : 22) {
+        
+        Spacer()
+        
+        VStack(spacing: compactHeight ? 28 : 32) {
             ArtworkView(track: track, cornerRadius: 28, iconSize: compactHeight ? 28 : 32)
                 .frame(width: artworkSize, height: artworkSize)
                 .clipped()
@@ -56,10 +58,10 @@ struct NowPlayingArtworkSection: View {
                 .shadow(color: Color.black.opacity(0.14), radius: 24, x: 0, y: 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-
-        Spacer(minLength: compactHeight ? 10 : 14)
         
-        VStack(alignment: .leading, spacing: 4) {
+        Spacer()
+        
+        VStack(alignment: .leading, spacing: 1) {
             Text(track.title)
                 .font(.system(size: compactHeight ? 28 : 32, weight: .bold))
                 .foregroundStyle(.white)
@@ -383,79 +385,93 @@ private struct NowPlayingPanelSectionsPreview: View {
     }
 
     var body: some View {
-        let compactHeight = false
-        let availableHeight: CGFloat = 844
-        let topSectionHeight = availableHeight * 0.6
-        let bottomSectionHeight = availableHeight * 0.4
-        let topReservedHeight: CGFloat = 86
-        let artworkSize: CGFloat = 320
-        let previewTrack = previewTrack
-        let previewLines = previewLyrics
-        let activeLineID = previewLines.dropFirst().first?.id
-
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.67, green: 0.64, blue: 0.64),
-                    Color(red: 0.58, green: 0.55, blue: 0.55),
-                    Color(red: 0.53, green: 0.50, blue: 0.50)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
+        GeometryReader { geometry in
+            let previewWidth = geometry.size.width
+            let previewHeight = geometry.size.height
+            let safeTop = geometry.safeAreaInsets.top
+            let safeBottom = geometry.safeAreaInsets.bottom
+            let horizontalPadding = min(max(previewWidth * 0.075, 24.0), 32.0)
+            let availableHeight = previewHeight - safeTop - safeBottom
+            let compactHeight = availableHeight < 780
+            let topButtonPadding = max(safeTop + 2.0, 10.0)
+            let topSectionHeight = max(availableHeight * 0.65, 0.0)
+            let bottomSectionHeight = max(availableHeight - topSectionHeight, 0.0)
+            let topReservedHeight = max(topButtonPadding + 52.0, compactHeight ? 74.0 : 82.0)
+            let contentWidth = max(previewWidth - horizontalPadding * 2.0, 0.0)
+            let artworkSize = min(
+                contentWidth * 0.82,
+                compactHeight ? 236.0 : 320.0,
+                max(topSectionHeight - topReservedHeight - (compactHeight ? 40.0 : 48.0), 140.0)
             )
-            .ignoresSafeArea()
+            let previewTrack = previewTrack
+            let previewLines = previewLyrics
+            let activeLineID = previewLines.dropFirst().first?.id
 
-            VStack(spacing: 0) {
-                NowPlayingArtworkSection(
-                    track: previewTrack,
-                    animation: animation,
-                    compactHeight: compactHeight,
-                    topSectionHeight: topSectionHeight,
-                    topReservedHeight: topReservedHeight,
-                    topSectionBottomPadding: 24,
-                    artworkSize: artworkSize,
-                    squeezeProgress: 0,
-                    lines: previewLines,
-                    activeLineID: activeLineID,
-                    isLoadingLyrics: false,
-                    lyricsErrorMessage: nil,
-                    isLyricsPresented: isLyricsPresented,
-                    showContent: true,
-                    onArtistTap: {},
-                    onRetryLyrics: {}
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.67, green: 0.64, blue: 0.64),
+                        Color(red: 0.58, green: 0.55, blue: 0.55),
+                        Color(red: 0.53, green: 0.50, blue: 0.50)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
+                .ignoresSafeArea()
 
-                NowPlayingControlsSection(
-                    compactHeight: compactHeight,
-                    bottomSectionHeight: bottomSectionHeight,
-                    secondaryGap: 10,
-                    controlsGap: 28,
-                    volumeGap: 34,
-                    bottomGap: 16,
-                    actionIconSize: 24,
-                    safeBottom: 34,
-                    showContent: true,
-                    squeezeProgress: 0,
-                    isExternalAudioRouteActive: true,
-                    isScrubbing: $isScrubbing,
-                    draftTime: $draftTime,
-                    isLyricsPresented: $isLyricsPresented,
-                    isRouteSheetPresented: $isRouteSheetPresented,
-                    routePickerTrigger: $routePickerTrigger,
-                    onPrevious: {},
-                    onTogglePlayback: {},
-                    onNext: {},
-                    onLyricsTap: {
-                        isLyricsPresented.toggle()
-                    }
-                )
-                .environmentObject(player)
+                VStack(spacing: 0) {
+                    NowPlayingArtworkSection(
+                        track: previewTrack,
+                        animation: animation,
+                        compactHeight: compactHeight,
+                        topSectionHeight: topSectionHeight,
+                        topReservedHeight: topReservedHeight,
+                        topSectionBottomPadding: 24,
+                        artworkSize: artworkSize,
+                        squeezeProgress: 0,
+                        lines: previewLines,
+                        activeLineID: activeLineID,
+                        isLoadingLyrics: false,
+                        lyricsErrorMessage: nil,
+                        isLyricsPresented: isLyricsPresented,
+                        showContent: true,
+                        onArtistTap: {},
+                        onRetryLyrics: {}
+                    )
+
+                    NowPlayingControlsSection(
+                        compactHeight: compactHeight,
+                        bottomSectionHeight: bottomSectionHeight,
+                        secondaryGap: 10,
+                        controlsGap: 28,
+                        volumeGap: 34,
+                        bottomGap: 16,
+                        actionIconSize: 24,
+                        safeBottom: safeBottom,
+                        showContent: true,
+                        squeezeProgress: 0,
+                        isExternalAudioRouteActive: true,
+                        isScrubbing: $isScrubbing,
+                        draftTime: $draftTime,
+                        isLyricsPresented: $isLyricsPresented,
+                        isRouteSheetPresented: $isRouteSheetPresented,
+                        routePickerTrigger: $routePickerTrigger,
+                        onPrevious: {},
+                        onTogglePlayback: {},
+                        onNext: {},
+                        onLyricsTap: {
+                            isLyricsPresented.toggle()
+                        }
+                    )
+                    .environmentObject(player)
+                }
+                .frame(width: contentWidth, height: availableHeight)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, safeTop)
             }
-            .frame(width: 390, height: availableHeight)
-            .padding(.horizontal, 28)
-            .padding(.top, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 430, height: 900)
+        .ignoresSafeArea()
         .task {
             player.play(previewTrack, from: [previewTrack])
             player.seek(to: draftTime)
