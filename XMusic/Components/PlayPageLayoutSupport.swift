@@ -66,6 +66,6 @@ struct PlayPagePanelLayout {
         controlsGap = compactHeight ? 24.0 : 28.0
         volumeGap = compactHeight ? 28.0 : 34.0
         bottomGap = compactHeight ? 34.0 : 36.0
-        actionIconSize = compactHeight ? 20.0 : 24.0
+        actionIconSize = compactHeight ? 18.0 : 20.0
     }
 }

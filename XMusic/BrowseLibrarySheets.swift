@@ -368,6 +368,7 @@ private func cachedMediaPlaceholderTrack(from file: CachedMediaFile) -> Track {
     )
 }
 
+
 private extension String {
     var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)

@@ -162,6 +162,8 @@ struct LibrarySongRow: View {
             Spacer()
 
             Menu {
+                TrackExportMenuItem(track: track)
+
                 if !playlists.isEmpty {
                     Menu {
                         ForEach(playlists) { playlist in
@@ -240,6 +242,8 @@ struct SheetSongRow: View {
             .buttonStyle(.plain)
 
             Menu {
+                TrackExportMenuItem(track: track)
+
                 Button(role: .destructive) {
                     onRemove()
                 } label: {

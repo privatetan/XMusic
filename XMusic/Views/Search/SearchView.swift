@@ -512,6 +512,7 @@ private struct SearchStatusCard: View {
 }
 
 private struct OnlineSearchResultRow: View {
+    @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     let song: SearchSong
     let isResolving: Bool
@@ -525,6 +526,7 @@ private struct OnlineSearchResultRow: View {
 
     var body: some View {
         let track = Track.searchResultTrack(from: song)
+        let exportTrack = exportCandidateTrack(fallback: track)
 
         HStack(spacing: 12) {
             Button(action: action) {
@@ -569,6 +571,8 @@ private struct OnlineSearchResultRow: View {
                     .frame(width: 36, height: 44)
             } else {
                 Menu {
+                    TrackExportMenuItem(track: exportTrack)
+
                     Button(isInLibrary ? "已在资料库" : "加入资料库", systemImage: isInLibrary ? "checkmark" : "square.and.arrow.down") {
                         onAddToLibrary()
                     }
@@ -612,6 +616,22 @@ private struct OnlineSearchResultRow: View {
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
+    }
+
+    private func exportCandidateTrack(fallback: Track) -> Track {
+        if let currentTrack = player.currentTrack,
+           currentTrack.searchSong?.id == song.id,
+           canExportTrackFile(currentTrack) {
+            return currentTrack
+        }
+
+        if let cachedTrack = player.cachedTracks.last(where: { cached in
+            cached.searchSong?.id == song.id || cached.storageKey == fallback.storageKey
+        }), canExportTrackFile(cachedTrack) {
+            return cachedTrack
+        }
+
+        return fallback
     }
 }
 

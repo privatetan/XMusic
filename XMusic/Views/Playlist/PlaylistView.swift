@@ -1438,10 +1438,24 @@ private struct PlaylistDetailTrackRow: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.white.opacity(0.26))
 
-                Image(systemName: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "ellipsis")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
-                    .frame(width: 20)
+                HStack(spacing: 10) {
+                    Image(systemName: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "play.circle")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
+                        .frame(width: 20)
+
+                    if canExportTrackFile(track) {
+                        Menu {
+                            TrackExportMenuItem(track: track)
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Color.white.opacity(0.55))
+                                .frame(width: 20)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 12)

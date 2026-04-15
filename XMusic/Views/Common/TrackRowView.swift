@@ -33,9 +33,23 @@ struct TrackRowView: View {
 
                 Spacer(minLength: 12)
 
-                Image(systemName: isCurrent && isPlaying ? "speaker.wave.2.fill" : "play.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(isCurrent ? Color(red: 1.00, green: 0.43, blue: 0.42) : Color.white.opacity(0.86))
+                HStack(spacing: 10) {
+                    Image(systemName: isCurrent && isPlaying ? "speaker.wave.2.fill" : "play.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(isCurrent ? Color(red: 1.00, green: 0.43, blue: 0.42) : Color.white.opacity(0.86))
+
+                    if canExportTrackFile(track) {
+                        Menu {
+                            TrackExportMenuItem(track: track)
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Color.white.opacity(0.55))
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
             .padding(12)
             .background(

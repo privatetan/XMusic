@@ -1,14 +1,14 @@
 import SwiftUI
 
 #Preview("Play Page Artwork") {
-    PlayPagePanelSectionsPreviewView(isLyricsPresented: false)
+    PlayPageDemoView(isLyricsPresented: false)
 }
 
 #Preview("Play Page Lyrics") {
-    PlayPagePanelSectionsPreviewView(isLyricsPresented: true)
+    PlayPageDemoView(isLyricsPresented: true)
 }
 
-private struct PlayPagePanelSectionsPreviewView: View {
+private struct PlayPageDemoView: View {
     @StateObject private var player = MusicPlayerViewModel()
     @Namespace private var animation
     @State private var isScrubbing = false
