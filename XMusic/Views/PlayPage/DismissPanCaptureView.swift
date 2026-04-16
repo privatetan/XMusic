@@ -8,6 +8,7 @@ import UIKit
 struct DismissPanCaptureView: UIViewRepresentable {
     let onChanged: (CGFloat) -> Void
     let onEnded: (CGFloat, CGFloat) -> Void
+    let shouldBegin: () -> Bool
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -35,8 +36,6 @@ struct DismissPanCaptureView: UIViewRepresentable {
         var parent: DismissPanCaptureView
         private let pan = UIPanGestureRecognizer()
         private weak var attachedHost: UIView?
-        private weak var scrollView: UIScrollView?
-        private var disabledScrollView: UIScrollView?
 
         init(parent: DismissPanCaptureView) {
             self.parent = parent
@@ -51,8 +50,8 @@ struct DismissPanCaptureView: UIViewRepresentable {
         func attachIfNeeded(from probe: UIView) {
             var candidate = probe.superview
             while let c = candidate {
-                if Self.findScrollView(in: c) != nil { break }
-                candidate = c.superview
+                guard let next = c.superview else { break }
+                candidate = next
             }
             guard let host = candidate else { return }
             guard attachedHost !== host else { return }
@@ -60,27 +59,11 @@ struct DismissPanCaptureView: UIViewRepresentable {
 
             host.addGestureRecognizer(pan)
             attachedHost = host
-            scrollView = Self.findScrollView(in: host)
-        }
-
-        private func enableScrollView() {
-            disabledScrollView?.isScrollEnabled = true
-            disabledScrollView = nil
         }
 
         func detach() {
-            enableScrollView()
             attachedHost?.removeGestureRecognizer(pan)
             attachedHost = nil
-            scrollView = nil
-        }
-
-        private static func findScrollView(in view: UIView) -> UIScrollView? {
-            if let sv = view as? UIScrollView { return sv }
-            for child in view.subviews {
-                if let found = findScrollView(in: child) { return found }
-            }
-            return nil
         }
 
         @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
@@ -89,16 +72,11 @@ struct DismissPanCaptureView: UIViewRepresentable {
             let vy = recognizer.velocity(in: view).y
 
             switch recognizer.state {
-            case .began:
-                disabledScrollView = scrollView
-                disabledScrollView?.isScrollEnabled = false
-            case .changed:
+            case .began, .changed:
                 parent.onChanged(ty)
             case .ended:
-                enableScrollView()
                 parent.onEnded(ty, vy)
             case .cancelled, .failed:
-                enableScrollView()
                 parent.onEnded(0, 0)
             default:
                 break
@@ -111,6 +89,7 @@ struct DismissPanCaptureView: UIViewRepresentable {
 
             let location = pan.location(in: host)
             guard location.y < host.bounds.height / 2 else { return false }
+            guard parent.shouldBegin() else { return false }
 
             let v = pan.velocity(in: host)
             return v.y > 0 && v.y > abs(v.x)

@@ -1,11 +1,11 @@
 import SwiftUI
 
 #Preview("Play Page Artwork") {
-    PlayPageDemoView(isLyricsPresented: false)
+    PlayPageDemoView(lyricsPresentationMode: .hidden)
 }
 
 #Preview("Play Page Lyrics") {
-    PlayPageDemoView(isLyricsPresented: true)
+    PlayPageDemoView(lyricsPresentationMode: .half)
 }
 
 private struct PlayPageDemoView: View {
@@ -13,12 +13,12 @@ private struct PlayPageDemoView: View {
     @Namespace private var animation
     @State private var isScrubbing = false
     @State private var draftTime: Double = 39
-    @State private var isLyricsPresented: Bool
+    @State private var lyricsPresentationMode: LyricsPresentationMode
     @State private var isRouteSheetPresented = false
     @State private var routePickerTrigger = 0
 
-    init(isLyricsPresented: Bool) {
-        _isLyricsPresented = State(initialValue: isLyricsPresented)
+    init(lyricsPresentationMode: LyricsPresentationMode) {
+        _lyricsPresentationMode = State(initialValue: lyricsPresentationMode)
     }
 
     var body: some View {
@@ -53,31 +53,37 @@ private struct PlayPageDemoView: View {
                         activeLineID: activeLineID,
                         isLoadingLyrics: false,
                         lyricsErrorMessage: nil,
-                        isLyricsPresented: isLyricsPresented,
+                        lyricsPresentationMode: lyricsPresentationMode,
                         showContent: true,
                         onArtistTap: {},
-                        onRetryLyrics: {}
+                        onRetryLyrics: {},
+                        onLyricsTopStateChange: { _ in }
                     )
 
-                    PlayPageControlsSectionView(
-                        timeline: player.playbackTimeline,
-                        layout: layout,
-                        showContent: true,
-                        squeezeProgress: 0,
-                        isExternalAudioRouteActive: true,
-                        isScrubbing: $isScrubbing,
-                        draftTime: $draftTime,
-                        isLyricsPresented: $isLyricsPresented,
-                        isRouteSheetPresented: $isRouteSheetPresented,
-                        routePickerTrigger: $routePickerTrigger,
-                        onPrevious: {},
-                        onTogglePlayback: {},
-                        onNext: {},
-                        onLyricsTap: {
-                            isLyricsPresented.toggle()
-                        }
-                    )
-                    .environmentObject(player)
+                    if lyricsPresentationMode != .full {
+                        PlayPageControlsSectionView(
+                            timeline: player.playbackTimeline,
+                            layout: layout,
+                            showContent: true,
+                            squeezeProgress: 0,
+                            isExternalAudioRouteActive: true,
+                            isScrubbing: $isScrubbing,
+                            draftTime: $draftTime,
+                            isLyricsPresented: Binding(
+                                get: { lyricsPresentationMode.isPresented },
+                                set: { lyricsPresentationMode = $0 ? .half : .hidden }
+                            ),
+                            isRouteSheetPresented: $isRouteSheetPresented,
+                            routePickerTrigger: $routePickerTrigger,
+                            onPrevious: {},
+                            onTogglePlayback: {},
+                            onNext: {},
+                            onLyricsTap: {
+                                lyricsPresentationMode = lyricsPresentationMode.isPresented ? .hidden : .half
+                            }
+                        )
+                        .environmentObject(player)
+                    }
                 }
                 .frame(width: layout.contentWidth, height: layout.availableHeight)
                 .padding(.horizontal, layout.horizontalPadding)

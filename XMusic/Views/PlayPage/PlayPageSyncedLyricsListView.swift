@@ -1,18 +1,31 @@
 import SwiftUI
 
+enum LyricsVisualStyle {
+    case half
+    case full
+}
+
 struct PlayPageSyncedLyricsListView: View {
     let lines: [ParsedLyricLine]
     let activeLineID: String?
     let compactHeight: Bool
+    let visualStyle: LyricsVisualStyle
+    var horizontalPadding: CGFloat = 20
+    var topPadding: CGFloat? = nil
+    var bottomPadding: CGFloat? = nil
+    var onTopStateChange: ((Bool) -> Void)? = nil
 
     @State private var lastScrolledLineID: String?
+    @State private var isAtTop = true
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: compactHeight ? 14 : 16) {
+                LazyVStack(spacing: compactHeight ? 10 : 12) {
                     Spacer()
-                        .frame(height: compactHeight ? 120 : 150)
+                        .frame(height: resolvedTopPadding)
+
+                    topProbe
 
                     ForEach(lines) { line in
                         lyricLineView(line)
@@ -20,16 +33,24 @@ struct PlayPageSyncedLyricsListView: View {
                     }
 
                     Spacer()
-                        .frame(height: compactHeight ? 180 : 220)
+                        .frame(height: resolvedBottomPadding)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, horizontalPadding)
                 .padding(.bottom, 28)
             }
+            .coordinateSpace(name: "lyrics-scroll")
             .onAppear {
                 scrollToActiveLine(with: proxy, animated: false)
+                onTopStateChange?(true)
             }
             .appOnChange(of: activeLineID) {
                 scrollToActiveLine(with: proxy, animated: true)
+            }
+            .onPreferenceChange(LyricsTopOffsetPreferenceKey.self) { value in
+                let nextIsAtTop = value >= -6
+                guard nextIsAtTop != isAtTop else { return }
+                isAtTop = nextIsAtTop
+                onTopStateChange?(nextIsAtTop)
             }
         }
     }
@@ -37,25 +58,32 @@ struct PlayPageSyncedLyricsListView: View {
     @ViewBuilder
     private func lyricLineView(_ line: ParsedLyricLine) -> some View {
         let isActive = line.id == activeLineID
+        let distance = lineDistance(from: line)
 
-        VStack(spacing: line.extendedLyrics.isEmpty ? 0 : 8) {
+        VStack(alignment: .leading, spacing: line.extendedLyrics.isEmpty ? 0 : 6) {
             Text(line.text)
-                .font(.system(size: compactHeight ? (isActive ? 22 : 18) : (isActive ? 24 : 19), weight: isActive ? .bold : .semibold))
-                .foregroundStyle(Color.white.opacity(isActive ? 0.98 : 0.46))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                .font(
+                    .system(
+                        size: primaryFontSize(isActive: isActive, distance: distance),
+                        weight: isActive ? .bold : .semibold
+                    )
+                )
+                .foregroundStyle(primaryOpacity(isActive: isActive, distance: distance))
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             ForEach(line.extendedLyrics, id: \.self) { extendedLine in
                 Text(extendedLine)
-                    .font(.system(size: compactHeight ? 14 : 15, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(isActive ? 0.78 : 0.34))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+                    .font(.system(size: secondaryFontSize(isActive: isActive), weight: .medium))
+                    .foregroundStyle(Color.white.opacity(isActive ? secondaryOpacity : 0.18))
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.vertical, compactHeight ? 6 : 8)
-        .scaleEffect(isActive ? 1 : 0.96)
-        .animation(.spring(response: 0.32, dampingFraction: 0.84), value: isActive)
+        .padding(.vertical, verticalPadding(for: distance))
+        .blur(radius: blurRadius(for: distance))
+        .opacity(rowOpacity(isActive: isActive, distance: distance))
+        .scaleEffect(scale(for: distance), anchor: .leading)
     }
 
     private func scrollToActiveLine(with proxy: ScrollViewProxy, animated: Bool) {
@@ -66,11 +94,130 @@ struct PlayPageSyncedLyricsListView: View {
             proxy.scrollTo(activeLineID, anchor: .center)
         }
         if animated {
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(.easeOut(duration: 0.20)) {
                 action()
             }
         } else {
             action()
         }
+    }
+
+    private var resolvedTopPadding: CGFloat {
+        topPadding ?? (compactHeight ? 120 : 150)
+    }
+
+    private var resolvedBottomPadding: CGFloat {
+        bottomPadding ?? (compactHeight ? 180 : 220)
+    }
+
+    private var topProbe: some View {
+        Color.clear
+            .frame(height: 1)
+            .background(
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: LyricsTopOffsetPreferenceKey.self,
+                        value: geometry.frame(in: .named("lyrics-scroll")).minY
+                    )
+                }
+            )
+    }
+
+    private func lineDistance(from line: ParsedLyricLine) -> Int {
+        guard let activeLineID,
+              let activeIndex = lines.firstIndex(where: { $0.id == activeLineID }),
+              let lineIndex = lines.firstIndex(where: { $0.id == line.id }) else {
+            return 99
+        }
+        return abs(lineIndex - activeIndex)
+    }
+
+    private func primaryFontSize(isActive: Bool, distance: Int) -> CGFloat {
+        switch visualStyle {
+        case .half:
+            if isActive { return compactHeight ? 24 : 28 }
+            if distance == 1 { return compactHeight ? 19 : 22 }
+            return compactHeight ? 17 : 19
+        case .full:
+            if isActive { return compactHeight ? 24 : 28 }
+            if distance == 1 { return compactHeight ? 19 : 22 }
+            return compactHeight ? 17 : 19
+        }
+    }
+
+    private func secondaryFontSize(isActive: Bool) -> CGFloat {
+        switch visualStyle {
+        case .half:
+            return isActive ? (compactHeight ? 14 : 16) : (compactHeight ? 12 : 13)
+        case .full:
+            return isActive ? (compactHeight ? 14 : 16) : (compactHeight ? 12 : 13)
+        }
+    }
+
+    private func primaryOpacity(isActive: Bool, distance: Int) -> Color {
+        Color.white.opacity(textOpacity(isActive: isActive, distance: distance))
+    }
+
+    private func textOpacity(isActive: Bool, distance: Int) -> Double {
+        switch visualStyle {
+        case .half:
+            if isActive { return 0.98 }
+            switch distance {
+            case 1: return 0.54
+            case 2: return 0.30
+            default: return 0.18
+            }
+        case .full:
+            return isActive ? 0.98 : 0.58
+        }
+    }
+
+    private var secondaryOpacity: Double {
+        visualStyle == .full ? 0.42 : 0.68
+    }
+
+    private func blurRadius(for distance: Int) -> CGFloat {
+        switch visualStyle {
+        case .half:
+            switch distance {
+            case 0: return 0
+            case 1: return compactHeight ? 0.6 : 0.9
+            case 2: return compactHeight ? 1.8 : 2.2
+            default: return compactHeight ? 3.2 : 3.8
+            }
+        case .full:
+            return 0
+        }
+    }
+
+    private func rowOpacity(isActive: Bool, distance: Int) -> Double {
+        if isActive { return 1 }
+        return visualStyle == .full ? 1 : 0.96
+    }
+
+    private func scale(for distance: Int) -> CGFloat {
+        switch distance {
+        case 0: return 1
+        case 1: return 0.99
+        case 2: return 0.975
+        default: return visualStyle == .full ? 0.95 : 0.97
+        }
+    }
+
+    private func verticalPadding(for distance: Int) -> CGFloat {
+        switch visualStyle {
+        case .half:
+            return distance == 0 ? (compactHeight ? 4 : 6) : (compactHeight ? 2 : 3)
+        case .full:
+            return distance == 0 ? (compactHeight ? 4 : 6) : (compactHeight ? 2 : 3)
+        }
+    }
+}
+
+private struct LyricsTopOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

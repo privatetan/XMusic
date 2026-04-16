@@ -19,7 +19,7 @@ struct PlayPagePanelView: View {
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
     @State private var showContent = true
-    @State private var isLyricsPresented = false
+    @State private var lyricsPresentationMode: LyricsPresentationMode = .hidden
     @State private var isLoadingLyrics = false
     @State private var lyricsStateTrackID: UUID?
     @State private var loadedLyricsTrackID: UUID?
@@ -28,6 +28,7 @@ struct PlayPagePanelView: View {
     @State private var isExternalAudioRouteActive = false
     @State private var isRouteSheetPresented = false
     @State private var routePickerTrigger = 0
+    @State private var isLyricsAtTop = true
     let animation: Namespace.ID
     /// 从父视图传入的稳定尺寸，避免 GeometryReader 在转场动画期间
     /// 拿到 .zero / 不正确的值导致布局卡死。
@@ -47,6 +48,7 @@ struct PlayPagePanelView: View {
                 )
                 let lyricLines = parsedLyricLines(for: track)
                 let activeLineID = currentLyricLineID(for: track, lines: lyricLines)
+                let topSectionHeight = lyricsPresentationMode == .full ? layout.availableHeight : layout.topSectionHeight
 
                 ZStack {
                     RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
@@ -76,61 +78,43 @@ struct PlayPagePanelView: View {
                             activeLineID: activeLineID,
                             isLoadingLyrics: isLoadingLyrics,
                             lyricsErrorMessage: lyricsErrorMessage,
-                            isLyricsPresented: isLyricsPresented,
+                            lyricsPresentationMode: lyricsPresentationMode,
                             showContent: showContent,
                             onArtistTap: { openArtistSearch(for: track) },
-                            onRetryLyrics: { loadLyrics(for: track, force: true) }
+                            onRetryLyrics: { loadLyrics(for: track, force: true) },
+                            onLyricsTopStateChange: { isLyricsAtTop = $0 }
                         )
+                        .frame(height: topSectionHeight, alignment: .top)
+                        .contentShape(Rectangle())
+                        .simultaneousGesture(lyricsModeDragGesture)
 
-                        PlayPageControlsSectionView(
-                            timeline: timeline,
-                            layout: layout,
-                            showContent: showContent,
-                            squeezeProgress: squeezeProgress,
-                            isExternalAudioRouteActive: isExternalAudioRouteActive,
-                            isScrubbing: $isScrubbing,
-                            draftTime: $draftTime,
-                            isLyricsPresented: $isLyricsPresented,
-                            isRouteSheetPresented: $isRouteSheetPresented,
-                            routePickerTrigger: $routePickerTrigger,
-                            onPrevious: { player.playPrevious() },
-                            onTogglePlayback: { player.togglePlayback() },
-                            onNext: { player.playNext() },
-                            onLyricsTap: { handleLyricsButtonTap(for: track) }
-                        )
+                        if lyricsPresentationMode != .full {
+                            PlayPageControlsSectionView(
+                                timeline: timeline,
+                                layout: layout,
+                                showContent: showContent,
+                                squeezeProgress: squeezeProgress,
+                                isExternalAudioRouteActive: isExternalAudioRouteActive,
+                                isScrubbing: $isScrubbing,
+                                draftTime: $draftTime,
+                                isLyricsPresented: Binding(
+                                    get: { lyricsPresentationMode.isPresented },
+                                    set: { lyricsPresentationMode = $0 ? .half : .hidden }
+                                ),
+                                isRouteSheetPresented: $isRouteSheetPresented,
+                                routePickerTrigger: $routePickerTrigger,
+                                onPrevious: { player.playPrevious() },
+                                onTogglePlayback: { player.togglePlayback() },
+                                onNext: { player.playNext() },
+                                onLyricsTap: { handleLyricsButtonTap(for: track) }
+                            )
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
                     }
                     .frame(width: layout.contentWidth, height: layout.availableHeight, alignment: .top)
                     .padding(.top, layout.safeTop)
                     .padding(.horizontal, layout.horizontalPadding)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-                    VStack(spacing: 0) {
-                        HStack {
-                            Button {
-                                dismissPanel()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Color.white.opacity(0.96))
-                                    .shadow(color: Color.black.opacity(0.18), radius: 6, x: 0, y: 2)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("返回")
-                            .accessibilityHint("关闭播放页")
-                            .opacity(showContent ? 1 : 0)
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.top, layout.topButtonPadding)
-                        .padding(.horizontal, layout.horizontalPadding)
-
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .allowsHitTesting(true)
-                    .zIndex(100)
 
                     Circle()
                         .fill(track.artwork.glow.opacity(0.10))
@@ -163,7 +147,8 @@ struct PlayPagePanelView: View {
                                     dragOffset = 0
                                 }
                             }
-                        }
+                        },
+                        shouldBegin: { shouldAllowPanelDismissGesture }
                     )
                 )
                 #endif
@@ -216,7 +201,8 @@ struct PlayPagePanelView: View {
         isScrubbing = false
         draftTime = timeline.currentTime
         dragOffset = 0
-        isLyricsPresented = false
+        lyricsPresentationMode = .hidden
+        isLyricsAtTop = true
 
         showContent = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -228,6 +214,28 @@ struct PlayPagePanelView: View {
 
     private func dismissPanel() {
         close()
+    }
+
+    private var shouldAllowPanelDismissGesture: Bool {
+        guard lyricsPresentationMode.isPresented else { return true }
+        return isLyricsAtTop
+    }
+
+    private var lyricsModeDragGesture: some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onEnded { value in
+                guard lyricsPresentationMode.isPresented else { return }
+
+                if value.translation.height < -32, lyricsPresentationMode == .half {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
+                        lyricsPresentationMode = .full
+                    }
+                } else if value.translation.height > 8, lyricsPresentationMode == .full {
+                    withAnimation(.spring(response: 0.26, dampingFraction: 0.88)) {
+                        lyricsPresentationMode = .half
+                    }
+                }
+            }
     }
 
     private var searchableSources: [SearchPlatformSource] {
@@ -376,137 +384,14 @@ struct PlayPagePanelView: View {
             .padding(.leading, 60)
     }
 
-    @ViewBuilder
-    private func lyricsOverlay(
-        for track: Track,
-        availableHeight: CGFloat,
-        horizontalPadding: CGFloat,
-        safeBottom: CGFloat,
-        compactHeight: Bool
-    ) -> some View {
-        let panelHeight = min(availableHeight * (compactHeight ? 0.64 : 0.68), compactHeight ? 430 : 500)
-        let lines = parsedLyricLines(for: track)
-        let activeLineID = currentLyricLineID(for: track, lines: lines)
-
-        ZStack(alignment: .bottom) {
-            Color.black.opacity(0.001)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                        isLyricsPresented = false
-                    }
-                }
-
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(Color.white.opacity(0.18))
-                    .frame(width: 42, height: 5)
-                    .padding(.top, 14)
-                    .padding(.bottom, 18)
-
-                VStack(spacing: 0) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(track.title)
-                            .font(.system(size: compactHeight ? 22 : 24, weight: .bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-
-                        Spacer(minLength: 16)
-
-                        Button {
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                                isLyricsPresented = false
-                            }
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Color.white.opacity(0.72))
-                                .frame(width: 32, height: 32)
-                                .background(Color.white.opacity(0.08), in: Circle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 22)
-                    .padding(.bottom, 16)
-
-                    if isLoadingLyrics {
-                        VStack(spacing: 14) {
-                            ProgressView()
-                                .tint(.white.opacity(0.84))
-                            Text("正在加载歌词…")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color.white.opacity(0.72))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let lyricsErrorMessage {
-                        VStack(spacing: 16) {
-                            Image(systemName: "text.quote")
-                                .font(.system(size: 28, weight: .regular))
-                                .foregroundStyle(Color.white.opacity(0.78))
-
-                            Text(lyricsErrorMessage)
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color.white.opacity(0.72))
-                                .multilineTextAlignment(.center)
-
-                            Button {
-                                loadLyrics(for: track, force: true)
-                            } label: {
-                                Label("重试", systemImage: "arrow.clockwise")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 10)
-                                    .background(Color.white.opacity(0.12), in: Capsule())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 28)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if !lines.isEmpty {
-                        PlayPageSyncedLyricsListView(
-                            lines: lines,
-                            activeLineID: activeLineID,
-                            compactHeight: compactHeight
-                        )
-                    } else {
-                        VStack(spacing: 12) {
-                            Image(systemName: "text.quote")
-                                .font(.system(size: 28, weight: .regular))
-                                .foregroundStyle(Color.white.opacity(0.78))
-
-                            Text("当前歌曲暂无可显示的歌词")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color.white.opacity(0.72))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: panelHeight)
-            .background(
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
-                    .fill(Color.black.opacity(0.72))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .padding(.horizontal, horizontalPadding)
-            .padding(.bottom, max(safeBottom + 8, 12))
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-    }
-
     private func handleLyricsButtonTap(for track: Track) {
-        isLyricsPresented.toggle()
-        guard isLyricsPresented else { return }
+        lyricsPresentationMode = lyricsPresentationMode.isPresented ? .hidden : .half
+        guard lyricsPresentationMode.isPresented else { return }
         loadLyrics(for: track, force: false)
     }
 
     private func handleTrackChange(_ track: Track) {
-        guard isLyricsPresented else {
+        guard lyricsPresentationMode.isPresented else {
             resetLyricsState(keepPresentation: true)
             return
         }
@@ -521,7 +406,8 @@ struct PlayPagePanelView: View {
         lyricResult = nil
         lyricsErrorMessage = nil
         if !keepPresentation {
-            isLyricsPresented = false
+            lyricsPresentationMode = .hidden
+            isLyricsAtTop = true
         }
     }
 

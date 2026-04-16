@@ -70,7 +70,7 @@ struct PlayPageControlsSectionView: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 24)
 
-                Spacer().frame(height: layout.volumeGap)
+                Spacer().frame(height: layout.bottomGap+10)
 
                 HStack(spacing: 16) {
                     Image(systemName: "speaker.fill")
