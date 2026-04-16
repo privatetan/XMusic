@@ -59,7 +59,9 @@ struct ContentView: View {
                     .zIndex(10)
             }
             CachedSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseCached = false } })
+                .environmentObject(library)
                 .environmentObject(player)
+                .environmentObject(playlistModel)
                 .environmentObject(sourceLibrary)
                 .offset(x: showBrowseCached ? 0 : UIScreen.main.bounds.width)
                 .opacity(showBrowseCached ? 1 : 0.001)

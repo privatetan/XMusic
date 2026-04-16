@@ -204,6 +204,11 @@ struct SheetSongRow: View {
     let track: Track
     let isCurrent: Bool
     let isPlaying: Bool
+    let isInLibrary: Bool
+    let customPlaylists: [Playlist]
+    let playlistContainsTrack: (Playlist) -> Bool
+    let onAddToLibrary: () -> Void
+    let onAddToPlaylist: (Playlist) -> Void
     let onRemove: () -> Void
     let action: () -> Void
 
@@ -245,6 +250,29 @@ struct SheetSongRow: View {
 
             Menu {
                 TrackExportMenuItem(track: track)
+
+                Button(isInLibrary ? "已在资料库" : "加入资料库", systemImage: isInLibrary ? "checkmark" : "square.and.arrow.down") {
+                    onAddToLibrary()
+                }
+                .disabled(isInLibrary)
+
+                if !customPlaylists.isEmpty {
+                    Menu {
+                        ForEach(customPlaylists) { playlist in
+                            if playlistContainsTrack(playlist) {
+                                Button("\(playlist.title) 已添加", systemImage: "checkmark") {
+                                }
+                                .disabled(true)
+                            } else {
+                                Button(playlist.title, systemImage: "text.badge.plus") {
+                                    onAddToPlaylist(playlist)
+                                }
+                            }
+                        }
+                    } label: {
+                        Label("加入歌单", systemImage: "text.badge.plus")
+                    }
+                }
 
                 Button(role: .destructive) {
                     onRemove()

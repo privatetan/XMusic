@@ -172,7 +172,9 @@ struct AllPlaylistsSheet: View {
 }
 
 struct CachedSongsSheet: View {
+    @EnvironmentObject private var library: MusicLibraryViewModel
     @EnvironmentObject private var player: MusicPlayerViewModel
+    @EnvironmentObject private var playlistModel: MusicPlaylistViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     var onDismiss: () -> Void
 
@@ -234,6 +236,17 @@ struct CachedSongsSheet: View {
                                     track: track,
                                     isCurrent: player.currentTrack?.id == track.id,
                                     isPlaying: player.isPlaying,
+                                    isInLibrary: library.contains(track),
+                                    customPlaylists: playlistModel.customPlaylists,
+                                    playlistContainsTrack: { playlist in
+                                        playlistModel.contains(track, in: playlist)
+                                    },
+                                    onAddToLibrary: {
+                                        library.add(track)
+                                    },
+                                    onAddToPlaylist: { playlist in
+                                        playlistModel.addTrack(track, to: playlist)
+                                    },
                                     onRemove: {
                                         trackPendingRemoval = track
                                     }

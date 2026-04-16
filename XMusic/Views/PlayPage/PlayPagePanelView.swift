@@ -169,7 +169,7 @@ struct PlayPagePanelView: View {
                 #endif
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                 .offset(y: dragOffset)
-                .appOnChange(of: track.id) {
+                .task(id: track.id) {
                     handleTrackChange(track)
                 }
                 .onDisappear {
