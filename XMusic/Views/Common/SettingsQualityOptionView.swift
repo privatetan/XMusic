@@ -2,8 +2,19 @@ import SwiftUI
 
 /// 默认音质的图标化选项按钮。
 struct SettingsQualityOptionView: View {
+    @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
+    @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
+
     let quality: PlaybackQualityPreference
     let isSelected: Bool
+
+    private var theme: AppThemeConfiguration {
+        AppThemeConfiguration(
+            selectedThemeRawValue: selectedThemeRawValue,
+            customAccentData: customAccentData,
+            customBackgroundRevision: 0
+        )
+    }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -11,7 +22,7 @@ struct SettingsQualityOptionView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
                         isSelected
-                            ? Color(red: 0.48, green: 0.92, blue: 0.72).opacity(0.18)
+                            ? theme.accent.opacity(0.18)
                             : Color.white.opacity(0.06)
                     )
 
@@ -34,7 +45,7 @@ struct SettingsQualityOptionView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(
-                    isSelected ? Color(red: 0.48, green: 0.92, blue: 0.72).opacity(0.28) : Color.white.opacity(0.06),
+                    isSelected ? theme.accent.opacity(0.28) : Color.white.opacity(0.06),
                     lineWidth: 1
                 )
         )

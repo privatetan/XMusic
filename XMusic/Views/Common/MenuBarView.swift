@@ -2,6 +2,8 @@ import Foundation
 import SwiftUI
 
 struct MenuBarView: View {
+    @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
+    @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
     @Binding var selectedTab: AppTab
     @Binding var searchQuery: String
     var isSearchFieldFocused: FocusState<Bool>.Binding
@@ -9,7 +11,14 @@ struct MenuBarView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var navigationAnimation
     @State private var lastNonSearchTab: AppTab = .browse
-    private let activeColor = Color(red: 0.50, green: 0.52, blue: 1.0)
+
+    private var theme: AppThemeConfiguration {
+        AppThemeConfiguration(
+            selectedThemeRawValue: selectedThemeRawValue,
+            customAccentData: customAccentData,
+            customBackgroundRevision: 0
+        )
+    }
 
     private var isSearchMode: Bool { selectedTab == .search }
 
@@ -112,7 +121,7 @@ struct MenuBarView: View {
             if isSearchShortcut {
                 Image(systemName: tab.symbol)
                     .font(.system(size: isCompactLayout ? 22 : 24, weight: .semibold))
-                    .foregroundStyle(isSelected ? activeColor : .white)
+                    .foregroundStyle(isSelected ? theme.accent : .white)
                     .frame(width: barHeight, height: barHeight)
                     .background(searchButtonBackground(isSelected: isSelected))
                     .overlay(
@@ -130,7 +139,7 @@ struct MenuBarView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                .foregroundStyle(isSelected ? activeColor : Color.white.opacity(0.88))
+                .foregroundStyle(isSelected ? theme.accent : Color.white.opacity(0.88))
                 .frame(maxWidth: .infinity)
                 .frame(height: tabItemHeight)
                 .background {
@@ -165,7 +174,7 @@ struct MenuBarView: View {
                         .fill(
                             LinearGradient(
                                 colors: isSelected
-                                    ? [activeColor.opacity(0.22), Color.white.opacity(0.10)]
+                                    ? [theme.accent.opacity(0.22), Color.white.opacity(0.10)]
                                     : [Color.white.opacity(0.08), Color.clear],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -231,7 +240,7 @@ struct MenuBarView: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [activeColor.opacity(0.16), Color.white.opacity(0.05)],
+                                colors: [theme.accent.opacity(0.16), Color.white.opacity(0.05)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -245,7 +254,7 @@ struct MenuBarView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.12),
+                            theme.accent.opacity(0.18),
                             Color.white.opacity(0.04)
                         ],
                         startPoint: .top,

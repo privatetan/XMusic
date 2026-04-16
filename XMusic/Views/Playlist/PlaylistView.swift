@@ -90,27 +90,31 @@ struct PlaylistView: View {
 
     var body: some View {
         AppNavigationContainerView {
-            ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    Text("歌单")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+            ZStack {
+                AppBackgroundView()
 
-                    customPlaylistSection
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: 28) {
+                        Text("歌单")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
 
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(alignment: .top, spacing: 12) {
-                            SectionHeadingView(title: "在线歌单")
+                        customPlaylistSection
 
-                            Spacer(minLength: 0)
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack(alignment: .top, spacing: 12) {
+                                SectionHeadingView(title: "在线歌单")
+
+                                Spacer(minLength: 0)
+                            }
+
+                            remotePlaylistSection
                         }
-
-                        remotePlaylistSection
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 12)
             }
             .appRootNavigationHidden()
         }
