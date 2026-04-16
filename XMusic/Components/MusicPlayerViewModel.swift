@@ -210,6 +210,7 @@ final class MusicPlayerViewModel: ObservableObject {
     #endif
 
     init() {
+        configurePlayerForStreaming()
         bindPlayer()
         #if os(iOS)
         player.volume = 1
@@ -497,6 +498,8 @@ final class MusicPlayerViewModel: ObservableObject {
 
     private func loadResolvedURL(_ url: URL, autoPlay: Bool) {
         let item = AVPlayerItem(url: url)
+        item.preferredForwardBufferDuration = 2
+        item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         player.replaceCurrentItem(with: item)
 
         if autoPlay {
@@ -661,6 +664,10 @@ final class MusicPlayerViewModel: ObservableObject {
 }
 
 private extension MusicPlayerViewModel {
+    func configurePlayerForStreaming() {
+        player.automaticallyWaitsToMinimizeStalling = false
+    }
+
     func bindSystemVolume() {
         #if os(iOS)
         let session = AVAudioSession.sharedInstance()

@@ -624,25 +624,9 @@ final class MusicSourceLibrary: ObservableObject {
             return destinationURL
         }
 
-        var lastError: Error?
-        for candidateURL in playableURLCandidates(for: remoteURL) {
-            do {
-                try await downloadPlayableMedia(from: candidateURL, to: destinationURL)
-                touchMediaCacheEntry(
-                    for: remoteURL,
-                    localURL: destinationURL,
-                    title: title,
-                    artist: artist,
-                    album: album,
-                    sourceName: sourceName
-                )
-                return destinationURL
-            } catch {
-                lastError = error
-            }
-        }
-
-        throw lastError ?? URLError(.badServerResponse)
+        // Stream directly when no local cache is available so playback can start
+        // as soon as AVPlayer has enough buffered data.
+        return playableURLCandidates(for: remoteURL).first ?? remoteURL
     }
 
     func preparePlayableURLWithDebug(from remoteURL: URL) async throws -> PlaybackDebugInfo {

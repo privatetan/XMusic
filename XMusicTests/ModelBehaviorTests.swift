@@ -132,4 +132,24 @@ final class ModelBehaviorTests: XCTestCase {
         XCTAssertTrue(playlist.isCustomPlaylist)
         XCTAssertEqual(playlist.remoteArtworkURL?.absoluteString, "https://example.com/cover.jpg")
     }
+
+    @MainActor
+    func testPreparePlayableURLStreamsRemoteMediaWhenNoCacheExists() async throws {
+        let library = MusicSourceLibrary()
+        let remoteURL = URL(string: "https://example.com/\(UUID().uuidString).flac")!
+
+        let preparedURL = try await library.preparePlayableURL(from: remoteURL)
+
+        XCTAssertEqual(preparedURL, remoteURL)
+    }
+
+    @MainActor
+    func testPreparePlayableURLPrefersHTTPSCandidateFor126Net() async throws {
+        let library = MusicSourceLibrary()
+        let remoteURL = URL(string: "http://m10.music.126.net/\(UUID().uuidString).mp3")!
+
+        let preparedURL = try await library.preparePlayableURL(from: remoteURL)
+
+        XCTAssertEqual(preparedURL.absoluteString, remoteURL.absoluteString.replacingOccurrences(of: "http://", with: "https://"))
+    }
 }
