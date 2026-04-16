@@ -60,6 +60,7 @@ private struct PlayPageDemoView: View {
                     )
 
                     PlayPageControlsSectionView(
+                        timeline: player.playbackTimeline,
                         layout: layout,
                         showContent: true,
                         squeezeProgress: 0,

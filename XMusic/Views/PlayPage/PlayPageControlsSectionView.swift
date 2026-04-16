@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PlayPageControlsSectionView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
+    @ObservedObject var timeline: PlaybackTimeline
 
     let layout: PlayPagePanelLayout
     let showContent: Bool
@@ -22,17 +23,17 @@ struct PlayPageControlsSectionView: View {
             VStack(alignment: .leading, spacing: 0) {
                 PlayPageSliderBarView(
                     value: Binding(
-                        get: { isScrubbing ? draftTime : player.currentTime },
+                        get: { isScrubbing ? draftTime : timeline.currentTime },
                         set: { draftTime = $0 }
                     ),
-                    range: 0...max(player.duration, 1),
+                    range: 0...max(timeline.duration, 1),
                     activeColor: Color.white.opacity(0.94),
                     trackColor: Color.white.opacity(0.22),
                     height: 8
                 ) { editing in
                     isScrubbing = editing
                     if editing {
-                        draftTime = player.currentTime
+                        draftTime = timeline.currentTime
                     } else {
                         player.seek(to: draftTime)
                     }
@@ -44,9 +45,9 @@ struct PlayPageControlsSectionView: View {
                 Spacer().frame(height: 10)
 
                 HStack {
-                    Text(format(time: isScrubbing ? draftTime : player.currentTime))
+                    Text(format(time: isScrubbing ? draftTime : timeline.currentTime))
                     Spacer()
-                    Text("-\(format(time: max(player.duration - (isScrubbing ? draftTime : player.currentTime), 0)))")
+                    Text("-\(format(time: max(timeline.duration - (isScrubbing ? draftTime : timeline.currentTime), 0)))")
                 }
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.50))

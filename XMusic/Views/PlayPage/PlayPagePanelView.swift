@@ -14,6 +14,7 @@ struct PlayPagePanelView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @EnvironmentObject private var musicSearch: MusicSearchViewModel
+    @ObservedObject var timeline: PlaybackTimeline
     @State private var isScrubbing = false
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
@@ -82,6 +83,7 @@ struct PlayPagePanelView: View {
                         )
 
                         PlayPageControlsSectionView(
+                            timeline: timeline,
                             layout: layout,
                             showContent: showContent,
                             squeezeProgress: squeezeProgress,
@@ -212,7 +214,7 @@ struct PlayPagePanelView: View {
 
     private func resetTransientPresentationState() {
         isScrubbing = false
-        draftTime = player.currentTime
+        draftTime = timeline.currentTime
         dragOffset = 0
         isLyricsPresented = false
 
@@ -647,7 +649,7 @@ struct PlayPagePanelView: View {
     private func currentLyricLineID(for track: Track, lines: [ParsedLyricLine]) -> String? {
         guard loadedLyricsTrackID == track.id, !lines.isEmpty else { return nil }
 
-        let currentTime = Int((isScrubbing ? draftTime : player.currentTime) * 1000)
+        let currentTime = Int((isScrubbing ? draftTime : timeline.currentTime) * 1000)
         guard currentTime >= 0 else { return nil }
 
         var low = 0

@@ -154,12 +154,13 @@ struct LibrarySongRow: View {
                             .foregroundStyle(Color.white.opacity(0.5))
                             .lineLimit(1)
                     }
+
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-
-            Spacer()
 
             Menu {
                 TrackExportMenuItem(track: track)
@@ -237,6 +238,7 @@ struct SheetSongRow: View {
 
                     Spacer()
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

@@ -103,7 +103,11 @@ struct ContentView: View {
         .overlay {
             GeometryReader { proxy in
                 if player.isNowPlayingPresented, player.currentTrack != nil {
-                    PlayPagePanelView(animation: playerAnimation, containerSize: proxy.size) {
+                    PlayPagePanelView(
+                        timeline: player.playbackTimeline,
+                        animation: playerAnimation,
+                        containerSize: proxy.size
+                    ) {
                         player.dismissNowPlaying(animated: true)
                     }
                     .id(player.nowPlayingPresentationID)

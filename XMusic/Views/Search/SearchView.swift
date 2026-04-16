@@ -162,6 +162,7 @@ struct SearchView: View {
                             let track = Track.searchResultTrack(from: song)
                             OnlineSearchResultRow(
                                 song: song,
+                                isCurrent: player.isCurrentTrack(track),
                                 isResolving: resolvingSongID == song.id,
                                 isInLibrary: library.contains(track),
                                 customPlaylists: playlistModel.customPlaylists,
@@ -259,6 +260,9 @@ struct SearchView: View {
     }
 
     private func play(_ song: SearchSong) {
+        let track = Track.searchResultTrack(from: song)
+        guard !player.isCurrentTrack(track) else { return }
+
         playbackError = nil
         actionMessage = nil
         playbackDebugInfo = nil
@@ -515,6 +519,7 @@ private struct OnlineSearchResultRow: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     let song: SearchSong
+    let isCurrent: Bool
     let isResolving: Bool
     let isInLibrary: Bool
     let customPlaylists: [Playlist]
@@ -537,7 +542,7 @@ private struct OnlineSearchResultRow: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(song.title)
                             .font(.body)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(isCurrent ? Color(red: 0.50, green: 0.52, blue: 1.0) : .white)
                             .lineLimit(1)
 
                         Text(song.artist)
@@ -545,25 +550,26 @@ private struct OnlineSearchResultRow: View {
                             .foregroundStyle(Color.white.opacity(0.5))
                             .lineLimit(1)
                     }
+
+                    Spacer(minLength: 0)
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(song.source.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.52))
+                            .lineLimit(1)
+
+                        Text(sourceLibrary.preferredPlaybackQuality(for: song))
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.36))
+                            .lineLimit(1)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(isResolving)
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(song.source.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.52))
-                    .lineLimit(1)
-
-                Text(sourceLibrary.preferredPlaybackQuality(for: song))
-                    .font(.caption2)
-                    .foregroundStyle(Color.white.opacity(0.36))
-                    .lineLimit(1)
-            }
+            .disabled(isResolving || isCurrent)
 
             if isResolving {
                 ProgressView()

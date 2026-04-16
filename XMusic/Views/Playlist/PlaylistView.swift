@@ -1417,55 +1417,56 @@ private struct PlaylistDetailTrackRow: View {
     var body: some View {
         let isCurrent = player.currentTrack == track
 
-        Button {
-            player.play(track, from: tracks)
-        } label: {
-            HStack(spacing: 12) {
-                PlaylistTrackArtwork(track: track)
-                    .frame(width: 42, height: 42)
+        HStack(spacing: 10) {
+            Button {
+                player.play(track, from: tracks)
+            } label: {
+                HStack(spacing: 12) {
+                    PlaylistTrackArtwork(track: track)
+                        .frame(width: 42, height: 42)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(track.title)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(Color.white)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(track.title)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(Color.white)
+                            .lineLimit(1)
 
-                    Text(track.artist)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.52))
-                        .lineLimit(1)
-                }
+                        Text(track.artist)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.white.opacity(0.52))
+                            .lineLimit(1)
+                    }
 
-                Spacer(minLength: 10)
+                    Spacer(minLength: 10)
 
-                Text(index.formatted())
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.26))
+                    Text(index.formatted())
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.26))
 
-                HStack(spacing: 10) {
                     Image(systemName: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "play.circle")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
                         .frame(width: 20)
-
-                    if canExportTrackFile(track) {
-                        Menu {
-                            TrackExportMenuItem(track: track)
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(Color.white.opacity(0.55))
-                                .frame(width: 20)
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+
+            if canExportTrackFile(track) {
+                Menu {
+                    TrackExportMenuItem(track: track)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                        .frame(width: 20)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 }
 
@@ -1737,7 +1738,7 @@ struct PlaylistView_Preview: View {
     }
 
     var body: some View {
-        PlayPagePanelView(animation: animation) {
+        PlayPagePanelView(timeline: player.playbackTimeline, animation: animation) {
         }
         .environmentObject(player)
         .environmentObject(sourceLibrary)

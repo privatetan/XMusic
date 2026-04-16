@@ -173,15 +173,20 @@ private final class SearchPlaybackResolverBox {
 }
 
 @MainActor
+final class PlaybackTimeline: ObservableObject {
+    @Published var currentTime: TimeInterval = 0
+    @Published var duration: TimeInterval = 1
+}
+
+@MainActor
 final class MusicPlayerViewModel: ObservableObject {
     @Published var currentTrack: Track?
     @Published var selectedTab: AppTab = .browse
     @Published var isNowPlayingPresented = false
     @Published private(set) var nowPlayingPresentationID = UUID()
     @Published var isPlaying = false
-    @Published var currentTime: TimeInterval = 0
-    @Published var duration: TimeInterval = 1
     @Published var volume: Double = 0.85
+    let playbackTimeline = PlaybackTimeline()
 
     private let player = AVPlayer()
     private var queue: [Track] = []
@@ -224,6 +229,20 @@ final class MusicPlayerViewModel: ObservableObject {
         updateNowPlayingInfo()
     }
 
+    var currentTime: TimeInterval {
+        get { playbackTimeline.currentTime }
+        set { playbackTimeline.currentTime = newValue }
+    }
+
+    var duration: TimeInterval {
+        get { playbackTimeline.duration }
+        set { playbackTimeline.duration = newValue }
+    }
+
+    func isCurrentTrack(_ track: Track) -> Bool {
+        currentTrack?.storageKey == track.storageKey
+    }
+
     deinit {
         pendingResolveTask?.cancel()
 
@@ -246,6 +265,8 @@ final class MusicPlayerViewModel: ObservableObject {
     }
 
     func play(_ track: Track, from tracks: [Track]? = nil) {
+        guard !isCurrentTrack(track) else { return }
+
         if let tracks, !tracks.isEmpty {
             queue = tracks
         }
@@ -255,11 +276,6 @@ final class MusicPlayerViewModel: ObservableObject {
         } else {
             queue = [track]
             currentIndex = 0
-        }
-
-        if currentTrack == track {
-            load(queue[currentIndex], autoPlay: true)
-            return
         }
 
         load(track, autoPlay: true)
