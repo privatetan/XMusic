@@ -33,13 +33,9 @@ struct MenuBarView: View {
                 } label: {
                     Image(systemName: lastNonSearchTab.symbol)
                         .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .frame(width: barHeight, height: barHeight)
                         .background(searchButtonBackground(isSelected: false))
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                        )
                 }
                 .buttonStyle(.plain)
                 .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
@@ -54,8 +50,10 @@ struct MenuBarView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: barHeight)
                 .background(tabClusterBackground())
+                .contentShape(Capsule())
+                .onTapGesture {}
                 .overlay(tabClusterOutline())
-                .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+                .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
                 .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
             }
 
@@ -63,12 +61,12 @@ struct MenuBarView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.55))
+                        .foregroundStyle(Color.primary.opacity(0.55))
 
                     TextField("搜索歌名、艺人、专辑", text: $searchQuery)
                         .focused(isSearchFieldFocused)
                         .textFieldStyle(.plain)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .font(.system(size: 16, weight: .medium))
                         .submitLabel(.search)
                         .onSubmit { onSearchSubmit?() }
@@ -79,7 +77,7 @@ struct MenuBarView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                                .foregroundStyle(Color.white.opacity(0.4))
+                                .foregroundStyle(Color.primary.opacity(0.4))
                         }
                         .buttonStyle(.plain)
                         .transition(.opacity.combined(with: .scale))
@@ -89,8 +87,10 @@ struct MenuBarView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: barHeight)
                 .background(searchFieldBackground())
+                .contentShape(Capsule())
+                .onTapGesture {}
                 .overlay(searchFieldOutline())
-                .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+                .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
                 .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
             } else {
                 tabButton(for: .search, isSearchShortcut: true)
@@ -121,25 +121,21 @@ struct MenuBarView: View {
             if isSearchShortcut {
                 Image(systemName: tab.symbol)
                     .font(.system(size: isCompactLayout ? 22 : 24, weight: .semibold))
-                    .foregroundStyle(isSelected ? theme.accent : .white)
+                    .foregroundStyle(isSelected ? theme.accent : .primary)
                     .frame(width: barHeight, height: barHeight)
                     .background(searchButtonBackground(isSelected: isSelected))
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(isSelected ? 0.18 : 0.12), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.18), radius: 16, x: 0, y: 8)
+                    .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
             } else {
                 VStack(spacing: 3) {
                     Image(systemName: tab.symbol)
-                        .font(.system(size: isSelected ? 18 : 16, weight: .semibold))
+                        .font(.system(size: isSelected ? 20 : 18, weight: .semibold))
 
                     Text(tab.title)
                         .font(.system(size: isCompactLayout ? 10 : 11, weight: .semibold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                .foregroundStyle(isSelected ? theme.accent : Color.white.opacity(0.88))
+                .foregroundStyle(isSelected ? theme.accent : Color.secondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: tabItemHeight)
                 .background {
@@ -161,158 +157,101 @@ struct MenuBarView: View {
     }
 
     private var barHeight: CGFloat {
-        ChromeBarMetrics.height(for: horizontalSizeClass)
+        ChromeBarMetrics.menuBarHeight(for: horizontalSizeClass)
     }
 
     @ViewBuilder
     private func searchButtonBackground(isSelected: Bool) -> some View {
-        if #available(iOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular, in: Circle())
-                .overlay {
+        Group {
+            if #available(iOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular, in: Circle())
+                    .overlay {
+                        if isSelected {
+                            Circle().fill(theme.accent).opacity(0.15)
+                        } else {
+                            Circle().fill(Color.primary).opacity(0.04)
+                        }
+                    }
+            } else {
+                if isSelected {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: isSelected
-                                    ? [theme.accent.opacity(0.22), Color.white.opacity(0.10)]
-                                    : [Color.white.opacity(0.08), Color.clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-        } else {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .overlay {
+                        .fill(theme.accent).opacity(0.15)
+                        .overlay(Circle().fill(LinearGradient(colors: [Color.white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                        .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
+                } else {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: isSelected
-                                    ? [Color.white.opacity(0.16), Color.white.opacity(0.06)]
-                                    : [Color.white.opacity(0.08), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .fill(.regularMaterial)
+                        .overlay(Circle().fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                        .overlay(Circle().stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
+                        .overlay(Circle().fill(Color.primary).opacity(0.02))
                 }
+            }
         }
     }
 
     @ViewBuilder
     private func tabClusterBackground() -> some View {
-        if #available(iOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.08), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-        } else {
-            Capsule()
-                .fill(.ultraThinMaterial)
+        Group {
+            if #available(iOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular, in: Capsule())
+                    .overlay { Capsule().fill(Color.primary).opacity(0.04) }
+            } else {
+                Capsule()
+                    .fill(.regularMaterial)
+                    .overlay(Capsule().fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    .overlay(Capsule().stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
+                    .overlay(Capsule().fill(Color.primary).opacity(0.02))
+            }
         }
     }
 
     @ViewBuilder
     private func tabClusterOutline() -> some View {
-        if #available(iOS 26.0, *) {
-            Capsule()
-                .stroke(Color.white.opacity(0.07), lineWidth: 0.8)
-        } else {
-            Capsule()
-                .stroke(Color.white.opacity(0.11), lineWidth: 1)
-        }
+        EmptyView()
     }
 
     @ViewBuilder
     private func selectedTabBackground() -> some View {
-        if #available(iOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [theme.accent.opacity(0.16), Color.white.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-                .padding(.horizontal, 0.5)
-                .padding(.vertical, 1)
-                .matchedGeometryEffect(id: "tab-selection", in: navigationAnimation)
-        } else {
-            Capsule()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            theme.accent.opacity(0.18),
-                            Color.white.opacity(0.04)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                )
-                .padding(.horizontal, 0.5)
-                .padding(.vertical, 1)
-                .matchedGeometryEffect(id: "tab-selection", in: navigationAnimation)
+        Group {
+            if #available(iOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular, in: Capsule())
+                    .overlay(Capsule().fill(theme.accent).opacity(0.15))
+            } else {
+                Capsule()
+                    .fill(theme.accent).opacity(0.15)
+                    .overlay(Capsule().fill(LinearGradient(colors: [Color.white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
+            }
         }
+        .matchedGeometryEffect(id: "tab-selection", in: navigationAnimation)
     }
 
     @ViewBuilder
     private func searchFieldBackground() -> some View {
-        let shape = Capsule()
-        if #available(iOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular, in: shape)
-                .overlay {
-                    shape
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.08), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-        } else {
-            shape
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    shape
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.08), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
+        Group {
+            if #available(iOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular, in: Capsule())
+                    .overlay { Capsule().fill(Color.primary).opacity(0.04) }
+            } else {
+                Capsule()
+                    .fill(.regularMaterial)
+                    .overlay(Capsule().fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    .overlay(Capsule().stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
+                    .overlay(Capsule().fill(Color.primary).opacity(0.02))
+            }
         }
     }
 
     @ViewBuilder
     private func searchFieldOutline() -> some View {
-        Capsule()
-            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        EmptyView()
     }
 
     private var tabClusterShadowColor: Color {
-        if #available(iOS 26.0, *) {
-            return Color.black.opacity(0.14)
-        }
-        return Color.black.opacity(0.22)
+        Color.black.opacity(0.08)
     }
 }

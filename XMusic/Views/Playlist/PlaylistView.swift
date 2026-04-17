@@ -1327,14 +1327,14 @@ struct PlaylistDetailPage: View {
     }
 
     private var bottomChromeHeight: CGFloat {
-        let tabBarHeight = ChromeBarMetrics.height(for: horizontalSizeClass)
+        let tabBarHeight = ChromeBarMetrics.menuBarHeight(for: horizontalSizeClass)
         let tabBarContainerHeight = tabBarHeight + 18
 
         guard player.currentTrack != nil else {
             return tabBarContainerHeight
         }
 
-        let miniPlayerHeight = ChromeBarMetrics.height(for: horizontalSizeClass)
+        let miniPlayerHeight = ChromeBarMetrics.playBarHeight(for: horizontalSizeClass)
         return tabBarContainerHeight + miniPlayerHeight + 12
     }
 

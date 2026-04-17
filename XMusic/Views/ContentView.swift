@@ -84,7 +84,7 @@ struct ContentView: View {
             installSearchPlaybackResolver()
         }
         .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 if player.currentTrack != nil && !(player.selectedTab == .search && isSearchFieldFocused) {
                     PlayBarView(animation: playerAnimation)  //播放栏
                         .environmentObject(player)
@@ -98,9 +98,9 @@ struct ContentView: View {
                     onSearchSubmit: { musicSearch.submitSearch() }
                 )
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 24) //控制菜单栏和播放栏的左右间距
             .padding(.top, 8)
-            .padding(.bottom, 10)
+            .padding(.bottom, -8)
         }
         .overlay {
             GeometryReader { proxy in
