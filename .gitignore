@@ -1,6 +1,16 @@
 .DS_Store
 
+# IDE
+.idea/
+
 # Xcode user-specific files
 *.xcuserstate
 xcuserdata/
 *.xcworkspace/xcuserdata/
+
+# Build artifacts
+build/
+DerivedData/
+
+# Local export / signing config
+ExportOptions.plist
