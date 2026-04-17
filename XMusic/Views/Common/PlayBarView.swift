@@ -66,7 +66,7 @@ struct PlayBarView: View {
         case .regular:
             return ChromeBarMetrics.playBarHeight(for: horizontalSizeClass)
         case .compactEmbedded:
-            return ChromeBarMetrics.menuBarHeight(for: horizontalSizeClass)
+            return ChromeBarMetrics.compactChromeHeight(for: horizontalSizeClass)
         }
     }
 

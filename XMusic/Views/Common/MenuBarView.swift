@@ -46,7 +46,7 @@ struct MenuBarView: View {
                         Image(systemName: lastNonSearchTab.symbol)
                             .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
                             .foregroundStyle(.primary)
-                            .frame(width: barHeight, height: barHeight)
+                            .frame(width: shortcutControlHeight, height: shortcutControlHeight)
                             .background(searchButtonBackground(isSelected: false))
                     }
                     .buttonStyle(.plain)
@@ -60,7 +60,7 @@ struct MenuBarView: View {
                     }
                     .padding(.horizontal, isCompactLayout ? 3 : 4)
                     .frame(maxWidth: .infinity)
-                    .frame(height: barHeight)
+                    .frame(height: menuBarHeight)
                     .background(tabClusterBackground())
                     .contentShape(Capsule())
                     .onTapGesture {}
@@ -98,7 +98,7 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity)
-                .frame(height: barHeight)
+                .frame(height: compactChromeHeight)
                 .background(searchFieldBackground())
                 .contentShape(Capsule())
                 .onTapGesture {}
@@ -135,7 +135,7 @@ struct MenuBarView: View {
                 Image(systemName: tab.symbol)
                     .font(.system(size: isCompactLayout ? 22 : 24, weight: .semibold))
                     .foregroundStyle(isSelected ? theme.accent : .primary)
-                    .frame(width: barHeight, height: barHeight)
+                    .frame(width: shortcutControlHeight, height: shortcutControlHeight)
                     .background(searchButtonBackground(isSelected: isSelected))
                     .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
             } else {
@@ -169,8 +169,16 @@ struct MenuBarView: View {
         ChromeBarMetrics.tabItemHeight(for: horizontalSizeClass)
     }
 
-    private var barHeight: CGFloat {
+    private var menuBarHeight: CGFloat {
         ChromeBarMetrics.menuBarHeight(for: horizontalSizeClass)
+    }
+
+    private var compactChromeHeight: CGFloat {
+        ChromeBarMetrics.compactChromeHeight(for: horizontalSizeClass)
+    }
+
+    private var shortcutControlHeight: CGFloat {
+        (isCompactScrolledMode || isSearchMode) ? compactChromeHeight : menuBarHeight
     }
 
     @ViewBuilder

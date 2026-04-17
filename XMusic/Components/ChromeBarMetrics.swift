@@ -12,6 +12,11 @@ enum ChromeBarMetrics {
         // 分离出的播放栏高度控制
         sizeClass == .compact ? 54 : 58
     }
+
+    // 收缩态的单行控件统一沿用原播放栏高度
+    static func compactChromeHeight(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
+        playBarHeight(for: sizeClass)
+    }
     
     // 迷你播放器封面的大小
     static func miniPlayerArtworkSize(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
