@@ -39,6 +39,13 @@ struct AppSettingsView: View {
         )
     }
 
+    private var effectiveMediaCacheSummary: MediaCacheSummary {
+        mergedMediaCacheSummary(
+            playerTracks: player.cachedTracks,
+            cachedFiles: sourceLibrary.cachedMediaFilesSnapshot
+        )
+    }
+
     var body: some View {
         ZStack {
             AppBackgroundView()
@@ -151,12 +158,12 @@ struct AppSettingsView: View {
 
                             SettingsInlineActionRowView(
                                 title: "媒体缓存",
-                                value: sourceLibrary.mediaCacheSummary.isEmpty
+                                value: effectiveMediaCacheSummary.isEmpty
                                     ? "暂无缓存"
-                                    : "\(sourceLibrary.mediaCacheSummary.fileCount) 个文件 · \(sourceLibrary.mediaCacheSummary.formattedSize)",
+                                    : "\(effectiveMediaCacheSummary.fileCount) 个文件 · \(effectiveMediaCacheSummary.formattedSize)",
                                 actionTitle: "清理",
                                 symbol: "externaldrive.badge.minus",
-                                isDisabled: sourceLibrary.mediaCacheSummary.isEmpty
+                                isDisabled: false
                             ) {
                                 do {
                                     try sourceLibrary.clearMediaCache()

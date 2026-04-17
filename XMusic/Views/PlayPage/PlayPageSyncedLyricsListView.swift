@@ -19,38 +19,40 @@ struct PlayPageSyncedLyricsListView: View {
     @State private var isAtTop = true
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: compactHeight ? 10 : 12) {
-                    Spacer()
-                        .frame(height: resolvedTopPadding)
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(spacing: compactHeight ? 10 : 12) {
+                        Spacer()
+                            .frame(height: centeredVerticalInset(for: geometry.size.height))
 
-                    topProbe
+                        topProbe
 
-                    ForEach(lines) { line in
-                        lyricLineView(line)
-                            .id(line.id)
+                        ForEach(lines) { line in
+                            lyricLineView(line)
+                                .id(line.id)
+                        }
+
+                        Spacer()
+                            .frame(height: centeredVerticalInset(for: geometry.size.height))
                     }
-
-                    Spacer()
-                        .frame(height: resolvedBottomPadding)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.vertical, 14)
                 }
-                .padding(.horizontal, horizontalPadding)
-                .padding(.bottom, 28)
-            }
-            .coordinateSpace(name: "lyrics-scroll")
-            .onAppear {
-                scrollToActiveLine(with: proxy, animated: false)
-                onTopStateChange?(true)
-            }
-            .appOnChange(of: activeLineID) {
-                scrollToActiveLine(with: proxy, animated: true)
-            }
-            .onPreferenceChange(LyricsTopOffsetPreferenceKey.self) { value in
-                let nextIsAtTop = value >= -6
-                guard nextIsAtTop != isAtTop else { return }
-                isAtTop = nextIsAtTop
-                onTopStateChange?(nextIsAtTop)
+                .coordinateSpace(name: "lyrics-scroll")
+                .onAppear {
+                    scrollToActiveLine(with: proxy, animated: false)
+                    onTopStateChange?(true)
+                }
+                .appOnChange(of: activeLineID) {
+                    scrollToActiveLine(with: proxy, animated: true)
+                }
+                .onPreferenceChange(LyricsTopOffsetPreferenceKey.self) { value in
+                    let nextIsAtTop = value >= -6
+                    guard nextIsAtTop != isAtTop else { return }
+                    isAtTop = nextIsAtTop
+                    onTopStateChange?(nextIsAtTop)
+                }
             }
         }
     }
@@ -108,6 +110,13 @@ struct PlayPageSyncedLyricsListView: View {
 
     private var resolvedBottomPadding: CGFloat {
         bottomPadding ?? (compactHeight ? 180 : 220)
+    }
+
+    private func centeredVerticalInset(for viewportHeight: CGFloat) -> CGFloat {
+        let minimumInset = max(resolvedTopPadding, resolvedBottomPadding)
+        let estimatedActiveHeight = compactHeight ? 74.0 : 86.0
+        let centeredInset = max((viewportHeight - estimatedActiveHeight) / 2, 0)
+        return max(minimumInset, centeredInset)
     }
 
     private var topProbe: some View {

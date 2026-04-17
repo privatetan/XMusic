@@ -24,6 +24,7 @@ struct PlayPageArtworkSectionView: View {
     let onArtistTap: () -> Void
     let onRetryLyrics: () -> Void
     let onLyricsTopStateChange: (Bool) -> Void
+    let onLyricsHeaderTap: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -165,6 +166,8 @@ struct PlayPageArtworkSectionView: View {
             .frame(width: lyricsPresentationMode == .full ? 74 : 54, height: 5)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.bottom, lyricsPresentationMode == .full ? 6 : 4)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onLyricsHeaderTap)
     }
 
     @ViewBuilder
@@ -213,11 +216,13 @@ struct PlayPageArtworkSectionView: View {
                 .fill(Color.white.opacity(lyricsPresentationMode == .full ? 0.09 : 0.12))
                 .frame(width: lyricsPresentationMode == .full ? 38 : 40, height: lyricsPresentationMode == .full ? 38 : 40)
                 .overlay {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: lyricsPresentationMode == .full ? "chevron.down" : "chevron.up")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.76))
                 }
         }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onLyricsHeaderTap)
     }
 }
 

@@ -208,8 +208,34 @@ struct MediaCacheSummary: Hashable {
     }
 
     var isEmpty: Bool {
-        fileCount == 0 || totalBytes == 0
+        fileCount == 0
     }
+}
+
+func mergedMediaCacheSummary(
+    playerTracks: [Track],
+    cachedFiles: [CachedMediaFile]
+) -> MediaCacheSummary {
+    var totalBytes: Int64 = 0
+    var seenPaths = Set<String>()
+
+    for track in playerTracks {
+        guard let audioURL = track.audioURL, audioURL.isFileURL else { continue }
+        let normalizedPath = audioURL.standardizedFileURL.path
+        guard seenPaths.insert(normalizedPath).inserted else { continue }
+
+        let attributes = try? FileManager.default.attributesOfItem(atPath: normalizedPath)
+        let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
+        totalBytes += max(size, 0)
+    }
+
+    for file in cachedFiles {
+        let normalizedPath = file.localURL.standardizedFileURL.path
+        guard seenPaths.insert(normalizedPath).inserted else { continue }
+        totalBytes += max(file.fileSize, 0)
+    }
+
+    return MediaCacheSummary(fileCount: seenPaths.count, totalBytes: totalBytes)
 }
 
 enum MusicSourceParseError: LocalizedError {

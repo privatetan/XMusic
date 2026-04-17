@@ -32,6 +32,7 @@ private extension View {
 
 struct MusicSourceManagementView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
 
     @State private var isFileImporterPresented = false
@@ -39,6 +40,13 @@ struct MusicSourceManagementView: View {
     @State private var alertMessage: String?
     @State private var isImporting = false
     @State private var isRuntimeLabExpanded = false
+
+    private var effectiveMediaCacheSummary: MediaCacheSummary {
+        mergedMediaCacheSummary(
+            playerTracks: player.cachedTracks,
+            cachedFiles: sourceLibrary.cachedMediaFilesSnapshot
+        )
+    }
 
     var body: some View {
         AppNavigationContainerView {
@@ -222,9 +230,9 @@ struct MusicSourceManagementView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text(sourceLibrary.mediaCacheSummary.isEmpty
+                Text(effectiveMediaCacheSummary.isEmpty
                      ? "暂无缓存"
-                     : "\(sourceLibrary.mediaCacheSummary.fileCount) 个文件 · \(sourceLibrary.mediaCacheSummary.formattedSize)")
+                     : "\(effectiveMediaCacheSummary.fileCount) 个文件 · \(effectiveMediaCacheSummary.formattedSize)")
                     .font(.subheadline)
                     .foregroundStyle(Color.white.opacity(0.62))
                     .lineLimit(1)
@@ -236,10 +244,11 @@ struct MusicSourceManagementView: View {
                 title: "清理",
                 symbol: "trash",
                 role: .destructive,
-                isDisabled: sourceLibrary.mediaCacheSummary.fileCount == 0
+                isDisabled: false
             ) {
                 handleAction {
                     try sourceLibrary.clearMediaCache()
+                    player.clearCachedTracks()
                 }
             }
         }

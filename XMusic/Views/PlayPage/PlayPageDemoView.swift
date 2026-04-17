@@ -57,7 +57,10 @@ private struct PlayPageDemoView: View {
                         showContent: true,
                         onArtistTap: {},
                         onRetryLyrics: {},
-                        onLyricsTopStateChange: { _ in }
+                        onLyricsTopStateChange: { _ in },
+                        onLyricsHeaderTap: {
+                            lyricsPresentationMode = lyricsPresentationMode == .full ? .half : .full
+                        }
                     )
 
                     if lyricsPresentationMode != .full {

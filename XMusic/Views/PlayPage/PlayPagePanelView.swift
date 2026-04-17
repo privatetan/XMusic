@@ -82,7 +82,8 @@ struct PlayPagePanelView: View {
                             showContent: showContent,
                             onArtistTap: { openArtistSearch(for: track) },
                             onRetryLyrics: { loadLyrics(for: track, force: true) },
-                            onLyricsTopStateChange: { isLyricsAtTop = $0 }
+                            onLyricsTopStateChange: { isLyricsAtTop = $0 },
+                            onLyricsHeaderTap: { toggleLyricsExpansion(for: track) }
                         )
                         .frame(height: topSectionHeight, alignment: .top)
                         .contentShape(Rectangle())
@@ -226,11 +227,18 @@ struct PlayPagePanelView: View {
             .onEnded { value in
                 guard lyricsPresentationMode.isPresented else { return }
 
-                if value.translation.height < -32, lyricsPresentationMode == .half {
+                let verticalTranslation = value.translation.height
+                let predictedVerticalTranslation = value.predictedEndTranslation.height
+                let isExpanding = lyricsPresentationMode == .half &&
+                    (verticalTranslation < -18 || predictedVerticalTranslation < -44)
+                let isCollapsing = lyricsPresentationMode == .full &&
+                    (verticalTranslation > 14 || predictedVerticalTranslation > 52)
+
+                if isExpanding {
                     withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
                         lyricsPresentationMode = .full
                     }
-                } else if value.translation.height > 8, lyricsPresentationMode == .full {
+                } else if isCollapsing {
                     withAnimation(.spring(response: 0.26, dampingFraction: 0.88)) {
                         lyricsPresentationMode = .half
                     }
@@ -387,6 +395,19 @@ struct PlayPagePanelView: View {
     private func handleLyricsButtonTap(for track: Track) {
         lyricsPresentationMode = lyricsPresentationMode.isPresented ? .hidden : .half
         guard lyricsPresentationMode.isPresented else { return }
+        loadLyrics(for: track, force: false)
+    }
+
+    private func toggleLyricsExpansion(for track: Track) {
+        guard lyricsPresentationMode.isPresented else {
+            handleLyricsButtonTap(for: track)
+            return
+        }
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+            lyricsPresentationMode = lyricsPresentationMode == .full ? .half : .full
+        }
+
         loadLyrics(for: track, force: false)
     }
 
