@@ -174,4 +174,4 @@ Special thanks to [lx-music-desktop](https://github.com/lyswhut/lx-music-desktop
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](/Users/galio/Documents/Developer/AI/XMusic/LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
