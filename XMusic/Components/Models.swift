@@ -42,7 +42,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .browse:
-            return "play.square.stack"
+            return "house.fill"
         case .radio:
             return "music.note.list"
         case .settings:

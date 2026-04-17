@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BrowseView: View {
-  
+    @EnvironmentObject private var scrollState: AppScrollState
     @Binding var showingSongs: Bool
     @Binding var showingPlaylists: Bool
     @Binding var showingCached: Bool
@@ -31,6 +31,10 @@ struct BrowseView: View {
 
                 Spacer(minLength: 80)
             }
+        }
+        .modifier(ChromeScrollTrackingModifier(scrollState: scrollState))
+        .onDisappear {
+            scrollState.reset()
         }
     }
 }

@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var musicSearch = MusicSearchViewModel()
     @StateObject private var library = MusicLibraryViewModel()
     @StateObject private var playlistModel = MusicPlaylistViewModel()
+    @StateObject private var scrollState = AppScrollState()
     @Namespace private var playerAnimation
     @FocusState private var isSearchFieldFocused: Bool
 
@@ -38,6 +39,7 @@ struct ContentView: View {
             .environmentObject(musicSearch)
             .environmentObject(library)
             .environmentObject(playlistModel)
+            .environmentObject(scrollState)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .overlay(alignment: .top) {
@@ -75,6 +77,7 @@ struct ContentView: View {
             showBrowseSongs = false
             showBrowsePlaylists = false
             showBrowseCached = false
+            scrollState.reset()
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -84,8 +87,19 @@ struct ContentView: View {
             installSearchPlaybackResolver()
         }
         .safeAreaInset(edge: .bottom) {
+            let supportsCompactChrome =
+                player.selectedTab == .browse ||
+                player.selectedTab == .radio ||
+                player.selectedTab == .settings
+            let isSearchBlockingMiniPlayer = player.selectedTab == .search && isSearchFieldFocused
+            let isCompactScrolledMode =
+                supportsCompactChrome &&
+                player.currentTrack != nil &&
+                scrollState.isScrolled &&
+                !isSearchBlockingMiniPlayer
+
             VStack(spacing: 8) {
-                if player.currentTrack != nil && !(player.selectedTab == .search && isSearchFieldFocused) {
+                if !isCompactScrolledMode && player.currentTrack != nil && !isSearchBlockingMiniPlayer {
                     PlayBarView(animation: playerAnimation)  //播放栏
                         .environmentObject(player)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -95,7 +109,17 @@ struct ContentView: View {
                     selectedTab: $player.selectedTab,
                     searchQuery: $musicSearch.query,
                     isSearchFieldFocused: $isSearchFieldFocused,
-                    onSearchSubmit: { musicSearch.submitSearch() }
+                    onSearchSubmit: { musicSearch.submitSearch() },
+                    isCompactScrolledMode: isCompactScrolledMode,
+                    compactMiddleContent: isCompactScrolledMode ? {
+                        AnyView(
+                            PlayBarView(
+                                animation: playerAnimation,
+                                displayMode: .compactEmbedded
+                            )
+                            .environmentObject(player)
+                        )
+                    } : nil
                 )
             }
             .padding(.horizontal, 24) //控制菜单栏和播放栏的左右间距

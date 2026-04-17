@@ -7,6 +7,7 @@ struct AppSettingsView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @EnvironmentObject private var musicSearch: MusicSearchViewModel
+    @EnvironmentObject private var scrollState: AppScrollState
     @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
     @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
     @AppStorage(AppThemeStorage.customBackgroundRevisionKey) private var customBackgroundRevision = 0
@@ -179,6 +180,10 @@ struct AppSettingsView: View {
                 .padding(.top, 24)
                 .padding(.bottom, 30)
             }
+            .modifier(ChromeScrollTrackingModifier(scrollState: scrollState))
+        }
+        .onDisappear {
+            scrollState.reset()
         }
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)

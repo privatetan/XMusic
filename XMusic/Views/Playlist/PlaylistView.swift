@@ -85,6 +85,7 @@ struct PlaylistView: View {
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @EnvironmentObject private var library: MusicLibraryViewModel
     @EnvironmentObject private var playlistModel: MusicPlaylistViewModel
+    @EnvironmentObject private var scrollState: AppScrollState
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var playlistEditorSession: CustomPlaylistEditorSession?
 
@@ -115,8 +116,12 @@ struct PlaylistView: View {
                     .padding(.top, 24)
                     .padding(.bottom, 12)
                 }
+                .modifier(ChromeScrollTrackingModifier(scrollState: scrollState))
             }
             .appRootNavigationHidden()
+        }
+        .onDisappear {
+            scrollState.reset()
         }
         .onAppear {
             syncPlaylists()

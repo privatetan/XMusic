@@ -8,6 +8,8 @@ struct MenuBarView: View {
     @Binding var searchQuery: String
     var isSearchFieldFocused: FocusState<Bool>.Binding
     var onSearchSubmit: (() -> Void)? = nil
+    var isCompactScrolledMode: Bool = false
+    var compactMiddleContent: (() -> AnyView)? = nil
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Namespace private var navigationAnimation
     @State private var lastNonSearchTab: AppTab = .browse
@@ -24,37 +26,48 @@ struct MenuBarView: View {
 
     var body: some View {
         HStack(spacing: isCompactLayout ? 12 : 16) {
-            if isSearchMode {
-                Button {
-                    isSearchFieldFocused.wrappedValue = false
-                    withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
-                        selectedTab = lastNonSearchTab
-                    }
-                } label: {
-                    Image(systemName: lastNonSearchTab.symbol)
-                        .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .frame(width: barHeight, height: barHeight)
-                        .background(searchButtonBackground(isSelected: false))
+            if isCompactScrolledMode {
+                tabButton(for: selectedTab, isSearchShortcut: true)
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+
+                if let compactMiddleContent {
+                    compactMiddleContent()
+                        .frame(maxWidth: .infinity)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
-                .buttonStyle(.plain)
-                .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
-                .transition(.scale(scale: 0.6).combined(with: .opacity))
             } else {
-                HStack(spacing: isCompactLayout ? 4 : 6) {
-                    ForEach(AppTab.mainNavigationTabs) { tab in
-                        tabButton(for: tab)
+                if isSearchMode {
+                    Button {
+                        isSearchFieldFocused.wrappedValue = false
+                        withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
+                            selectedTab = lastNonSearchTab
+                        }
+                    } label: {
+                        Image(systemName: lastNonSearchTab.symbol)
+                            .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
+                            .foregroundStyle(.primary)
+                            .frame(width: barHeight, height: barHeight)
+                            .background(searchButtonBackground(isSelected: false))
                     }
+                    .buttonStyle(.plain)
+                    .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                } else {
+                    HStack(spacing: isCompactLayout ? 4 : 6) {
+                        ForEach(AppTab.mainNavigationTabs) { tab in
+                            tabButton(for: tab)
+                        }
+                    }
+                    .padding(.horizontal, isCompactLayout ? 3 : 4)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: barHeight)
+                    .background(tabClusterBackground())
+                    .contentShape(Capsule())
+                    .onTapGesture {}
+                    .overlay(tabClusterOutline())
+                    .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
+                    .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
                 }
-                .padding(.horizontal, isCompactLayout ? 3 : 4)
-                .frame(maxWidth: .infinity)
-                .frame(height: barHeight)
-                .background(tabClusterBackground())
-                .contentShape(Capsule())
-                .onTapGesture {}
-                .overlay(tabClusterOutline())
-                .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
-                .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
             }
 
             if isSearchMode {
