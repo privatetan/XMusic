@@ -58,8 +58,12 @@ struct PlayBarView: View {
             }
             .padding(.horizontal, isCompactLayout ? 10 : 12)
             .frame(height: barHeight)
+            .contentShape(Rectangle())
             .background(miniPlayerBackground())
             .overlay(miniPlayerOutline())
+            .onTapGesture {
+                player.presentNowPlaying()
+            }
         }
     }
 

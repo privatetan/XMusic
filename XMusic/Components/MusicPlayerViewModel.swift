@@ -655,6 +655,20 @@ final class MusicPlayerViewModel: ObservableObject {
         persistCachedTracks()
     }
 
+    func clearCachedTracks() {
+        guard !cachedTracks.isEmpty else {
+            UserDefaults.standard.removeObject(forKey: cachedTracksStorageKey)
+            return
+        }
+
+        cachedTracks = []
+        UserDefaults.standard.removeObject(forKey: cachedTracksStorageKey)
+    }
+
+    func pruneMissingCachedTracks() {
+        _ = playableCachedTracks()
+    }
+
     private func persistCachedTracks() {
         let snapshots = cachedTracks.map(PersistedTrack.init)
         guard let data = try? JSONEncoder().encode(snapshots) else { return }

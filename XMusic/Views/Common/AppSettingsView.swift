@@ -160,6 +160,7 @@ struct AppSettingsView: View {
                             ) {
                                 do {
                                     try sourceLibrary.clearMediaCache()
+                                    player.clearCachedTracks()
                                 } catch {
                                     alertMessage = error.localizedDescription
                                 }

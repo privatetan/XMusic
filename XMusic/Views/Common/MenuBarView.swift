@@ -288,7 +288,18 @@ struct MenuBarView: View {
                         )
                 }
         } else {
-            shape.fill(Color.white.opacity(0.08))
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
         }
     }
 

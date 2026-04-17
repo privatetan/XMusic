@@ -324,6 +324,7 @@ struct CachedSongsSheet: View {
     }
 
     private func reloadTracks() {
+        player.pruneMissingCachedTracks()
         allTracks = mergedCachedTracks(
             playerTracks: player.cachedTracks,
             cachedFiles: sourceLibrary.cachedMediaFilesSnapshot

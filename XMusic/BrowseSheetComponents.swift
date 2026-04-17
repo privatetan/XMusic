@@ -74,8 +74,37 @@ struct SheetSearchField: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(searchFieldBackground())
+        .overlay(searchFieldOutline())
         .padding(.horizontal, 20)
+    }
+
+    @ViewBuilder
+    private func searchFieldBackground() -> some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            shape.fill(Color.white.opacity(0.10))
+        } else {
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.10), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func searchFieldOutline() -> some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .stroke(Color.white.opacity(0.08), lineWidth: 1)
     }
 }
 

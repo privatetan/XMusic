@@ -1,139 +1,139 @@
-2026-04-16 09:03:30 +0000 [MT] Initial pipeline context: <IDEDistributionProcessingPipelineContext: 0x126f7dba0; archive(resolved)="<IDEArchive: 0x135eb5db0>", distributionTask(resolved)="2", distributionDestination(resolved)="1", distributionMethod(resolved)="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team(resolved)="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
+2026-04-16 12:37:30 +0000 [MT] Initial pipeline context: <IDEDistributionProcessingPipelineContext: 0x11874cf10; archive(resolved)="<IDEArchive: 0x11726cdd0>", distributionTask(resolved)="2", distributionDestination(resolved)="1", distributionMethod(resolved)="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team(resolved)="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
 	Chain (14, self inclusive):
-	<IDEDistributionProcessingPipelineContext: 0x126f7dba0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionProcessingPipelineContext: 0x11a571fa0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11a542f50; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c9159a0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c915790; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c915580; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c9176f0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c92b780; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c913fd0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="<IDEProvisioningBasicTeam: 0x11c9230f0; teamID='8WLSQGT392', teamName='(null)'>">
-	<IDEDistributionContext: 0x11c913830; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="(null)">
-	<IDEDistributionContext: 0x11a5760e0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="(null)">
-	<IDEDistributionContext: 0x135eee780; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="(null)">
-	<IDEDistributionContext: 0x11a543510; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11a55b150>", team="(null)">
-	<IDEDistributionContext: 0x135eb6ab0; archive = "<IDEArchive: 0x135eb5db0>", distributionMethod="(null)", team="(null)">
-</IDEDistributionProcessingPipelineContext: 0x126f7dba0>
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionCreateDestRootStep
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionCopyItemStep
-2026-04-16 09:03:30 +0000 [MT] Running /usr/bin/ditto '-V' '/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app' '/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root/Payload/XMusic.app'
-2026-04-16 09:03:30 +0000  >>> Copying /Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app 
-2026-04-16 09:03:30 +0000  copying file ./_CodeSignature/CodeResources ... 
-2026-04-16 09:03:30 +0000  3625 bytes for ./_CodeSignature/CodeResources
-2026-04-16 09:03:30 +0000  copying file ./AppIcon60x60@2x.png ... 
-2026-04-16 09:03:30 +0000  33173 bytes for ./AppIcon60x60@2x.png
-2026-04-16 09:03:30 +0000  copying file ./Assets.car ... 
-2026-04-16 09:03:30 +0000  2928856 bytes for ./Assets.car
-2026-04-16 09:03:30 +0000  copying file ./AppIcon76x76@2x~ipad.png ... 
-2026-04-16 09:03:30 +0000  47556 bytes for ./AppIcon76x76@2x~ipad.png
-2026-04-16 09:03:30 +0000  copying file ./LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib ... 
-2026-04-16 09:03:30 +0000  2579 bytes for ./LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib
-2026-04-16 09:03:30 +0000  copying file ./LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib ... 
-2026-04-16 09:03:30 +0000  924 bytes for ./LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib
-2026-04-16 09:03:30 +0000  copying file ./LaunchScreen.storyboardc/Info.plist ... 
-2026-04-16 09:03:30 +0000  258 bytes for ./LaunchScreen.storyboardc/Info.plist
-2026-04-16 09:03:30 +0000  copying file ./embedded.mobileprovision ... 
-2026-04-16 09:03:30 +0000  12372 bytes for ./embedded.mobileprovision
-copying file ./XMusic ... 
-2026-04-16 09:03:30 +0000  2869136 bytes for ./XMusic
-2026-04-16 09:03:30 +0000  copying file ./Info.plist ... 
-1910 bytes for ./Info.plist
-copying file ./PkgInfo ... 
-2026-04-16 09:03:30 +0000  8 bytes for ./PkgInfo
-2026-04-16 09:03:30 +0000 [MT] /usr/bin/ditto exited with 0
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionEmbedProfileStep
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionInfoPlistStep
-2026-04-16 09:03:30 +0000 [MT] Skipping step: IDEDistributionInfoPlistStep because it said so
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionAppThinningPlistStep
-2026-04-16 09:03:30 +0000 [MT] Skipping step: IDEDistributionAppThinningPlistStep because it said so
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionSymbolsStep
-2026-04-16 09:03:30 +0000 [MT] Skipping step: IDEDistributionSymbolsStep because it said so
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionAppThinningStep
-2026-04-16 09:03:30 +0000 [MT] Skipping step: IDEDistributionAppThinningStep because it said so
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionArchThinningStep
-2026-04-16 09:03:30 +0000 [MT] Archs to thin for item /Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app are []
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionODRStep
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionStripXattrsStep
-2026-04-16 09:03:30 +0000 [MT] Skipping stripping extended attributes because the codesign step will strip them.
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionCodesignStep
-2026-04-16 09:03:30 +0000 [MT] Entitlements for <IDEDistributionItem: 0x11a6864c0; bundleID='org.galio.XMusic', path='<DVTFilePath:0x135eb6160:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app'>', codeSigningInfo='<_DVTCodeSigningInformation_Path: 0x135ef42f0; isSigned='1', isAdHocSigned='0', signingCertificate='<DVTSigningCertificate: 0x135eb63d0; name='Apple Development: 769565067@qq.com (45746P89LU)', hash='6E9E90074A09BC63EABDDF988BB839D66CFACB09', serialNumber='7F2D9E71F184AAB04E0A70390F0497C8', certificateKinds='(
+	<IDEDistributionProcessingPipelineContext: 0x11874cf10; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionProcessingPipelineContext: 0x137675520; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x13767a250; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1172d4a20; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1172d52f0; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1184d88a0; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1172d4000; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1172d3d90; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1185f9e10; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="<IDEProvisioningBasicTeam: 0x1171d1290; teamID='8WLSQGT392', teamName='(null)'>">
+	<IDEDistributionContext: 0x1184b46d0; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="(null)">
+	<IDEDistributionContext: 0x11729d740; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="(null)">
+	<IDEDistributionContext: 0x1172b0280; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="(null)">
+	<IDEDistributionContext: 0x13760d470; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="<IDEDistributionMethodDevelopmentSigned: 0x11727dde0>", team="(null)">
+	<IDEDistributionContext: 0x118470650; archive = "<IDEArchive: 0x11726cdd0>", distributionMethod="(null)", team="(null)">
+</IDEDistributionProcessingPipelineContext: 0x11874cf10>
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionCreateDestRootStep
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionCopyItemStep
+2026-04-16 12:37:30 +0000 [MT] Running /usr/bin/ditto '-V' '/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app' '/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root/Payload/XMusic.app'
+2026-04-16 12:37:30 +0000  >>> Copying /Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app 
+2026-04-16 12:37:30 +0000  copying file ./_CodeSignature/CodeResources ... 
+2026-04-16 12:37:30 +0000  3625 bytes for ./_CodeSignature/CodeResources
+copying file ./AppIcon60x60@2x.png ... 
+2026-04-16 12:37:30 +0000  33173 bytes for ./AppIcon60x60@2x.png
+2026-04-16 12:37:30 +0000  copying file ./Assets.car ... 
+2026-04-16 12:37:30 +0000  2928856 bytes for ./Assets.car
+2026-04-16 12:37:30 +0000  copying file ./AppIcon76x76@2x~ipad.png ... 
+2026-04-16 12:37:30 +0000  47556 bytes for ./AppIcon76x76@2x~ipad.png
+2026-04-16 12:37:30 +0000  copying file ./LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib ... 
+2026-04-16 12:37:30 +0000  2579 bytes for ./LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib
+copying file ./LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib ... 
+2026-04-16 12:37:30 +0000  924 bytes for ./LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib
+2026-04-16 12:37:30 +0000  copying file ./LaunchScreen.storyboardc/Info.plist ... 
+2026-04-16 12:37:30 +0000  258 bytes for ./LaunchScreen.storyboardc/Info.plist
+2026-04-16 12:37:30 +0000  copying file ./embedded.mobileprovision ... 
+2026-04-16 12:37:30 +0000  12372 bytes for ./embedded.mobileprovision
+2026-04-16 12:37:30 +0000  copying file ./XMusic ... 
+2026-04-16 12:37:30 +0000  2869520 bytes for ./XMusic
+copying file ./Info.plist ... 
+2026-04-16 12:37:30 +0000  1910 bytes for ./Info.plist
+2026-04-16 12:37:30 +0000  copying file ./PkgInfo ... 
+2026-04-16 12:37:30 +0000  8 bytes for ./PkgInfo
+2026-04-16 12:37:30 +0000 [MT] /usr/bin/ditto exited with 0
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionEmbedProfileStep
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionInfoPlistStep
+2026-04-16 12:37:30 +0000 [MT] Skipping step: IDEDistributionInfoPlistStep because it said so
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionAppThinningPlistStep
+2026-04-16 12:37:30 +0000 [MT] Skipping step: IDEDistributionAppThinningPlistStep because it said so
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionSymbolsStep
+2026-04-16 12:37:30 +0000 [MT] Skipping step: IDEDistributionSymbolsStep because it said so
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionAppThinningStep
+2026-04-16 12:37:30 +0000 [MT] Skipping step: IDEDistributionAppThinningStep because it said so
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionArchThinningStep
+2026-04-16 12:37:30 +0000 [MT] Archs to thin for item /Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app are []
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionODRStep
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionStripXattrsStep
+2026-04-16 12:37:30 +0000 [MT] Skipping stripping extended attributes because the codesign step will strip them.
+2026-04-16 12:37:30 +0000 [MT] Processing step: IDEDistributionCodesignStep
+2026-04-16 12:37:30 +0000 [MT] Entitlements for <IDEDistributionItem: 0x118704450; bundleID='org.galio.XMusic', path='<DVTFilePath:0x11726d2a0:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app'>', codeSigningInfo='<_DVTCodeSigningInformation_Path: 0x1184bb3f0; isSigned='1', isAdHocSigned='0', signingCertificate='<DVTSigningCertificate: 0x1187a99d0; name='Apple Development: 769565067@qq.com (45746P89LU)', hash='6E9E90074A09BC63EABDDF988BB839D66CFACB09', serialNumber='7F2D9E71F184AAB04E0A70390F0497C8', certificateKinds='(
     "1.2.840.113635.100.6.1.12",
     "1.2.840.113635.100.6.1.2"
 ), issueDate='2026-03-24 02:17:23 +0000''>', entitlements='{
     "application-identifier" = "8WLSQGT392.org.galio.XMusic";
     "com.apple.developer.team-identifier" = 8WLSQGT392;
     "get-task-allow" = 1;
-}', teamID='8WLSQGT392', identifier='org.galio.XMusic', executablePath='<DVTFilePath:0x135eb46d0:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app/XMusic'>', hardenedRuntime='0'>'>: {
+}', teamID='8WLSQGT392', identifier='org.galio.XMusic', executablePath='<DVTFilePath:0x117278d20:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app/XMusic'>', hardenedRuntime='0'>'>: {
     "application-identifier" = "8WLSQGT392.org.galio.XMusic";
     "com.apple.developer.team-identifier" = 8WLSQGT392;
     "get-task-allow" = 1;
 }
-2026-04-16 09:03:30 +0000 [MT] Associated App Clip Identifiers Filter: Skipping because "com.apple.developer.associated-appclip-app-identifiers" is not present
-2026-04-16 09:03:30 +0000 [MT] Entitlements for <IDEDistributionItem: 0x11a6864c0; bundleID='org.galio.XMusic', path='<DVTFilePath:0x135eb6160:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app'>', codeSigningInfo='<_DVTCodeSigningInformation_Path: 0x135ef42f0; isSigned='1', isAdHocSigned='0', signingCertificate='<DVTSigningCertificate: 0x135ef7530; name='Apple Development: 769565067@qq.com (45746P89LU)', hash='6E9E90074A09BC63EABDDF988BB839D66CFACB09', serialNumber='7F2D9E71F184AAB04E0A70390F0497C8', certificateKinds='(
+2026-04-16 12:37:30 +0000 [MT] Associated App Clip Identifiers Filter: Skipping because "com.apple.developer.associated-appclip-app-identifiers" is not present
+2026-04-16 12:37:30 +0000 [MT] Entitlements for <IDEDistributionItem: 0x118704450; bundleID='org.galio.XMusic', path='<DVTFilePath:0x11726d2a0:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app'>', codeSigningInfo='<_DVTCodeSigningInformation_Path: 0x1184bb3f0; isSigned='1', isAdHocSigned='0', signingCertificate='<DVTSigningCertificate: 0x1376de1f0; name='Apple Development: 769565067@qq.com (45746P89LU)', hash='6E9E90074A09BC63EABDDF988BB839D66CFACB09', serialNumber='7F2D9E71F184AAB04E0A70390F0497C8', certificateKinds='(
     "1.2.840.113635.100.6.1.12",
     "1.2.840.113635.100.6.1.2"
 ), issueDate='2026-03-24 02:17:23 +0000''>', entitlements='{
     "application-identifier" = "8WLSQGT392.org.galio.XMusic";
     "com.apple.developer.team-identifier" = 8WLSQGT392;
     "get-task-allow" = 1;
-}', teamID='8WLSQGT392', identifier='org.galio.XMusic', executablePath='<DVTFilePath:0x135eb46d0:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app/XMusic'>', hardenedRuntime='0'>'> are: {
+}', teamID='8WLSQGT392', identifier='org.galio.XMusic', executablePath='<DVTFilePath:0x117278d20:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app/XMusic'>', hardenedRuntime='0'>'> are: {
     "application-identifier" = "8WLSQGT392.org.galio.XMusic";
     "com.apple.developer.team-identifier" = 8WLSQGT392;
     "get-task-allow" = 1;
 }
-2026-04-16 09:03:30 +0000 [MT] Writing entitlements for <IDEDistributionItem: 0x11a6864c0; bundleID='org.galio.XMusic', path='<DVTFilePath:0x135eb6160:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app'>', codeSigningInfo='<_DVTCodeSigningInformation_Path: 0x135ef42f0; isSigned='1', isAdHocSigned='0', signingCertificate='<DVTSigningCertificate: 0x135ef7530; name='Apple Development: 769565067@qq.com (45746P89LU)', hash='6E9E90074A09BC63EABDDF988BB839D66CFACB09', serialNumber='7F2D9E71F184AAB04E0A70390F0497C8', certificateKinds='(
+2026-04-16 12:37:30 +0000 [MT] Writing entitlements for <IDEDistributionItem: 0x118704450; bundleID='org.galio.XMusic', path='<DVTFilePath:0x11726d2a0:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app'>', codeSigningInfo='<_DVTCodeSigningInformation_Path: 0x1184bb3f0; isSigned='1', isAdHocSigned='0', signingCertificate='<DVTSigningCertificate: 0x1187a9570; name='Apple Development: 769565067@qq.com (45746P89LU)', hash='6E9E90074A09BC63EABDDF988BB839D66CFACB09', serialNumber='7F2D9E71F184AAB04E0A70390F0497C8', certificateKinds='(
     "1.2.840.113635.100.6.1.12",
     "1.2.840.113635.100.6.1.2"
 ), issueDate='2026-03-24 02:17:23 +0000''>', entitlements='{
     "application-identifier" = "8WLSQGT392.org.galio.XMusic";
     "com.apple.developer.team-identifier" = 8WLSQGT392;
     "get-task-allow" = 1;
-}', teamID='8WLSQGT392', identifier='org.galio.XMusic', executablePath='<DVTFilePath:0x135eb46d0:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app/XMusic'>', hardenedRuntime='0'>'> to: /var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/entitlements~~~Vfvny8
-2026-04-16 09:03:30 +0000 [MT] invoking codesign: <NSConcreteTask: 0x135f5f0e0; launchPath='/usr/bin/codesign', arguments='(
+}', teamID='8WLSQGT392', identifier='org.galio.XMusic', executablePath='<DVTFilePath:0x117278d20:'/Users/galio/Documents/Developer/AI/XMusic/build/XMusic.xcarchive/Products/Applications/XMusic.app/XMusic'>', hardenedRuntime='0'>'> to: /var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/entitlements~~~J79r0K
+2026-04-16 12:37:30 +0000 [MT] invoking codesign: <NSConcreteTask: 0x11879def0; launchPath='/usr/bin/codesign', arguments='(
     "-f",
     "-s",
     6E9E90074A09BC63EABDDF988BB839D66CFACB09,
     "--entitlements",
-    "/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/entitlements~~~Vfvny8",
+    "/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/entitlements~~~J79r0K",
     "--preserve-metadata=identifier,flags,runtime,launch-constraints,library-constraints",
     "--generate-entitlement-der",
     "--strip-disallowed-xattrs",
     "-vvv",
-    "/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root/Payload/XMusic.app"
+    "/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root/Payload/XMusic.app"
 )'>
-2026-04-16 09:03:30 +0000 [MT] codesign output: /var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root/Payload/XMusic.app: replacing existing signature
-/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root/Payload/XMusic.app: signed app bundle with Mach-O thin (arm64) [org.galio.XMusic]
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionZipODRItemStep
-2026-04-16 09:03:30 +0000 [MT] Skipping step: IDEDistributionZipODRItemStep because it said so
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionCreateIPAStep
-2026-04-16 09:03:30 +0000 [MT] Running /usr/bin/ditto '-V' '-c' '-k' '--norsrc' '/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root' '/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Packages/XMusic.ipa'
-2026-04-16 09:03:30 +0000  >>> Copying /var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root 
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/_CodeSignature/CodeResources ... 
-2026-04-16 09:03:30 +0000  3625 bytes for ./Payload/XMusic.app/_CodeSignature/CodeResources
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/AppIcon60x60@2x.png ... 
-2026-04-16 09:03:30 +0000  33173 bytes for ./Payload/XMusic.app/AppIcon60x60@2x.png
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/Assets.car ... 
-2026-04-16 09:03:30 +0000  2928856 bytes for ./Payload/XMusic.app/Assets.car
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/AppIcon76x76@2x~ipad.png ... 
-2026-04-16 09:03:30 +0000  47556 bytes for ./Payload/XMusic.app/AppIcon76x76@2x~ipad.png
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib ... 
-2026-04-16 09:03:30 +0000  2579 bytes for ./Payload/XMusic.app/LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib ... 
-2026-04-16 09:03:30 +0000  924 bytes for ./Payload/XMusic.app/LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/LaunchScreen.storyboardc/Info.plist ... 
-2026-04-16 09:03:30 +0000  258 bytes for ./Payload/XMusic.app/LaunchScreen.storyboardc/Info.plist
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/embedded.mobileprovision ... 
-2026-04-16 09:03:30 +0000  12372 bytes for ./Payload/XMusic.app/embedded.mobileprovision
+2026-04-16 12:37:31 +0000 [MT] codesign output: /var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root/Payload/XMusic.app: replacing existing signature
+/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root/Payload/XMusic.app: signed app bundle with Mach-O thin (arm64) [org.galio.XMusic]
+2026-04-16 12:37:31 +0000 [MT] Processing step: IDEDistributionZipODRItemStep
+2026-04-16 12:37:31 +0000 [MT] Skipping step: IDEDistributionZipODRItemStep because it said so
+2026-04-16 12:37:31 +0000 [MT] Processing step: IDEDistributionCreateIPAStep
+2026-04-16 12:37:31 +0000 [MT] Running /usr/bin/ditto '-V' '-c' '-k' '--norsrc' '/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root' '/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Packages/XMusic.ipa'
+2026-04-16 12:37:31 +0000  >>> Copying /var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root 
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/_CodeSignature/CodeResources ... 
+2026-04-16 12:37:31 +0000  3625 bytes for ./Payload/XMusic.app/_CodeSignature/CodeResources
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/AppIcon60x60@2x.png ... 
+2026-04-16 12:37:31 +0000  33173 bytes for ./Payload/XMusic.app/AppIcon60x60@2x.png
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/Assets.car ... 
+2026-04-16 12:37:31 +0000  2928856 bytes for ./Payload/XMusic.app/Assets.car
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/AppIcon76x76@2x~ipad.png ... 
+2026-04-16 12:37:31 +0000  47556 bytes for ./Payload/XMusic.app/AppIcon76x76@2x~ipad.png
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib ... 
+2026-04-16 12:37:31 +0000  2579 bytes for ./Payload/XMusic.app/LaunchScreen.storyboardc/01J-lp-oVM-view-Ze5-6b-2t3.nib
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib ... 
+924 bytes for ./Payload/XMusic.app/LaunchScreen.storyboardc/UIViewController-01J-lp-oVM.nib
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/LaunchScreen.storyboardc/Info.plist ... 
+258 bytes for ./Payload/XMusic.app/LaunchScreen.storyboardc/Info.plist
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/embedded.mobileprovision ... 
+2026-04-16 12:37:31 +0000  12372 bytes for ./Payload/XMusic.app/embedded.mobileprovision
 copying file ./Payload/XMusic.app/XMusic ... 
-2026-04-16 09:03:30 +0000  2869136 bytes for ./Payload/XMusic.app/XMusic
-2026-04-16 09:03:30 +0000 [MT] /usr/bin/ditto exited with 0
-2026-04-16 09:03:30 +0000  copying file ./Payload/XMusic.app/Info.plist ... 
+2026-04-16 12:37:31 +0000  2869520 bytes for ./Payload/XMusic.app/XMusic
+2026-04-16 12:37:31 +0000 [MT] /usr/bin/ditto exited with 0
+2026-04-16 12:37:31 +0000  copying file ./Payload/XMusic.app/Info.plist ... 
 1910 bytes for ./Payload/XMusic.app/Info.plist
 copying file ./Payload/XMusic.app/PkgInfo ... 
 8 bytes for ./Payload/XMusic.app/PkgInfo
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionAppStoreInformationStep
-2026-04-16 09:03:30 +0000 [MT] Skipping step: IDEDistributionAppStoreInformationStep because it said so
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionGenerateProcessedDistributionItems
-2026-04-16 09:03:30 +0000 [MT] IDEDistributionItem init <DVTFilePath:0x11c9c9500:'/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~sG4jMv/Root/Payload/XMusic.app'>
-2026-04-16 09:03:30 +0000 [MT] Processing step: IDEDistributionCreateManifestStep
+2026-04-16 12:37:31 +0000 [MT] Processing step: IDEDistributionAppStoreInformationStep
+2026-04-16 12:37:31 +0000 [MT] Skipping step: IDEDistributionAppStoreInformationStep because it said so
+2026-04-16 12:37:31 +0000 [MT] Processing step: IDEDistributionGenerateProcessedDistributionItems
+2026-04-16 12:37:31 +0000 [MT] IDEDistributionItem init <DVTFilePath:0x11a12b5c0:'/var/folders/lm/3nddj4b559z47w89kptqhd880000gn/T/XcodeDistPipeline.~~~go44Af/Root/Payload/XMusic.app'>
+2026-04-16 12:37:31 +0000 [MT] Processing step: IDEDistributionCreateManifestStep
