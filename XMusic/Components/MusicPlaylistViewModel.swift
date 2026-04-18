@@ -414,6 +414,41 @@ final class MusicPlaylistViewModel: ObservableObject {
         selectedPlaylistKey = Playlist.customStableKey(for: customPlaylistID)
     }
 
+    func removeTrack(_ track: Track, from playlist: Playlist) {
+        guard let customPlaylistID = playlist.customPlaylistID,
+              let index = storedCustomPlaylists.firstIndex(where: { $0.id == customPlaylistID }) else {
+            return
+        }
+
+        var storedPlaylist = storedCustomPlaylists[index]
+        let tracks = resolvedTracks(for: storedPlaylist)
+            .filter { $0.storageKey != track.storageKey }
+        guard tracks.count != resolvedTracks(for: storedPlaylist).count else { return }
+
+        let updatedSummary = resolvedSummary(
+            manualSummary: storedPlaylist.summary,
+            description: storedPlaylist.description,
+            trackCount: tracks.count
+        )
+        storedPlaylist = StoredCustomPlaylist(
+            id: storedPlaylist.id,
+            title: storedPlaylist.title,
+            coverImageData: storedPlaylist.coverImageData,
+            summary: updatedSummary,
+            description: storedPlaylist.description,
+            categories: storedPlaylist.categories,
+            trackKeys: tracks.map(\.storageKey),
+            tracks: tracks.map(StoredTrackRecord.init),
+            createdAt: storedPlaylist.createdAt,
+            updatedAt: Date()
+        )
+
+        storedCustomPlaylists[index] = storedPlaylist
+        persistCustomPlaylists()
+        syncCustomPlaylists()
+        selectedPlaylistKey = Playlist.customStableKey(for: customPlaylistID)
+    }
+
     func contains(_ track: Track, in playlist: Playlist) -> Bool {
         playlist.tracks.contains { $0.storageKey == track.storageKey }
     }

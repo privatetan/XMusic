@@ -84,10 +84,12 @@ struct PlaylistNavigationBarConfigurator: UIViewControllerRepresentable {
 struct PlaylistView: View {
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
     @EnvironmentObject private var library: MusicLibraryViewModel
+    @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var playlistModel: MusicPlaylistViewModel
     @EnvironmentObject private var scrollState: AppScrollState
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var playlistEditorSession: CustomPlaylistEditorSession?
+    @State private var playlistPendingDeletion: Playlist?
 
     var body: some View {
         AppNavigationContainerView {
@@ -155,6 +157,20 @@ struct PlaylistView: View {
             ) { draft in
                 playlistModel.saveCustomPlaylist(draft)
             }
+        }
+        .alert("删除这张歌单？", isPresented: Binding(
+            get: { playlistPendingDeletion != nil },
+            set: { if !$0 { playlistPendingDeletion = nil } }
+        ), presenting: playlistPendingDeletion) { playlist in
+            Button("删除", role: .destructive) {
+                playlistModel.deleteCustomPlaylist(playlist)
+                playlistPendingDeletion = nil
+            }
+            Button("取消", role: .cancel) {
+                playlistPendingDeletion = nil
+            }
+        } message: { playlist in
+            Text("“\(playlist.title)” 会从这台设备里移除，里面的选歌也会一起删除。")
         }
     }
 
@@ -308,29 +324,71 @@ struct PlaylistView: View {
     private func playlistGrid(playlists: [Playlist]) -> some View {
         LazyVGrid(columns: playlistColumns, spacing: 14) {
             ForEach(playlists) { playlist in
-                NavigationLink {
-                    PlaylistDetailPage(
-                        playlistModel: playlistModel,
-                        playlistKey: playlist.stableKey
-                    )
-                } label: {
-                    PlaylistRowCard(
-                        playlist: playlist,
-                        isSelected: playlistModel.selectedPlaylistKey == playlist.stableKey
-                    )
-                }
-                .buttonStyle(.plain)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        playlistModel.selectPlaylist(with: playlist.stableKey)
+                ZStack(alignment: .topTrailing) {
+                    NavigationLink {
+                        PlaylistDetailPage(
+                            playlistModel: playlistModel,
+                            playlistKey: playlist.stableKey
+                        )
+                    } label: {
+                        PlaylistRowCard(
+                            playlist: playlist,
+                            isSelected: playlistModel.selectedPlaylistKey == playlist.stableKey,
+                            showsMenuSpacing: true
+                        )
                     }
-                )
+                    .buttonStyle(.plain)
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            playlistModel.selectPlaylist(with: playlist.stableKey)
+                        }
+                    )
+
+                    PlaylistCardMenu(
+                        playlist: playlist,
+                        onEdit: playlist.isCustomPlaylist ? {
+                            openCustomPlaylistEditor(playlist)
+                        } : nil,
+                        onDelete: playlist.isCustomPlaylist ? {
+                            playlistPendingDeletion = playlist
+                        } : nil,
+                        onPlay: {
+                            Task {
+                                await playPlaylist(playlist, shuffled: false)
+                            }
+                        },
+                        onShuffle: {
+                            Task {
+                                await playPlaylist(playlist, shuffled: true)
+                            }
+                        }
+                    )
+                    .padding(.top, 12)
+                    .padding(.trailing, 12)
+                }
             }
         }
     }
 
     private func openCustomPlaylistEditor(_ playlist: Playlist? = nil) {
         playlistEditorSession = CustomPlaylistEditorSession(playlistKey: playlist?.stableKey)
+    }
+
+    @MainActor
+    private func playPlaylist(_ playlist: Playlist, shuffled: Bool) async {
+        if playlist.tracks.isEmpty {
+            await playlistModel.ensureDetailLoaded(for: playlist.stableKey)
+        }
+
+        guard let resolvedPlaylist = playlistModel.playlists.first(where: { $0.stableKey == playlist.stableKey }) else {
+            return
+        }
+
+        let tracks = resolvedPlaylist.tracks
+        guard !tracks.isEmpty else { return }
+
+        let track = shuffled ? (tracks.randomElement() ?? tracks[0]) : tracks[0]
+        player.play(track, from: tracks)
     }
 
     private var playlistColumns: [GridItem] {
@@ -1188,7 +1246,11 @@ struct PlaylistDetailPage: View {
                                             track: track,
                                             index: index + 1,
                                             tracks: currentTracks,
-                                            accentColor: accentColor
+                                            accentColor: accentColor,
+                                            canDelete: playlist.isCustomPlaylist,
+                                            onDelete: {
+                                                playlistModel.removeTrack(track, from: playlist)
+                                            }
                                         )
 
                                         if index < currentTracks.count - 1 {
@@ -1261,6 +1323,7 @@ struct PlaylistDetailPage: View {
                     Button("播放歌单", systemImage: "play.fill") {
                         startPlayback(shuffled: false)
                     }
+
                     Button("随机播放", systemImage: "shuffle") {
                         startPlayback(shuffled: true)
                     }
@@ -1363,7 +1426,6 @@ struct PlaylistDetailPage: View {
             .font(.body.weight(.semibold))
             .foregroundStyle(Color.white.opacity(0.72))
             .frame(width: 34, height: 34)
-            .background(Color.white.opacity(0.10), in: Circle())
     }
 
     @MainActor
@@ -1418,6 +1480,8 @@ private struct PlaylistDetailTrackRow: View {
     let index: Int
     let tracks: [Track]
     let accentColor: Color
+    let canDelete: Bool
+    let onDelete: () -> Void
 
     var body: some View {
         let isCurrent = player.currentTrack == track
@@ -1447,28 +1511,31 @@ private struct PlaylistDetailTrackRow: View {
                     Text(index.formatted())
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.white.opacity(0.26))
-
-                    Image(systemName: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "play.circle")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
-                        .frame(width: 20)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
-            if canExportTrackFile(track) {
-                Menu {
-                    TrackExportMenuItem(track: track)
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.55))
-                        .frame(width: 20)
+            Menu {
+                Button("播放此曲", systemImage: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "play.fill") {
+                    player.play(track, from: tracks)
                 }
-                .buttonStyle(.plain)
+
+                if canExportTrackFile(track) {
+                    TrackExportMenuItem(track: track)
+                }
+
+                if canDelete {
+                    Button("删除", systemImage: "trash", role: .destructive, action: onDelete)
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
+                    .frame(width: 28, height: 28)
             }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
@@ -1520,6 +1587,7 @@ private struct PlaylistRowCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let playlist: Playlist
     let isSelected: Bool
+    let showsMenuSpacing: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: horizontalSizeClass == .compact ? 12 : 14) {
@@ -1540,6 +1608,10 @@ private struct PlaylistRowCard: View {
                     .lineLimit(1)
             }
             .layoutPriority(1)
+
+            if showsMenuSpacing {
+                Spacer(minLength: 34)
+            }
 
             Spacer(minLength: 0)
         }
@@ -1597,6 +1669,36 @@ private struct PlaylistRowCard: View {
 
     private var sourceText: String {
         playlist.source?.title ?? playlist.primaryCategory
+    }
+}
+
+private struct PlaylistCardMenu: View {
+    let playlist: Playlist
+    let onEdit: (() -> Void)?
+    let onDelete: (() -> Void)?
+    let onPlay: () -> Void
+    let onShuffle: () -> Void
+
+    var body: some View {
+        Menu {
+            if let onEdit {
+                Button("编辑歌单", systemImage: "pencil", action: onEdit)
+            }
+
+            if let onDelete {
+                Button("删除歌单", systemImage: "trash", role: .destructive, action: onDelete)
+                Divider()
+            }
+
+            Button("播放歌单", systemImage: "play.fill", action: onPlay)
+            Button("随机播放", systemImage: "shuffle", action: onShuffle)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.7))
+                .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.plain)
     }
 }
 
