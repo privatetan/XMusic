@@ -102,13 +102,9 @@ struct AllPlaylistsSheet: View {
                         Button {
                             isCreatingPlaylist = true
                         } label: {
-                            Image(systemName: "plus")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(Color.white.opacity(0.88))
-                                .frame(width: 34, height: 34)
-                                .background(Color.white.opacity(0.10), in: Circle())
+                            SheetHeaderIcon(systemName: "plus")
                         }
-                        .buttonStyle(.plain)
+                        .modifier(SheetHeaderButtonChrome())
                     }
 
                     if playlistModel.customPlaylists.isEmpty {

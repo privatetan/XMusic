@@ -1,5 +1,49 @@
 import SwiftUI
 
+struct SheetHeaderIcon: View {
+    let systemName: String
+    var foregroundOpacity: Double = 0.88
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.clear)
+
+            Image(systemName: systemName)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(foregroundOpacity))
+        }
+        .contentShape(Circle())
+        .frame(width: 42, height: 42)
+        .modifier(SheetHeaderGlassCircle())
+    }
+}
+
+private struct SheetHeaderGlassCircle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            content
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                }
+        }
+    }
+}
+
+struct SheetHeaderButtonChrome: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .buttonStyle(.plain)
+            .contentShape(Circle())
+            .frame(width: 42, height: 42)
+    }
+}
+
 struct SheetHeaderBar<TrailingContent: View>: View {
     let title: String
     let onBack: () -> Void
@@ -19,21 +63,19 @@ struct SheetHeaderBar<TrailingContent: View>: View {
         VStack(spacing: 0) {
             HStack {
                 Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.72))
-                        .frame(width: 34, height: 34)
-                        .background(Color.white.opacity(0.10), in: Circle())
+                    SheetHeaderIcon(systemName: "chevron.left", foregroundOpacity: 0.72)
                 }
-                .buttonStyle(.plain)
+                .modifier(SheetHeaderButtonChrome())
 
                 Spacer()
 
                 trailingContent
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 4)
+            .padding(.top, 0)
+            .padding(.bottom, 24)
+            
+
 
             Text(title)
                 .font(.system(size: 28, weight: .bold))
