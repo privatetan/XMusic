@@ -48,20 +48,8 @@ struct BrowseListView: View {
             RowDividerView()
 
             BrowseListRowView(
-                symbol: "arrow.down.circle.dotted",
-                title: "已缓存",
-                count: cachedTrackCount
-            ) {
-                withAnimation(.easeInOut(duration: 0.28)) {
-                    showingCached = true
-                }
-            }
-
-            RowDividerView()
-
-            BrowseListRowView(
                 symbol: "arrow.down.circle",
-                title: "下载",
+                title: "缓存",
                 count: cachedTrackCount
             ) {
                 withAnimation(.easeInOut(duration: 0.28)) {

@@ -51,6 +51,7 @@ enum AppTab: String, CaseIterable, Identifiable {
             return "magnifyingglass"
         }
     }
+
 }
 
 struct ArtworkPalette {

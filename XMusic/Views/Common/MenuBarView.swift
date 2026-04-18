@@ -2,6 +2,8 @@ import Foundation
 import SwiftUI
 
 struct MenuBarView: View {
+    private static let tabSelectionAnimation = Animation.spring(response: 0.34, dampingFraction: 0.86)
+
     @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
     @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
     @Binding var selectedTab: AppTab
@@ -39,9 +41,7 @@ struct MenuBarView: View {
                 if isSearchMode {
                     Button {
                         isSearchFieldFocused.wrappedValue = false
-                        withAnimation(.spring(response: 0.40, dampingFraction: 0.80)) {
-                            selectedTab = lastNonSearchTab
-                        }
+                        selectedTab = lastNonSearchTab
                     } label: {
                         Image(systemName: lastNonSearchTab.symbol)
                             .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
@@ -110,7 +110,8 @@ struct MenuBarView: View {
                     .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.40, dampingFraction: 0.80), value: isSearchMode)
+        .animation(Self.tabSelectionAnimation, value: selectedTab)
+        .animation(Self.tabSelectionAnimation, value: isSearchMode)
         .onAppear {
             if selectedTab != .search {
                 lastNonSearchTab = selectedTab
@@ -127,9 +128,13 @@ struct MenuBarView: View {
         let isSelected = selectedTab == tab
 
         return Button {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
-                selectedTab = tab
+            guard selectedTab != tab else { return }
+            if tab == .search {
+                isSearchFieldFocused.wrappedValue = true
+            } else {
+                isSearchFieldFocused.wrappedValue = false
             }
+            selectedTab = tab
         } label: {
             if isSearchShortcut {
                 Image(systemName: tab.symbol)

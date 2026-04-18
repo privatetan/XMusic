@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    private static let tabSwitchAnimation = Animation.spring(response: 0.34, dampingFraction: 0.86)
+
     @StateObject private var player = MusicPlayerViewModel()
     @StateObject private var sourceLibrary = MusicSourceLibrary()
     @StateObject private var musicSearch = MusicSearchViewModel()
@@ -18,22 +20,9 @@ struct ContentView: View {
         ZStack(alignment: .top) {
             AppBackgroundView()
 
-            Group {
-                switch player.selectedTab {
-                case .browse:
-                    BrowseView(
-                        showingSongs: $showBrowseSongs,
-                        showingPlaylists: $showBrowsePlaylists,
-                        showingCached: $showBrowseCached
-                    )
-                case .radio:
-                    PlaylistView()
-                case .settings:
-                    AppSettingsView()
-                case .search:
-                    SearchView()
-                }
-            }
+            tabContent(for: player.selectedTab)
+                .id(player.selectedTab)
+                .transition(.opacity)
             .environmentObject(player)
             .environmentObject(sourceLibrary)
             .environmentObject(musicSearch)
@@ -42,6 +31,7 @@ struct ContentView: View {
             .environmentObject(scrollState)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .animation(Self.tabSwitchAnimation, value: player.selectedTab)
         .overlay(alignment: .top) {
             if showBrowseSongs {
                 AllSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseSongs = false } })
@@ -160,6 +150,24 @@ struct ContentView: View {
                 )
             }
             return try await sourceLibrary.resolvePlayback(for: nextSong, with: currentSource)
+        }
+    }
+
+    @ViewBuilder
+    private func tabContent(for tab: AppTab) -> some View {
+        switch tab {
+        case .browse:
+            BrowseView(
+                showingSongs: $showBrowseSongs,
+                showingPlaylists: $showBrowsePlaylists,
+                showingCached: $showBrowseCached
+            )
+        case .radio:
+            PlaylistView()
+        case .settings:
+            AppSettingsView()
+        case .search:
+            SearchView()
         }
     }
 }
