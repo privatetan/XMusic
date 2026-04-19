@@ -30,12 +30,12 @@ struct MenuBarView: View {
         HStack(spacing: isCompactLayout ? 12 : 16) {
             if isCompactScrolledMode {
                 tabButton(for: selectedTab, isSearchShortcut: true)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    .transition(.opacity)
 
                 if let compactMiddleContent {
                     compactMiddleContent()
                         .frame(maxWidth: .infinity)
-                        .transition(.scale(scale: 0.9).combined(with: .opacity))
+                        .transition(.opacity)
                 }
             } else {
                 if isSearchMode {
@@ -51,7 +51,7 @@ struct MenuBarView: View {
                     }
                     .buttonStyle(.plain)
                     .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .transition(.opacity)
                 } else {
                     HStack(spacing: isCompactLayout ? 4 : 6) {
                         ForEach(AppTab.mainNavigationTabs) { tab in
@@ -66,7 +66,7 @@ struct MenuBarView: View {
                     .onTapGesture {}
                     .overlay(tabClusterOutline())
                     .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
-                    .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
+                    .transition(.opacity)
                 }
             }
 
@@ -104,10 +104,10 @@ struct MenuBarView: View {
                 .onTapGesture {}
                 .overlay(searchFieldOutline())
                 .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
-                .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
+                .transition(.opacity)
             } else {
                 tabButton(for: .search, isSearchShortcut: true)
-                    .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
+                    .transition(.opacity)
             }
         }
         .animation(Self.tabSelectionAnimation, value: selectedTab)

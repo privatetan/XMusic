@@ -96,7 +96,7 @@ struct ContentView: View {
                 if !isCompactScrolledMode && player.currentTrack != nil && !isSearchBlockingMiniPlayer {
                     PlayBarView(animation: playerAnimation)  //播放栏
                         .environmentObject(player)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.opacity)
                 }
 
                 MenuBarView(    //菜单栏
@@ -119,6 +119,7 @@ struct ContentView: View {
             .padding(.horizontal, 24) //控制菜单栏和播放栏的左右间距
             .padding(.top, 8)
             .padding(.bottom, -8)
+            .animation(.easeInOut(duration: 0.18), value: isCompactScrolledMode)
         }
         .overlay {
             GeometryReader { proxy in

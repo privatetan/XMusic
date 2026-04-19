@@ -203,6 +203,7 @@ final class MusicPlayerViewModel: ObservableObject {
     private var hasPreparedSystemPlayback = false
     private var interruptionObserver: NSObjectProtocol?
     private var shouldResumeAfterInterruption = false
+    private var timeControlStatusObservation: NSKeyValueObservation?
 
     #if os(iOS)
     private var nowPlayingInfo: [String: Any] = [:]
@@ -257,6 +258,8 @@ final class MusicPlayerViewModel: ObservableObject {
         if let interruptionObserver {
             NotificationCenter.default.removeObserver(interruptionObserver)
         }
+
+        timeControlStatusObservation?.invalidate()
 
         #if os(iOS)
         systemVolumeObserver?.invalidate()
@@ -428,6 +431,12 @@ final class MusicPlayerViewModel: ObservableObject {
     private func bindPlayer() {
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         let player = self.player
+
+        timeControlStatusObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] player, _ in
+            Task { @MainActor [weak self] in
+                self?.syncPlaybackState(with: player.timeControlStatus)
+            }
+        }
 
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             let seconds = CMTimeGetSeconds(time)
@@ -894,6 +903,24 @@ private extension MusicPlayerViewModel {
             MPNowPlayingInfoCenter.default().playbackState = isPlaying ? .playing : .paused
         }
         #endif
+    }
+
+    func syncPlaybackState(with status: AVPlayer.TimeControlStatus) {
+        guard currentTrack != nil || player.currentItem != nil else { return }
+
+        let nextIsPlaying: Bool
+        switch status {
+        case .paused:
+            nextIsPlaying = false
+        case .waitingToPlayAtSpecifiedRate, .playing:
+            nextIsPlaying = true
+        @unknown default:
+            nextIsPlaying = player.rate > 0
+        }
+
+        guard isPlaying != nextIsPlaying else { return }
+        isPlaying = nextIsPlaying
+        updateNowPlayingInfo()
     }
 
     func nowPlayingArtwork(for track: Track) -> MPMediaItemArtwork? {

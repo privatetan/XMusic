@@ -146,7 +146,7 @@ struct PlayBarView: View {
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(displayMode == .regular ? .title2.weight(.bold) : .system(size: 20, weight: .bold))
-                    .foregroundStyle(displayMode == .regular ? theme.accent : .primary)
+                    .foregroundStyle(primaryControlColor)
                     .frame(width: controlSize, height: controlSize)
             }
             .buttonStyle(.plain)
@@ -156,10 +156,14 @@ struct PlayBarView: View {
             } label: {
                 Image(systemName: "forward.fill")
                     .font(displayMode == .regular ? .title3.weight(.bold) : .system(size: 18, weight: .bold))
-                    .foregroundStyle(displayMode == .regular ? Color.primary.opacity(0.25) : .primary)
+                    .foregroundStyle(primaryControlColor)
                     .frame(width: controlSize, height: controlSize)
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var primaryControlColor: Color {
+        displayMode == .regular ? theme.accent : .primary
     }
 }
