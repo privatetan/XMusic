@@ -51,7 +51,7 @@ struct MenuBarView: View {
                     }
                     .buttonStyle(.plain)
                     .shadow(color: tabClusterShadowColor, radius: 18, x: 0, y: 8)
-                    .transition(.opacity)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
                 } else {
                     HStack(spacing: isCompactLayout ? 4 : 6) {
                         ForEach(AppTab.mainNavigationTabs) { tab in
@@ -66,7 +66,7 @@ struct MenuBarView: View {
                     .onTapGesture {}
                     .overlay(tabClusterOutline())
                     .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
-                    .transition(.opacity)
+                    .transition(.scale(scale: 0.8, anchor: .leading).combined(with: .opacity))
                 }
             }
 
@@ -98,16 +98,16 @@ struct MenuBarView: View {
                 }
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity)
-                .frame(height: compactChromeHeight)
+                .frame(height: searchBarHeight)
                 .background(searchFieldBackground())
                 .contentShape(Capsule())
                 .onTapGesture {}
                 .overlay(searchFieldOutline())
                 .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
-                .transition(.opacity)
+                .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
             } else {
                 tabButton(for: .search, isSearchShortcut: true)
-                    .transition(.opacity)
+                    .transition(.scale(scale: 0.5, anchor: .trailing).combined(with: .opacity))
             }
         }
         .animation(Self.tabSelectionAnimation, value: selectedTab)
@@ -183,7 +183,11 @@ struct MenuBarView: View {
     }
 
     private var shortcutControlHeight: CGFloat {
-        (isCompactScrolledMode || isSearchMode) ? compactChromeHeight : menuBarHeight
+        isCompactScrolledMode ? compactChromeHeight : menuBarHeight
+    }
+
+    private var searchBarHeight: CGFloat {
+        isCompactScrolledMode ? compactChromeHeight : menuBarHeight
     }
 
     @ViewBuilder
