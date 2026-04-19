@@ -25,11 +25,9 @@ struct BrowseListRowView: View {
 
                 Spacer()
 
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.4))
-                }
+                Text("\(count)")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.4))
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))

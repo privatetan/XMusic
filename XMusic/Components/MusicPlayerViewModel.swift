@@ -612,9 +612,8 @@ final class MusicPlayerViewModel: ObservableObject {
 
     private func registerCachedTrackIfNeeded(_ track: Track) {
         guard let audioURL = track.audioURL else { return }
-        if audioURL.isFileURL {
-            guard FileManager.default.fileExists(atPath: audioURL.path) else { return }
-        }
+        guard audioURL.isFileURL else { return }
+        guard FileManager.default.fileExists(atPath: audioURL.path) else { return }
 
         let key = cachedTrackKey(for: track)
         cachedTracks.removeAll { cachedTrackKey(for: $0) == key }
@@ -625,10 +624,8 @@ final class MusicPlayerViewModel: ObservableObject {
     private func playableCachedTracks() -> [Track] {
         let filtered = cachedTracks.filter { track in
             guard let audioURL = track.audioURL else { return false }
-            if audioURL.isFileURL {
-                return FileManager.default.fileExists(atPath: audioURL.path)
-            }
-            return true
+            guard audioURL.isFileURL else { return false }
+            return FileManager.default.fileExists(atPath: audioURL.path)
         }
 
         if filtered.count != cachedTracks.count {
@@ -685,10 +682,8 @@ final class MusicPlayerViewModel: ObservableObject {
             .map(\.track)
             .filter { track in
                 guard let audioURL = track.audioURL else { return false }
-                if audioURL.isFileURL {
-                    return FileManager.default.fileExists(atPath: audioURL.path)
-                }
-                return true
+                guard audioURL.isFileURL else { return false }
+                return FileManager.default.fileExists(atPath: audioURL.path)
             }
     }
 }

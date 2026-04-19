@@ -367,19 +367,12 @@ struct PlaylistSheetRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color(red: 0.22, green: 0.25, blue: 0.40), Color(red: 0.10, green: 0.11, blue: 0.20)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Image(systemName: "music.note.list")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.75))
-            }
+            PlaylistSheetCoverView(
+                playlist: playlist,
+                cornerRadius: 10,
+                iconSize: 20,
+                showsGradientOverlay: false
+            )
             .frame(width: 50, height: 50)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -401,5 +394,71 @@ struct PlaylistSheetRow: View {
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
+    }
+}
+
+private struct PlaylistSheetCoverView: View {
+    let playlist: Playlist
+    let cornerRadius: CGFloat
+    let iconSize: CGFloat
+    var showsGradientOverlay = true
+
+    var body: some View {
+        ZStack {
+            coverArtwork
+
+            if showsGradientOverlay {
+                LinearGradient(
+                    colors: [Color.white.opacity(0.06), Color.clear, Color.black.opacity(0.18)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var coverArtwork: some View {
+        if let customArtworkData = playlist.customArtworkData,
+           let uiImage = UIImage(data: customArtworkData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else if let remoteArtworkURL = playlist.remoteArtworkURL {
+            AsyncImage(url: remoteArtworkURL) { phase in
+                switch phase {
+                case let .success(image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    fallbackCover
+                }
+            }
+        } else {
+            fallbackCover
+        }
+    }
+
+    private var fallbackCover: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: playlist.artwork.colors + [Color.black.opacity(0.82)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Image(systemName: playlist.artwork.symbol)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.92))
+        }
     }
 }

@@ -335,7 +335,10 @@ private func mergedCachedTracks(
     playerTracks: [Track],
     cachedFiles: [CachedMediaFile]
 ) -> [Track] {
-    var merged = Array(playerTracks.reversed())
+    var merged = playerTracks.reversed().filter { track in
+        guard let audioURL = track.audioURL, audioURL.isFileURL else { return false }
+        return FileManager.default.fileExists(atPath: audioURL.path)
+    }
     let existingLocalPaths: Set<String> = Set(
         merged.compactMap { track in
             guard let audioURL = track.audioURL, audioURL.isFileURL else { return nil }
