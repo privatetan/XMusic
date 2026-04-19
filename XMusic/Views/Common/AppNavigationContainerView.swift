@@ -13,11 +13,13 @@ struct AppNavigationContainerView<Content: View>: View {
             NavigationStack {
                 content
             }
+            .appInteractivePopEnabled()
         } else {
             NavigationView {
                 content
             }
             .navigationViewStyle(.stack)
+            .appInteractivePopEnabled()
         }
     }
 }

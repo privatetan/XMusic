@@ -80,6 +80,7 @@ struct AllSongsSheet: View {
                 }
             }
         }
+        .appEdgeSwipeToDismiss(onDismiss: onDismiss)
     }
 }
 
@@ -156,6 +157,7 @@ struct AllPlaylistsSheet: View {
             )
             #endif
         }
+        .appEdgeSwipeToDismiss(onDismiss: onDismiss)
         .sheet(isPresented: $isCreatingPlaylist) {
             PlaylistCustomEditorSheet(
                 draft: playlistModel.draftForNewCustomPlaylist(libraryTracks: library.savedTracks),
@@ -304,6 +306,7 @@ struct CachedSongsSheet: View {
             guard hasLoadedContent else { return }
             reloadTracks()
         }
+        .appEdgeSwipeToDismiss(onDismiss: onDismiss)
     }
 
     private func removeCachedTrack(_ track: Track) {

@@ -1275,6 +1275,9 @@ struct PlaylistDetailPage: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .appEdgeSwipeToDismiss {
+            dismiss()
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {

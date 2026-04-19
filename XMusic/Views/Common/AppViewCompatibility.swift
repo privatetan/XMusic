@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// 为工程内部常用的导航和状态监听行为提供兼容层封装。
 extension View {
     @ViewBuilder
@@ -23,4 +27,71 @@ extension View {
             }
         }
     }
+
+    @ViewBuilder
+    func appInteractivePopEnabled() -> some View {
+        #if canImport(UIKit)
+        self.background(AppInteractivePopGestureEnabler())
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder
+    func appEdgeSwipeToDismiss(onDismiss: @escaping () -> Void) -> some View {
+        #if os(iOS)
+        self.modifier(AppEdgeSwipeDismissModifier(onDismiss: onDismiss))
+        #else
+        self
+        #endif
+    }
 }
+
+#if canImport(UIKit)
+private struct AppInteractivePopGestureEnabler: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller {
+        Controller()
+    }
+
+    func updateUIViewController(_ uiViewController: Controller, context: Context) {
+        uiViewController.enableInteractivePopIfNeeded()
+    }
+
+    final class Controller: UIViewController {
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            enableInteractivePopIfNeeded()
+        }
+
+        func enableInteractivePopIfNeeded() {
+            guard let navigationController else { return }
+            navigationController.interactivePopGestureRecognizer?.isEnabled = true
+            navigationController.interactivePopGestureRecognizer?.delegate = nil
+        }
+    }
+}
+#endif
+
+#if os(iOS)
+private struct AppEdgeSwipeDismissModifier: ViewModifier {
+    let onDismiss: () -> Void
+
+    private let activationWidth: CGFloat = 32
+    private let dismissThreshold: CGFloat = 84
+
+    func body(content: Content) -> some View {
+        content.simultaneousGesture(
+            DragGesture(minimumDistance: 12, coordinateSpace: .local)
+                .onEnded { value in
+                    let isFromLeadingEdge = value.startLocation.x <= activationWidth
+                    let isHorizontalSwipe = value.translation.width > 0 &&
+                        abs(value.translation.width) > abs(value.translation.height)
+                    let shouldDismiss = value.translation.width >= dismissThreshold
+
+                    guard isFromLeadingEdge, isHorizontalSwipe, shouldDismiss else { return }
+                    onDismiss()
+                }
+        )
+    }
+}
+#endif
