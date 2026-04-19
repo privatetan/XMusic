@@ -357,37 +357,5 @@ private func mergedCachedTracks(
 }
 
 private func cachedMediaPlaceholderTrack(from file: CachedMediaFile) -> Track {
-    let baseName = URL(fileURLWithPath: file.fileName).deletingPathExtension().lastPathComponent
-    let inferredTitle = file.title?.nilIfBlank
-        ?? (baseName.isEmpty ? "缓存音频" : baseName)
-    let inferredArtist = file.artist?.nilIfBlank
-        ?? file.originalURL?.host?.replacingOccurrences(of: "www.", with: "")
-        ?? "媒体缓存"
-    let inferredAlbum = file.album?.nilIfBlank
-        ?? "本地缓存"
-
-    return Track(
-        title: inferredTitle,
-        artist: inferredArtist,
-        album: inferredAlbum,
-        blurb: file.originalURL?.absoluteString ?? "本地媒体缓存文件",
-        genre: "Cache",
-        duration: 0,
-        audioURL: file.localURL,
-        artwork: ArtworkPalette(
-            colors: [Color(red: 0.23, green: 0.56, blue: 0.42), Color(red: 0.09, green: 0.18, blue: 0.16)],
-            glow: Color(red: 0.34, green: 0.86, blue: 0.62),
-            symbol: "arrow.down.circle.dotted",
-            label: "Cache"
-        ),
-        sourceName: file.sourceName?.nilIfBlank ?? "媒体缓存"
-    )
-}
-
-
-private extension String {
-    var nilIfBlank: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
+    Track.cachedMediaPlaceholder(from: file)
 }

@@ -72,6 +72,7 @@ struct Track: Identifiable, Equatable {
     var audioURL: URL?
     let artwork: ArtworkPalette
     var searchSong: SearchSong? = nil
+    var remoteArtworkURL: URL? = nil
     var sourceName: String? = nil
 
     static func == (lhs: Track, rhs: Track) -> Bool {
@@ -110,7 +111,63 @@ struct Track: Identifiable, Equatable {
             audioURL: resolvedURL,
             artwork: song.source.searchArtworkPalette,
             searchSong: song,
+            remoteArtworkURL: song.artworkURL,
             sourceName: sourceName
+        )
+    }
+
+    static func resolvedSourceTrack(
+        url: URL,
+        title: String,
+        artist: String,
+        album: String,
+        sourceName: String,
+        duration: TimeInterval = 240
+    ) -> Track {
+        Track(
+            title: title,
+            artist: artist,
+            album: album,
+            blurb: "来自自定义音源 \(sourceName) 的解析结果。",
+            genre: "Custom Source",
+            duration: duration,
+            audioURL: url,
+            artwork: ArtworkPalette(
+                colors: [Color(red: 0.98, green: 0.36, blue: 0.38), Color(red: 0.28, green: 0.12, blue: 0.34)],
+                glow: Color(red: 1.00, green: 0.55, blue: 0.46),
+                symbol: "waveform.circle.fill",
+                label: "Source"
+            ),
+            sourceName: sourceName
+        )
+    }
+
+    static func cachedMediaPlaceholder(from file: CachedMediaFile) -> Track {
+        let baseName = URL(fileURLWithPath: file.fileName).deletingPathExtension().lastPathComponent
+        let inferredTitle = file.title?.nilIfBlank
+            ?? (baseName.isEmpty ? "缓存音频" : baseName)
+        let inferredArtist = file.artist?.nilIfBlank
+            ?? file.originalURL?.host?.replacingOccurrences(of: "www.", with: "")
+            ?? "媒体缓存"
+        let inferredAlbum = file.album?.nilIfBlank
+            ?? "本地缓存"
+
+        return Track(
+            title: inferredTitle,
+            artist: inferredArtist,
+            album: inferredAlbum,
+            blurb: file.originalURL?.absoluteString ?? "本地媒体缓存文件",
+            genre: "Cache",
+            duration: 0,
+            audioURL: file.localURL,
+            artwork: ArtworkPalette(
+                colors: [Color(red: 0.23, green: 0.56, blue: 0.42), Color(red: 0.09, green: 0.18, blue: 0.16)],
+                glow: Color(red: 0.34, green: 0.86, blue: 0.62),
+                symbol: "arrow.down.circle.dotted",
+                label: "Cache"
+            ),
+            remoteArtworkURL: file.artworkURL,
+            sourceName: file.sourceName?.nilIfBlank ?? "媒体缓存"
         )
     }
 
@@ -120,6 +177,13 @@ struct Track: Identifiable, Equatable {
         return parts.reversed().enumerated().reduce(into: 0) { partialResult, item in
             partialResult += item.element * pow(60, Double(item.offset))
         }
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

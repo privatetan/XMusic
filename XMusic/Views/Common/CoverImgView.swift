@@ -7,7 +7,7 @@ struct CoverImgView: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if let artworkURL = track.searchSong?.artworkURL {
+            if let artworkURL = track.searchSong?.artworkURL ?? track.remoteArtworkURL {
                 AsyncImage(url: artworkURL) { phase in
                     switch phase {
                     case .success(let image):

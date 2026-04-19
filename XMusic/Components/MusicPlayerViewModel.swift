@@ -132,6 +132,7 @@ private struct PersistedTrack: Codable {
     let audioURL: String?
     let artwork: PersistedArtworkPalette
     let searchSong: PersistedSearchSong?
+    let remoteArtworkURL: String?
     let sourceName: String?
 
     @MainActor
@@ -145,6 +146,7 @@ private struct PersistedTrack: Codable {
         audioURL = track.audioURL?.absoluteString
         artwork = PersistedArtworkPalette(artwork: track.artwork)
         searchSong = track.searchSong.map(PersistedSearchSong.init)
+        remoteArtworkURL = track.remoteArtworkURL?.absoluteString
         sourceName = track.sourceName
     }
 
@@ -159,6 +161,7 @@ private struct PersistedTrack: Codable {
             audioURL: audioURL.flatMap(URL.init(string:)),
             artwork: artwork.artworkPalette,
             searchSong: searchSong?.searchSong,
+            remoteArtworkURL: remoteArtworkURL.flatMap(URL.init(string:)),
             sourceName: sourceName
         )
     }
@@ -170,6 +173,12 @@ private final class SearchPlaybackResolverBox {
     init(resolve: @escaping @MainActor (SearchSong) async throws -> PlaybackResolutionResult) {
         self.resolve = resolve
     }
+}
+
+private struct PlaybackRequest {
+    let track: Track
+    let queue: [Track]
+    let autoPlay: Bool
 }
 
 @MainActor
@@ -267,21 +276,15 @@ final class MusicPlayerViewModel: ObservableObject {
         #endif
     }
 
-    func play(_ track: Track, from tracks: [Track]? = nil) {
+    func play(_ track: Track, from tracks: [Track]? = nil, preferCachedQueue: Bool = false) {
         guard !isCurrentTrack(track) else { return }
-
-        if let tracks, !tracks.isEmpty {
-            queue = tracks
-        }
-
-        if let index = queue.firstIndex(of: track) {
-            currentIndex = index
-        } else {
-            queue = [track]
-            currentIndex = 0
-        }
-
-        load(track, autoPlay: true)
+        performPlayback(
+            PlaybackRequest(
+                track: track,
+                queue: playbackQueue(for: track, preferredQueue: tracks, preferCachedQueue: preferCachedQueue),
+                autoPlay: true
+            )
+        )
     }
 
     func setSearchPlaybackResolver(_ resolver: @escaping @MainActor (SearchSong) async throws -> PlaybackResolutionResult) {
@@ -312,7 +315,7 @@ final class MusicPlayerViewModel: ObservableObject {
         }
 
         if let searchSong = currentTrack.searchSong,
-           currentTrack.audioURL == nil {
+           shouldResolveSearchTrack(currentTrack) {
             currentLoadToken = UUID()
             let loadToken = currentLoadToken
             resolveSearchTrack(searchSong, trackID: currentTrack.id, autoPlay: true, loadToken: loadToken)
@@ -320,7 +323,13 @@ final class MusicPlayerViewModel: ObservableObject {
         }
 
         if player.currentItem == nil {
-            load(currentTrack, autoPlay: true)
+            performPlayback(
+                PlaybackRequest(
+                    track: currentTrack,
+                    queue: playbackQueue(for: currentTrack, preferredQueue: queue, preferCachedQueue: false),
+                    autoPlay: true
+                )
+            )
             return
         }
 
@@ -334,7 +343,13 @@ final class MusicPlayerViewModel: ObservableObject {
         guard !queue.isEmpty else { return }
 
         currentIndex = (currentIndex + 1) % queue.count
-        load(queue[currentIndex], autoPlay: true)
+        performPlayback(
+            PlaybackRequest(
+                track: queue[currentIndex],
+                queue: queue,
+                autoPlay: true
+            )
+        )
     }
 
     func playPrevious() {
@@ -346,7 +361,13 @@ final class MusicPlayerViewModel: ObservableObject {
         }
 
         currentIndex = (currentIndex - 1 + queue.count) % queue.count
-        load(queue[currentIndex], autoPlay: true)
+        performPlayback(
+            PlaybackRequest(
+                track: queue[currentIndex],
+                queue: queue,
+                autoPlay: true
+            )
+        )
     }
 
     func seek(to time: TimeInterval) {
@@ -379,54 +400,6 @@ final class MusicPlayerViewModel: ObservableObject {
         }
     }
     #endif
-
-    func playResolvedURL(url: URL, title: String, artist: String, album: String, sourceName: String) {
-        let track = Track(
-            title: title,
-            artist: artist,
-            album: album,
-            blurb: "来自自定义音源 \(sourceName) 的解析结果。",
-            genre: "Custom Source",
-            duration: 240,
-            audioURL: url,
-            artwork: ArtworkPalette(
-                colors: [Color(red: 0.98, green: 0.36, blue: 0.38), Color(red: 0.28, green: 0.12, blue: 0.34)],
-                glow: Color(red: 1.00, green: 0.55, blue: 0.46),
-                symbol: "waveform.circle.fill",
-                label: "Source"
-            )
-        )
-
-        registerCachedTrackIfNeeded(track)
-        queue = [track]
-        currentIndex = 0
-        load(track, autoPlay: true)
-    }
-
-    func playResolvedSearchSong(
-        _ song: SearchSong,
-        from songs: [SearchSong],
-        resolution: PlaybackResolutionResult,
-        sourceName: String
-    ) {
-        let _ = songs
-        let resolvedTrack = makeSearchTrack(
-            from: song,
-            sourceName: sourceName,
-            resolvedURL: resolution.playableURL
-        )
-
-        registerCachedTrackIfNeeded(resolvedTrack)
-        let cachedQueue = playableCachedTracks()
-        if let cachedIndex = cachedQueue.firstIndex(where: { cachedTrackKey(for: $0) == cachedTrackKey(for: resolvedTrack) }) {
-            queue = cachedQueue
-            currentIndex = cachedIndex
-        } else {
-            queue = [resolvedTrack]
-            currentIndex = 0
-        }
-        load(queue[currentIndex], autoPlay: true)
-    }
 
     private func bindPlayer() {
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
@@ -493,10 +466,23 @@ final class MusicPlayerViewModel: ObservableObject {
         .spring(response: 0.40, dampingFraction: 0.78, blendDuration: 0.12)
     }
 
-    private func load(_ track: Track, autoPlay: Bool) {
+    private func performPlayback(_ request: PlaybackRequest) {
+        queue = request.queue.isEmpty ? [request.track] : request.queue
+        if let index = queue.firstIndex(of: request.track) {
+            currentIndex = index
+        } else {
+            queue = [request.track]
+            currentIndex = 0
+        }
+
+        beginPlayback(for: queue[currentIndex], autoPlay: request.autoPlay)
+    }
+
+    private func beginPlayback(for track: Track, autoPlay: Bool) {
         pendingResolveTask?.cancel()
         pendingResolveTask = nil
         lastAutoAdvancedTrackID = nil
+        registerCachedTrackIfNeeded(track)
 
         // Stop current playback immediately to avoid overlapping audio.
         player.pause()
@@ -510,7 +496,7 @@ final class MusicPlayerViewModel: ObservableObject {
         isPlaying = false
         updateNowPlayingInfo()
 
-        if let searchSong = track.searchSong, track.audioURL == nil {
+        if let searchSong = track.searchSong, shouldResolveSearchTrack(track) {
             resolveSearchTrack(searchSong, trackID: track.id, autoPlay: autoPlay, loadToken: loadToken)
             return
         }
@@ -536,6 +522,30 @@ final class MusicPlayerViewModel: ObservableObject {
             isPlaying = false
         }
         updateNowPlayingInfo()
+    }
+
+    private func shouldResolveSearchTrack(_ track: Track) -> Bool {
+        guard track.searchSong != nil else { return false }
+        guard let audioURL = track.audioURL else { return true }
+        guard audioURL.isFileURL else { return false }
+        return !FileManager.default.fileExists(atPath: audioURL.path)
+    }
+
+    private func playbackQueue(for track: Track, preferredQueue: [Track]?, preferCachedQueue: Bool) -> [Track] {
+        if preferCachedQueue {
+            let cachedQueue = playableCachedTracks()
+            if let cachedIndex = cachedQueue.firstIndex(where: { cachedTrackKey(for: $0) == cachedTrackKey(for: track) }) {
+                currentIndex = cachedIndex
+                return cachedQueue
+            }
+        }
+        if let preferredQueue, !preferredQueue.isEmpty {
+            return preferredQueue
+        }
+        if !queue.isEmpty {
+            return queue
+        }
+        return [track]
     }
 
     private func advanceQueueIfNeeded(afterFinishing trackID: UUID) {
@@ -595,10 +605,6 @@ final class MusicPlayerViewModel: ObservableObject {
                 updateNowPlayingInfo()
             }
         }
-    }
-
-    private func makeSearchTrack(from song: SearchSong, sourceName: String, resolvedURL: URL?) -> Track {
-        Track.searchResultTrack(from: song, sourceName: sourceName, resolvedURL: resolvedURL)
     }
 
     private func persistCurrentTrack(_ track: Track) {
@@ -925,7 +931,7 @@ private extension MusicPlayerViewModel {
 
     func nowPlayingArtwork(for track: Track) -> MPMediaItemArtwork? {
         #if os(iOS)
-        let artworkURL = track.searchSong?.artworkURL
+        let artworkURL = track.searchSong?.artworkURL ?? track.remoteArtworkURL
         let artworkKey = nowPlayingArtworkCacheKey(for: track, artworkURL: artworkURL)
 
         if cachedNowPlayingArtworkKey == artworkKey,

@@ -88,27 +88,42 @@ struct PlayBarView: View {
         }
     }
 
+    private var miniPlayerCornerRadius: CGFloat {
+        switch displayMode {
+        case .regular:
+            return isCompactLayout ? 20 : 22
+        case .compactEmbedded:
+            return isCompactLayout ? 18 : 20
+        }
+    }
+
     @ViewBuilder
     private func miniPlayerBackground() -> some View {
-        let shape = Capsule()
-        
-        Group {
-            if #available(iOS 26.0, *) {
-                Color.clear
-                    .glassEffect(.regular, in: shape)
-                    .overlay {
-                        shape.fill(Color.primary).opacity(0.04)
-                    }
-            } else {
-                shape
-                    .fill(.regularMaterial)
-                    .overlay(shape.fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .overlay(shape.stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
-                    .overlay(shape.fill(Color.primary).opacity(0.02))
+        let visibleShape = Capsule()
+        let matchedShape = RoundedRectangle(cornerRadius: miniPlayerCornerRadius, style: .continuous)
+
+        ZStack {
+            matchedShape
+                .fill(Color.white.opacity(0.001))
+                .matchedGeometryEffect(id: "PlayerBackground", in: animation)
+
+            Group {
+                if #available(iOS 26.0, *) {
+                    Color.clear
+                        .glassEffect(.regular, in: visibleShape)
+                        .overlay {
+                            visibleShape.fill(Color.primary).opacity(0.04)
+                        }
+                } else {
+                    visibleShape
+                        .fill(.regularMaterial)
+                        .overlay(visibleShape.fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                        .overlay(visibleShape.stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
+                        .overlay(visibleShape.fill(Color.primary).opacity(0.02))
+                }
             }
         }
         .shadow(color: Color.black.opacity(0.08), radius: 24, x: 0, y: 12)
-        .matchedGeometryEffect(id: "PlayerBackground", in: animation)
     }
 
     private func artworkAndMeta(for track: Track) -> some View {

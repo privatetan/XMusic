@@ -759,13 +759,14 @@ private struct MusicSourceRuntimeLab: View {
         do {
             let legacyInfo = try LxLegacySongInfo.parseLegacyJSON(songInfoJSON, sourceName: selectedPlatformSource)
             let displayInfo = LxLegacySongInfo.displayInfo(from: legacyInfo)
-            player.playResolvedURL(
+            let track = Track.resolvedSourceTrack(
                 url: url,
                 title: displayInfo.title,
                 artist: displayInfo.artist,
                 album: displayInfo.album,
                 sourceName: source.name
             )
+            player.play(track, from: [track])
         } catch {
             runtimeError = error.localizedDescription
         }

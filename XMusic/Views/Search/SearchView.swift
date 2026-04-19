@@ -305,12 +305,12 @@ struct SearchView: View {
 
                 await MainActor.run {
                     playbackDebugInfo = resolution.debugInfo
-                    player.playResolvedSearchSong(
-                        song,
-                        from: musicSearch.results,
-                        resolution: resolution,
-                        sourceName: activeSource.name
+                    let resolvedTrack = Track.searchResultTrack(
+                        from: song,
+                        sourceName: activeSource.name,
+                        resolvedURL: resolution.playableURL
                     )
+                    player.play(resolvedTrack, preferCachedQueue: true)
                 }
             } catch {
                 await MainActor.run {

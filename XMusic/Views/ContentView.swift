@@ -85,15 +85,13 @@ struct ContentView: View {
                 player.selectedTab == .browse ||
                 player.selectedTab == .radio ||
                 player.selectedTab == .settings
-            let isSearchBlockingMiniPlayer = player.selectedTab == .search && isSearchFieldFocused
             let isCompactScrolledMode =
                 supportsCompactChrome &&
                 player.currentTrack != nil &&
-                scrollState.isScrolled &&
-                !isSearchBlockingMiniPlayer
+                scrollState.isScrolled
 
             VStack(spacing: 8) {
-                if !isCompactScrolledMode && player.currentTrack != nil && !isSearchBlockingMiniPlayer {
+                if !isCompactScrolledMode && player.currentTrack != nil {
                     PlayBarView(animation: playerAnimation)  //播放栏
                         .environmentObject(player)
                         .transition(.opacity)

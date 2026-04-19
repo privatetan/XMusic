@@ -35,6 +35,7 @@ private struct MediaCacheEntry: Codable {
     var title: String?
     var artist: String?
     var album: String?
+    var artworkURL: String?
     var sourceName: String?
 }
 
@@ -49,6 +50,7 @@ struct CachedMediaFile: Identifiable {
     let title: String?
     let artist: String?
     let album: String?
+    let artworkURL: URL?
     let sourceName: String?
 }
 
@@ -86,6 +88,7 @@ final class MusicSourceLibrary: ObservableObject {
     private var lyricCache: [String: MusicSourceLyricResult] = [:]
     private var pictureCache: [String: URL] = [:]
     private var mediaCacheIndex: [String: MediaCacheEntry] = [:]
+    private var mediaCacheDownloadTasks: [String: Task<Void, Never>] = [:]
 
     init(fileManager: FileManager = .default) {
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -379,6 +382,7 @@ final class MusicSourceLibrary: ObservableObject {
                         title: song.title,
                         artist: song.artist,
                         album: song.album,
+                        artworkURL: song.artworkURL,
                         sourceName: source.name,
                         requestedSource: requestedSource,
                         resolvedSource: requestedSource,
@@ -520,6 +524,7 @@ final class MusicSourceLibrary: ObservableObject {
                         title: candidate.title,
                         artist: candidate.artist,
                         album: candidate.album,
+                        artworkURL: candidate.artworkURL,
                         sourceName: source.name,
                         requestedSource: requestedSource,
                         resolvedSource: resolvedSource,
@@ -597,6 +602,7 @@ final class MusicSourceLibrary: ObservableObject {
         title: String? = nil,
         artist: String? = nil,
         album: String? = nil,
+        artworkURL: URL? = nil,
         sourceName: String? = nil
     ) async throws -> URL {
         guard !remoteURL.isFileURL else { return remoteURL }
@@ -619,13 +625,23 @@ final class MusicSourceLibrary: ObservableObject {
                 title: title,
                 artist: artist,
                 album: album,
+                artworkURL: artworkURL,
                 sourceName: sourceName
             )
             return destinationURL
         }
 
-        // Stream directly when no local cache is available so playback can start
-        // as soon as AVPlayer has enough buffered data.
+        scheduleBackgroundMediaCacheDownload(
+            remoteURL: remoteURL,
+            destinationURL: destinationURL,
+            title: title,
+            artist: artist,
+            album: album,
+            artworkURL: artworkURL,
+            sourceName: sourceName
+        )
+
+        // Fall back to streaming when caching fails so playback can still start.
         return playableURLCandidates(for: remoteURL).first ?? remoteURL
     }
 
@@ -651,6 +667,7 @@ final class MusicSourceLibrary: ObservableObject {
         title: String? = nil,
         artist: String? = nil,
         album: String? = nil,
+        artworkURL: URL? = nil,
         sourceName: String? = nil,
         requestedSource: String?,
         resolvedSource: String?,
@@ -669,6 +686,7 @@ final class MusicSourceLibrary: ObservableObject {
             title: title,
             artist: artist,
             album: album,
+            artworkURL: artworkURL,
             sourceName: sourceName
         )
         let isLocal = preparedURL.isFileURL
@@ -1016,6 +1034,7 @@ final class MusicSourceLibrary: ObservableObject {
         title: String? = nil,
         artist: String? = nil,
         album: String? = nil,
+        artworkURL: URL? = nil,
         sourceName: String? = nil
     ) {
         let fileName = localURL.lastPathComponent
@@ -1032,6 +1051,7 @@ final class MusicSourceLibrary: ObservableObject {
             title: title?.nilIfBlank ?? existingEntry?.title,
             artist: artist?.nilIfBlank ?? existingEntry?.artist,
             album: album?.nilIfBlank ?? existingEntry?.album,
+            artworkURL: artworkURL?.absoluteString ?? existingEntry?.artworkURL,
             sourceName: sourceName?.nilIfBlank ?? existingEntry?.sourceName
         )
 
@@ -1043,6 +1063,51 @@ final class MusicSourceLibrary: ObservableObject {
             #endif
         }
         refreshMediaCacheSummaryFromIndex()
+    }
+
+    private func scheduleBackgroundMediaCacheDownload(
+        remoteURL: URL,
+        destinationURL: URL,
+        title: String?,
+        artist: String?,
+        album: String?,
+        artworkURL: URL?,
+        sourceName: String?
+    ) {
+        let key = remoteURL.absoluteString
+        guard mediaCacheDownloadTasks[key] == nil else { return }
+
+        mediaCacheDownloadTasks[key] = Task.detached(priority: .utility) { [weak self] in
+            guard let self else { return }
+
+            defer {
+                Task { @MainActor [weak self] in
+                    self?.mediaCacheDownloadTasks.removeValue(forKey: key)
+                }
+            }
+
+            for candidateURL in await MainActor.run(body: { self.playableURLCandidates(for: remoteURL) }) {
+                do {
+                    try await self.downloadPlayableMedia(from: candidateURL, to: destinationURL)
+                    await MainActor.run {
+                        self.touchMediaCacheEntry(
+                            for: remoteURL,
+                            localURL: destinationURL,
+                            title: title,
+                            artist: artist,
+                            album: album,
+                            artworkURL: artworkURL,
+                            sourceName: sourceName
+                        )
+                    }
+                    return
+                } catch {
+                    if FileManager.default.fileExists(atPath: destinationURL.path) {
+                        try? FileManager.default.removeItem(at: destinationURL)
+                    }
+                }
+            }
+        }
     }
 
     private func pruneMissingMediaCacheEntries() {
@@ -1080,6 +1145,7 @@ final class MusicSourceLibrary: ObservableObject {
                 title: entry.title,
                 artist: entry.artist,
                 album: entry.album,
+                artworkURL: entry.artworkURL.flatMap(URL.init(string:)),
                 sourceName: entry.sourceName
             )
         }
