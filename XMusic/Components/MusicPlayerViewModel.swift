@@ -666,6 +666,12 @@ final class MusicPlayerViewModel: ObservableObject {
         _ = playableCachedTracks()
     }
 
+    #if os(iOS)
+    func artworkImageForSystemSurfaces(for track: Track) -> UIImage {
+        makeArtworkImage(for: track)
+    }
+    #endif
+
     private func persistCachedTracks() {
         let snapshots = cachedTracks.map(PersistedTrack.init)
         guard let data = try? JSONEncoder().encode(snapshots) else { return }

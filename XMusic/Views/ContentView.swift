@@ -3,18 +3,28 @@ import SwiftUI
 struct ContentView: View {
     private static let tabSwitchAnimation = Animation.spring(response: 0.34, dampingFraction: 0.86)
 
-    @StateObject private var player = MusicPlayerViewModel()
-    @StateObject private var sourceLibrary = MusicSourceLibrary()
-    @StateObject private var musicSearch = MusicSearchViewModel()
-    @StateObject private var library = MusicLibraryViewModel()
-    @StateObject private var playlistModel = MusicPlaylistViewModel()
-    @StateObject private var scrollState = AppScrollState()
+    @ObservedObject private var player: MusicPlayerViewModel
+    @ObservedObject private var sourceLibrary: MusicSourceLibrary
+    @ObservedObject private var musicSearch: MusicSearchViewModel
+    @ObservedObject private var library: MusicLibraryViewModel
+    @ObservedObject private var playlistModel: MusicPlaylistViewModel
+    @ObservedObject private var scrollState: AppScrollState
     @Namespace private var playerAnimation
     @FocusState private var isSearchFieldFocused: Bool
 
     @State private var showBrowseSongs = false
     @State private var showBrowsePlaylists = false
     @State private var showBrowseCached = false
+
+    @MainActor
+    init(context: XMusicAppContext) {
+        _player = ObservedObject(wrappedValue: context.player)
+        _sourceLibrary = ObservedObject(wrappedValue: context.sourceLibrary)
+        _musicSearch = ObservedObject(wrappedValue: context.musicSearch)
+        _library = ObservedObject(wrappedValue: context.library)
+        _playlistModel = ObservedObject(wrappedValue: context.playlistModel)
+        _scrollState = ObservedObject(wrappedValue: context.scrollState)
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -70,12 +80,6 @@ struct ContentView: View {
             scrollState.reset()
         }
         .preferredColorScheme(.dark)
-        .onAppear {
-            installSearchPlaybackResolver()
-        }
-        .appOnChange(of: sourceLibrary.activeSourceID) {
-            installSearchPlaybackResolver()
-        }
         .safeAreaInset(edge: .bottom) {
             let supportsCompactChrome =
                 player.selectedTab == .browse ||
@@ -140,19 +144,6 @@ struct ContentView: View {
         }
     }
 
-    private func installSearchPlaybackResolver() {
-        player.setSearchPlaybackResolver { [sourceLibrary] nextSong in
-            guard let currentSource = sourceLibrary.activeSource else {
-                throw NSError(
-                    domain: "XMusic.SearchPlayback",
-                    code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "当前没有激活音乐源。"]
-                )
-            }
-            return try await sourceLibrary.resolvePlayback(for: nextSong, with: currentSource)
-        }
-    }
-
     @ViewBuilder
     private func tabContent(for tab: AppTab) -> some View {
         switch tab {
@@ -173,5 +164,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(context: .shared)
 }

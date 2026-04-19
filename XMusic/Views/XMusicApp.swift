@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct XMusicApp: App {
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(XMusicAppDelegate.self) private var appDelegate
+    #endif
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(context: .shared)
         }
     }
 }
