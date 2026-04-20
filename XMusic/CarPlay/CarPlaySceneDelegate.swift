@@ -20,8 +20,36 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
 
     func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
+        didConnect interfaceController: CPInterfaceController,
+        to window: CPWindow
+    ) {
+        window.rootViewController = UIViewController()
+        connect(interfaceController: interfaceController)
+    }
+
+    func templateApplicationScene(
+        _ templateApplicationScene: CPTemplateApplicationScene,
         didConnect interfaceController: CPInterfaceController
     ) {
+        connect(interfaceController: interfaceController)
+    }
+
+    func templateApplicationScene(
+        _ templateApplicationScene: CPTemplateApplicationScene,
+        didDisconnectInterfaceController interfaceController: CPInterfaceController,
+        from window: CPWindow
+    ) {
+        disconnect()
+    }
+
+    func templateApplicationScene(
+        _ templateApplicationScene: CPTemplateApplicationScene,
+        didDisconnectInterfaceController interfaceController: CPInterfaceController
+    ) {
+        disconnect()
+    }
+
+    private func connect(interfaceController: CPInterfaceController) {
         self.interfaceController = interfaceController
         configureObservers()
 
@@ -30,13 +58,10 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         interfaceController.setRootTemplate(template, animated: false, completion: nil)
     }
 
-    func templateApplicationScene(
-        _ templateApplicationScene: CPTemplateApplicationScene,
-        didDisconnectInterfaceController interfaceController: CPInterfaceController
-    ) {
+    private func disconnect() {
         cancellables.removeAll()
         rootTemplate = nil
-        self.interfaceController = nil
+        interfaceController = nil
     }
 
     private func configureObservers() {

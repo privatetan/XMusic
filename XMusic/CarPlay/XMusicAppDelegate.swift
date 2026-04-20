@@ -10,17 +10,29 @@ import CarPlay
 import UIKit
 
 final class XMusicAppDelegate: NSObject, UIApplicationDelegate {
+    private let carPlayTemplateRole = "CPTemplateApplicationSceneSessionRoleApplication"
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
         options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
+        let role = connectingSceneSession.role
+        let isCarPlayRole = role.rawValue == carPlayTemplateRole
+        let configurationName: String?
+
+        if isCarPlayRole {
+            configurationName = "CarPlay Configuration"
+        } else {
+            configurationName = "Default Configuration"
+        }
+
         let configuration = UISceneConfiguration(
-            name: connectingSceneSession.configuration.name,
-            sessionRole: connectingSceneSession.role
+            name: configurationName,
+            sessionRole: role
         )
 
-        if connectingSceneSession.role == .carTemplateApplication {
+        if isCarPlayRole {
             configuration.sceneClass = CPTemplateApplicationScene.self
             configuration.delegateClass = CarPlaySceneDelegate.self
         }
