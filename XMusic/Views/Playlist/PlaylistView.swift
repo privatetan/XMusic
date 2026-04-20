@@ -1286,9 +1286,15 @@ struct PlaylistDetailPage: View {
                     Image(systemName: "chevron.left")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Color.white.opacity(0.72))
-                        .frame(width: 34, height: 34)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.001))
+                        )
                         .background(Color.white.opacity(0.10), in: Circle())
+                        .contentShape(Circle())
                 }
+                .buttonStyle(.plain)
             }
 
             ToolbarItem(placement: .principal) {
@@ -1478,6 +1484,7 @@ private struct PlaylistDetailActionButton: View {
 }
 
 private struct PlaylistDetailTrackRow: View {
+    @Environment(\.appEdgeSwipeInProgress) private var isEdgeSwipeInProgress
     @EnvironmentObject private var player: MusicPlayerViewModel
     let track: Track
     let index: Int
@@ -1519,6 +1526,7 @@ private struct PlaylistDetailTrackRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .allowsHitTesting(!isEdgeSwipeInProgress)
 
             Menu {
                 Button("播放此曲", systemImage: isCurrent && player.isPlaying ? "speaker.wave.2.fill" : "play.fill") {

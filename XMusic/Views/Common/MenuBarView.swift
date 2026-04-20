@@ -130,7 +130,7 @@ struct MenuBarView: View {
         return Button {
             guard selectedTab != tab else { return }
             if tab == .search {
-                isSearchFieldFocused.wrappedValue = true
+                isSearchFieldFocused.wrappedValue = false
             } else {
                 isSearchFieldFocused.wrappedValue = false
             }

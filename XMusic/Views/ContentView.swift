@@ -89,9 +89,13 @@ struct ContentView: View {
                 supportsCompactChrome &&
                 player.currentTrack != nil &&
                 scrollState.isScrolled
+            let shouldHidePlayBarForSearchFocus = isSearchFieldFocused && player.selectedTab == .search
+            let bottomChromePadding = isSearchFieldFocused ? 12.0 : -8.0
 
             VStack(spacing: 8) {
-                if !isCompactScrolledMode && player.currentTrack != nil {
+                if !isCompactScrolledMode &&
+                    !shouldHidePlayBarForSearchFocus &&
+                    player.currentTrack != nil {
                     PlayBarView(animation: playerAnimation)  //播放栏
                         .environmentObject(player)
                         .transition(.opacity)
@@ -116,8 +120,10 @@ struct ContentView: View {
             }
             .padding(.horizontal, 24) //控制菜单栏和播放栏的左右间距
             .padding(.top, 8)
-            .padding(.bottom, -8)
+            .padding(.bottom, bottomChromePadding)
             .animation(.easeInOut(duration: 0.18), value: isCompactScrolledMode)
+            .animation(.easeInOut(duration: 0.18), value: shouldHidePlayBarForSearchFocus)
+            .animation(.easeInOut(duration: 0.18), value: isSearchFieldFocused)
         }
         .overlay {
             GeometryReader { proxy in

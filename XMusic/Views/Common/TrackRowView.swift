@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 单首歌曲行组件，负责展示状态并触发播放动作。
 struct TrackRowView: View {
+    @Environment(\.appEdgeSwipeInProgress) private var isEdgeSwipeInProgress
     let track: Track
     let index: Int
     let isCurrent: Bool
@@ -42,6 +43,7 @@ struct TrackRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .allowsHitTesting(!isEdgeSwipeInProgress)
 
             if canExportTrackFile(track) {
                 Menu {

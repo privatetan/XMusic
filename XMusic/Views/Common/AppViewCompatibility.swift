@@ -47,6 +47,17 @@ extension View {
     }
 }
 
+private struct AppEdgeSwipeInProgressKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var appEdgeSwipeInProgress: Bool {
+        get { self[AppEdgeSwipeInProgressKey.self] }
+        set { self[AppEdgeSwipeInProgressKey.self] = newValue }
+    }
+}
+
 #if canImport(UIKit)
 private struct AppInteractivePopGestureEnabler: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> Controller {
@@ -76,22 +87,33 @@ private struct AppInteractivePopGestureEnabler: UIViewControllerRepresentable {
 private struct AppEdgeSwipeDismissModifier: ViewModifier {
     let onDismiss: () -> Void
 
-    private let activationWidth: CGFloat = 32
+    // Keep the swipe-to-dismiss gesture on the true screen edge so it doesn't
+    // compete with leading back buttons on older iOS releases.
+    private let activationWidth: CGFloat = 18
     private let dismissThreshold: CGFloat = 84
+    @GestureState private var isTrackingEdgeSwipe = false
 
     func body(content: Content) -> some View {
-        content.simultaneousGesture(
-            DragGesture(minimumDistance: 12, coordinateSpace: .local)
-                .onEnded { value in
-                    let isFromLeadingEdge = value.startLocation.x <= activationWidth
-                    let isHorizontalSwipe = value.translation.width > 0 &&
-                        abs(value.translation.width) > abs(value.translation.height)
-                    let shouldDismiss = value.translation.width >= dismissThreshold
+        content
+            .environment(\.appEdgeSwipeInProgress, isTrackingEdgeSwipe)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 12, coordinateSpace: .local)
+                    .updating($isTrackingEdgeSwipe) { value, state, _ in
+                        let isFromLeadingEdge = value.startLocation.x <= activationWidth
+                        let isHorizontalSwipe = value.translation.width > 0 &&
+                            abs(value.translation.width) > abs(value.translation.height)
+                        state = isFromLeadingEdge && isHorizontalSwipe
+                    }
+                    .onEnded { value in
+                        let isFromLeadingEdge = value.startLocation.x <= activationWidth
+                        let isHorizontalSwipe = value.translation.width > 0 &&
+                            abs(value.translation.width) > abs(value.translation.height)
+                        let shouldDismiss = value.translation.width >= dismissThreshold
 
-                    guard isFromLeadingEdge, isHorizontalSwipe, shouldDismiss else { return }
-                    onDismiss()
-                }
-        )
+                        guard isFromLeadingEdge, isHorizontalSwipe, shouldDismiss else { return }
+                        onDismiss()
+                    }
+            )
     }
 }
 #endif

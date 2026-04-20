@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RecentlyAddedCardView: View {
+    @Environment(\.appEdgeSwipeInProgress) private var isEdgeSwipeInProgress
     let track: Track
     let action: () -> Void
 
@@ -27,5 +28,6 @@ struct RecentlyAddedCardView: View {
             }
         }
         .buttonStyle(.plain)
+        .allowsHitTesting(!isEdgeSwipeInProgress)
     }
 }

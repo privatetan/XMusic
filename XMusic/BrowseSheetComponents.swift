@@ -6,16 +6,13 @@ struct SheetHeaderIcon: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color.clear)
-
             Image(systemName: systemName)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color.white.opacity(foregroundOpacity))
         }
-        .contentShape(Circle())
-        .frame(width: 42, height: 42)
+        .frame(width: 44, height: 44)
         .modifier(SheetHeaderGlassCircle())
+        .contentShape(Circle())
     }
 }
 
@@ -26,6 +23,14 @@ private struct SheetHeaderGlassCircle: ViewModifier {
                 .glassEffect(.regular.interactive(), in: .circle)
         } else {
             content
+                // Older iOS versions can occasionally drop taps when the visible chrome
+                // is only provided by material/background effects. Keep a nearly
+                // transparent fill inside the hit target so the circular button has a
+                // concrete tappable surface.
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.001))
+                )
                 .background(.ultraThinMaterial, in: Circle())
                 .overlay {
                     Circle()
@@ -40,7 +45,7 @@ struct SheetHeaderButtonChrome: ViewModifier {
         content
             .buttonStyle(.plain)
             .contentShape(Circle())
-            .frame(width: 42, height: 42)
+            .accessibilityAddTraits(.isButton)
     }
 }
 
@@ -187,6 +192,7 @@ struct SongsActionButton: View {
 }
 
 struct LibrarySongRow: View {
+    @Environment(\.appEdgeSwipeInProgress) private var isEdgeSwipeInProgress
     let track: Track
     let isCurrent: Bool
     let isPlaying: Bool
@@ -232,6 +238,7 @@ struct LibrarySongRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .allowsHitTesting(!isEdgeSwipeInProgress)
 
             Menu {
                 TrackExportMenuItem(track: track)
@@ -272,6 +279,7 @@ struct LibrarySongRow: View {
 }
 
 struct SheetSongRow: View {
+    @Environment(\.appEdgeSwipeInProgress) private var isEdgeSwipeInProgress
     let track: Track
     let isCurrent: Bool
     let isPlaying: Bool
@@ -318,6 +326,7 @@ struct SheetSongRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .allowsHitTesting(!isEdgeSwipeInProgress)
 
             Menu {
                 TrackExportMenuItem(track: track)
