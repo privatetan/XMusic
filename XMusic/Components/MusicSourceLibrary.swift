@@ -824,10 +824,7 @@ final class MusicSourceLibrary: ObservableObject {
         available: [String],
         platformSource: String
     ) -> String {
-        if shouldForceKugou128k(platformSource: platformSource),
-           available.contains("128k") {
-            return "128k"
-        }
+        _ = platformSource
         let orderedQualities = orderedQualityPreferences(requested: requested)
         guard !available.isEmpty else { return orderedQualities.first ?? "128k" }
         for quality in orderedQualities where available.contains(quality) {
@@ -841,17 +838,7 @@ final class MusicSourceLibrary: ObservableObject {
         available: [String],
         platformSource: String
     ) -> [String] {
-        if shouldForceKugou128k(platformSource: platformSource) {
-            if available.contains("128k") {
-                return ["128k"]
-            }
-            let fallback = preferredQuality(
-                requested: requested,
-                available: available,
-                platformSource: platformSource
-            )
-            return [fallback]
-        }
+        _ = platformSource
         let candidates = orderedQualityPreferences(requested: requested)
 
         var unique: [String] = []
@@ -871,10 +858,6 @@ final class MusicSourceLibrary: ObservableObject {
         let downward = Array(priority[requestedIndex...])
         let upward = Array(priority[..<requestedIndex].reversed())
         return downward + upward
-    }
-
-    private func shouldForceKugou128k(platformSource: String) -> Bool {
-        return platformSource == "kg"
     }
 
     private func rewriteKugouHashIfNeeded(

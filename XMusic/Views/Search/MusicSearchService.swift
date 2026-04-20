@@ -12,26 +12,42 @@ import CommonCrypto
 #endif
 
 struct MusicSearchService {
+    func albumSongs(for album: SearchAlbum) async throws -> [SearchSong] {
+        switch album.source {
+        case .tx:
+            return try await fetchQQAlbumSongs(albumMid: album.sourceAlbumID)
+        case .kg:
+            return try await fetchKugouAlbumSongs(albumID: album.sourceAlbumID, albumTitle: album.title)
+        case .wy:
+            return try await fetchNeteaseAlbumSongs(albumID: album.sourceAlbumID)
+        default:
+            throw MusicSearchError.unsupportedAlbumSource
+        }
+    }
+
     func search(
         query: String,
         page: Int,
+        kind: SearchResultKind,
         source: SearchPlatformSource,
         allowedSources: [SearchPlatformSource]
     ) async throws -> SearchResponseBundle {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedQuery.isEmpty else {
             return SearchResponseBundle(
-                result: SearchPageResult(source: source, list: [], total: 0, limit: 20, maxPage: 0),
+                payload: kind == .song
+                    ? .songs(SearchPageResult(source: source, list: [], total: 0, limit: 20, maxPage: 0))
+                    : .albums(SearchAlbumPageResult(source: source, list: [], total: 0, limit: 20, maxPage: 0)),
                 debugItems: []
             )
         }
 
         if source == .all {
-            let activeSources = allowedSources.filter { $0 != .all }
+            let activeSources = allowedSources.filter { $0.supports(kind) }
             let reports = try await withThrowingTaskGroup(of: SearchDebugItem.self) { group in
                 for source in activeSources {
                     group.addTask {
-                        await buildDebugItem(query: normalizedQuery, page: page, source: source)
+                        await buildDebugItem(query: normalizedQuery, page: page, kind: kind, source: source)
                     }
                 }
 
@@ -42,29 +58,50 @@ struct MusicSearchService {
                 return items.sorted { $0.source.rawValue < $1.source.rawValue }
             }
 
-            let results = reports.compactMap { report in
-                report.pageResult
+            let payloads = reports.compactMap(\.payload)
+            let maxPage = payloads.map(\.maxPage).max() ?? 0
+            let total = payloads.map(\.total).max() ?? 0
+            let limit = payloads.map(\.limit).max() ?? 20
+
+            let mergedPayload: SearchPagePayload
+            switch kind {
+            case .song:
+                let results = payloads.compactMap { payload -> SearchPageResult? in
+                    guard case let .songs(result) = payload else { return nil }
+                    return result
+                }
+                let merged = sortAllSourceResults(
+                    deduplicate(results.flatMap(\.list)),
+                    keyword: normalizedQuery
+                )
+                mergedPayload = .songs(
+                    SearchPageResult(source: .all, list: merged, total: total == 0 ? merged.count : total, limit: limit, maxPage: maxPage)
+                )
+            case .album:
+                let results = payloads.compactMap { payload -> SearchAlbumPageResult? in
+                    guard case let .albums(result) = payload else { return nil }
+                    return result
+                }
+                let merged = sortAllSourceAlbums(
+                    deduplicateAlbums(results.flatMap(\.list)),
+                    keyword: normalizedQuery
+                )
+                mergedPayload = .albums(
+                    SearchAlbumPageResult(source: .all, list: merged, total: total == 0 ? merged.count : total, limit: limit, maxPage: maxPage)
+                )
             }
 
-            let merged = sortAllSourceResults(
-                deduplicate(results.flatMap(\.list)),
-                keyword: normalizedQuery
-            )
-
-            let maxPage = results.map(\.maxPage).max() ?? 0
-            let total = results.map(\.total).max() ?? merged.count
-            let limit = results.map(\.limit).max() ?? 20
             return SearchResponseBundle(
-                result: SearchPageResult(source: .all, list: merged, total: total, limit: limit, maxPage: maxPage),
+                payload: mergedPayload,
                 debugItems: reports
             )
         }
 
-        let item = await buildDebugItem(query: normalizedQuery, page: page, source: source)
-        guard item.status != .error, let result = item.pageResult else {
+        let item = await buildDebugItem(query: normalizedQuery, page: page, kind: kind, source: source)
+        guard item.status != .error, let payload = item.payload else {
             throw MusicSearchError.badResponse(item.message)
         }
-        return SearchResponseBundle(result: result, debugItems: [item])
+        return SearchResponseBundle(payload: payload, debugItems: [item])
     }
 
     func findFallbackCandidates(
@@ -84,11 +121,13 @@ struct MusicSearchService {
         let bundle = try await search(
             query: normalizedQuery,
             page: 1,
+            kind: .song,
             source: .all,
             allowedSources: fallbackSources
         )
 
-        let grouped = Dictionary(grouping: bundle.result.list.filter { $0.source != song.source }) { $0.source }
+        guard case let .songs(result) = bundle.payload else { return [] }
+        let grouped = Dictionary(grouping: result.list.filter { $0.source != song.source }) { $0.source }
         var rankedSongs: [(song: SearchSong, score: Int)] = []
 
         for source in fallbackSources {
@@ -113,21 +152,21 @@ struct MusicSearchService {
             .map(\.song)
     }
 
-    private func buildDebugItem(query: String, page: Int, source: SearchPlatformSource) async -> SearchDebugItem {
+    private func buildDebugItem(query: String, page: Int, kind: SearchResultKind, source: SearchPlatformSource) async -> SearchDebugItem {
         do {
-            let result = try await searchSingle(query: query, page: page, source: source)
-            let message = result.list.isEmpty
+            let payload = try await searchSingle(query: query, page: page, kind: kind, source: source)
+            let message = payload.resultCount == 0
                 ? "请求成功，但这一页没有结果"
                 : "请求成功"
             return SearchDebugItem(
                 source: source,
-                status: result.list.isEmpty ? .empty : .success,
-                resultCount: result.list.count,
-                total: result.total,
+                status: payload.resultCount == 0 ? .empty : .success,
+                resultCount: payload.resultCount,
+                total: payload.total,
                 page: page,
-                maxPage: result.maxPage,
+                maxPage: payload.maxPage,
                 message: message,
-                pageResult: result
+                payload: payload
             )
         } catch {
             return SearchDebugItem(
@@ -138,28 +177,52 @@ struct MusicSearchService {
                 page: page,
                 maxPage: 0,
                 message: error.localizedDescription,
-                pageResult: nil
+                payload: nil
             )
         }
     }
 
-    private func searchSingle(query: String, page: Int, source: SearchPlatformSource) async throws -> SearchPageResult {
-        let result: SearchPageResult
+    private func searchSingle(query: String, page: Int, kind: SearchResultKind, source: SearchPlatformSource) async throws -> SearchPagePayload {
+        switch kind {
+        case .song:
+            return .songs(try await searchSong(query: query, page: page, source: source))
+        case .album:
+            return .albums(try await searchAlbum(query: query, page: page, source: source))
+        }
+    }
+
+    private func searchSong(query: String, page: Int, source: SearchPlatformSource) async throws -> SearchPageResult {
         switch source {
         case .kw:
-            result = try await searchKuwo(query: query, page: page, limit: 30)
+            return try await searchKuwo(query: query, page: page, limit: 30)
         case .kg:
-            result = try await searchKugou(query: query, page: page, limit: 30)
+            return try await searchKugou(query: query, page: page, limit: 30)
         case .tx:
-            result = try await searchQQ(query: query, page: page, limit: 50)
+            return try await searchQQ(query: query, page: page, limit: 50)
         case .wy:
-            result = try await searchNetease(query: query, page: page, limit: 30)
+            return try await searchNetease(query: query, page: page, limit: 30)
         case .mg:
-            result = try await searchMigu(query: query, page: page, limit: 20)
+            return try await searchMigu(query: query, page: page, limit: 20)
         case .all:
             throw MusicSearchError.unsupportedSource
         }
-        return result
+    }
+
+    private func searchAlbum(query: String, page: Int, source: SearchPlatformSource) async throws -> SearchAlbumPageResult {
+        switch source {
+        case .tx:
+            return try await searchQQAlbums(query: query, page: page, limit: 30)
+        case .kg:
+            return try await searchKugouAlbums(query: query, page: page, limit: 30)
+        case .wy:
+            return try await searchNeteaseAlbums(query: query, page: page, limit: 30)
+        case .mg:
+            return try await searchMiguAlbums(query: query, page: page, limit: 20)
+        case .all:
+            throw MusicSearchError.unsupportedAlbumSource
+        default:
+            throw MusicSearchError.unsupportedAlbumSource
+        }
     }
 
     private func searchKuwo(query: String, page: Int, limit: Int) async throws -> SearchPageResult {
@@ -249,6 +312,26 @@ struct MusicSearchService {
         )
     }
 
+    private func searchKugouAlbums(query: String, page: Int, limit: Int) async throws -> SearchAlbumPageResult {
+        let urlString = "https://mobilecdnbj.kugou.com/api/v3/search/album?keyword=\(query.urlEscaped)&page=\(page)&pagesize=\(limit)&showtype=1"
+        let object = try await getJSON(urlString)
+        guard (object["status"] as? Int) == 1,
+              let data = object["data"] as? [String: Any],
+              let total = data["total"] as? Int,
+              let items = data["info"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("酷狗专辑")
+        }
+
+        let albums = items.compactMap(makeKugouAlbum)
+        return SearchAlbumPageResult(
+            source: .kg,
+            list: albums,
+            total: total,
+            limit: limit,
+            maxPage: Int(ceil(Double(max(total, 1)) / Double(limit)))
+        )
+    }
+
     private func makeKugouSong(raw: [String: Any]) -> SearchSong? {
         guard let audioID = stringValue(raw["Audioid"]).nilIfEmpty,
               let fileHash = raw["FileHash"] as? String else { return nil }
@@ -304,8 +387,98 @@ struct MusicSearchService {
         )
     }
 
+    private func makeKugouAlbum(raw: [String: Any]) -> SearchAlbum? {
+        guard let albumID = stringValue(raw["albumid"]).nilIfEmpty else { return nil }
+
+        let artworkURL = URL(string: stringValue(raw["imgurl"]).replacingOccurrences(of: "{size}", with: "400"))
+        let publishDate = stringValue(raw["publishtime"]).split(separator: " ").first.map(String.init) ?? ""
+        let legacy: [String: Any] = [
+            "albumId": albumID,
+            "albumName": stringValue(raw["albumname"]),
+            "artist": stringValue(raw["singername"]),
+            "publishDate": publishDate,
+            "songCount": raw["songcount"] as? Int ?? 0,
+            "source": SearchPlatformSource.kg.rawValue,
+            "img": artworkURL?.absoluteString ?? "",
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: legacy, options: [.sortedKeys]),
+              let json = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        let songCount = raw["songcount"] as? Int ?? 0
+        return SearchAlbum(
+            id: "kg_album_\(albumID)",
+            source: .kg,
+            sourceAlbumID: albumID,
+            title: stringValue(raw["albumname"]),
+            artist: stringValue(raw["singername"]),
+            releaseDate: publishDate,
+            songCountText: songCount > 0 ? "\(songCount) 首" : "",
+            artworkURL: artworkURL,
+            legacyInfoJSON: json
+        )
+    }
+
     private func searchQQ(query: String, page: Int, limit: Int) async throws -> SearchPageResult {
-        let body: [String: Any] = [
+        let object = try await postJSON(
+            "https://u.y.qq.com/cgi-bin/musicu.fcg",
+            headers: ["User-Agent": "QQMusic 14090508(android 12)"],
+            body: makeQQSearchBody(query: query, page: page, limit: limit, searchType: 0)
+        )
+
+        guard let req = object["req"] as? [String: Any],
+              let code = req["code"] as? Int,
+              code == 0,
+              let data = req["data"] as? [String: Any],
+              let meta = data["meta"] as? [String: Any],
+              let total = meta["estimate_sum"] as? Int,
+              let body = data["body"] as? [String: Any],
+              let itemSongs = body["item_song"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("QQ 音乐")
+        }
+
+        let songs = itemSongs.compactMap(makeQQSong)
+        return SearchPageResult(
+            source: .tx,
+            list: songs,
+            total: total,
+            limit: limit,
+            maxPage: Int(ceil(Double(total) / Double(limit)))
+        )
+    }
+
+    private func searchQQAlbums(query: String, page: Int, limit: Int) async throws -> SearchAlbumPageResult {
+        let object = try await postJSON(
+            "https://u.y.qq.com/cgi-bin/musicu.fcg",
+            headers: ["User-Agent": "QQMusic 14090508(android 12)"],
+            body: makeQQSearchBody(query: query, page: page, limit: limit, searchType: 2)
+        )
+
+        guard let req = object["req"] as? [String: Any],
+              let code = req["code"] as? Int,
+              code == 0,
+              let data = req["data"] as? [String: Any],
+              let meta = data["meta"] as? [String: Any],
+              let total = meta["estimate_sum"] as? Int,
+              let body = data["body"] as? [String: Any],
+              let itemAlbums = body["item_album"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("QQ 专辑")
+        }
+
+        let albums = itemAlbums.compactMap(makeQQAlbum)
+        return SearchAlbumPageResult(
+            source: .tx,
+            list: albums,
+            total: total,
+            limit: limit,
+            maxPage: Int(ceil(Double(total) / Double(limit)))
+        )
+    }
+
+    private func makeQQSearchBody(query: String, page: Int, limit: Int, searchType: Int) -> [String: Any] {
+        [
             "comm": [
                 "ct": "11",
                 "cv": "14090508",
@@ -339,7 +512,7 @@ struct MusicSearchService {
                 "module": "music.search.SearchCgiService",
                 "method": "DoSearchForQQMusicMobile",
                 "param": [
-                    "search_type": 0,
+                    "search_type": searchType,
                     "query": query,
                     "page_num": page,
                     "num_per_page": limit,
@@ -353,32 +526,6 @@ struct MusicSearchService {
                 ],
             ],
         ]
-
-        let object = try await postJSON(
-            "https://u.y.qq.com/cgi-bin/musicu.fcg",
-            headers: ["User-Agent": "QQMusic 14090508(android 12)"],
-            body: body
-        )
-
-        guard let req = object["req"] as? [String: Any],
-              let code = req["code"] as? Int,
-              code == 0,
-              let data = req["data"] as? [String: Any],
-              let meta = data["meta"] as? [String: Any],
-              let total = meta["estimate_sum"] as? Int,
-              let body = data["body"] as? [String: Any],
-              let itemSongs = body["item_song"] as? [[String: Any]] else {
-            throw MusicSearchError.badResponse("QQ 音乐")
-        }
-
-        let songs = itemSongs.compactMap(makeQQSong)
-        return SearchPageResult(
-            source: .tx,
-            list: songs,
-            total: total,
-            limit: limit,
-            maxPage: Int(ceil(Double(total) / Double(limit)))
-        )
     }
 
     private func makeQQSong(raw: [String: Any]) -> SearchSong? {
@@ -433,6 +580,172 @@ struct MusicSearchService {
         )
     }
 
+    private func makeQQAlbum(raw: [String: Any]) -> SearchAlbum? {
+        guard let albumMid = raw["albummid"] as? String,
+              !albumMid.isEmpty else {
+            return nil
+        }
+
+        let artwork = URL(string: "https://y.gtimg.cn/music/photo_new/T002R500x500M000\(albumMid).jpg")
+        let legacy: [String: Any] = [
+            "albumMid": albumMid,
+            "albumId": stringValue(raw["id"]),
+            "albumName": raw["name"] as? String ?? "",
+            "artist": raw["singer"] as? String ?? "",
+            "publishDate": raw["publish_date"] as? String ?? "",
+            "songCount": raw["song_num"] as? Int ?? 0,
+            "source": SearchPlatformSource.tx.rawValue,
+            "img": artwork?.absoluteString ?? "",
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: legacy, options: [.sortedKeys]),
+              let json = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        let songCount = raw["song_num"] as? Int ?? 0
+        return SearchAlbum(
+            id: "tx_album_\(albumMid)",
+            source: .tx,
+            sourceAlbumID: albumMid,
+            title: raw["name"] as? String ?? "",
+            artist: raw["singer"] as? String ?? "",
+            releaseDate: raw["publish_date"] as? String ?? "",
+            songCountText: songCount > 0 ? "\(songCount) 首" : "",
+            artworkURL: artwork,
+            legacyInfoJSON: json
+        )
+    }
+
+    private func fetchQQAlbumSongs(albumMid: String) async throws -> [SearchSong] {
+        let body: [String: Any] = [
+            "comm": [
+                "ct": "11",
+                "cv": "14090508",
+                "v": "14090508",
+                "tmeAppID": "qqmusic",
+                "phonetype": "EBG-AN10",
+                "deviceScore": "553.47",
+                "devicelevel": "50",
+                "newdevicelevel": "20",
+                "rom": "HuaWei/EMOTION/EmotionUI_14.2.0",
+                "os_ver": "12",
+                "OpenUDID": "0",
+                "OpenUDID2": "0",
+                "QIMEI36": "0",
+                "udid": "0",
+                "chid": "0",
+                "aid": "0",
+                "oaid": "0",
+                "taid": "0",
+                "tid": "0",
+                "wid": "0",
+                "uid": "0",
+                "sid": "0",
+                "modeSwitch": "6",
+                "teenMode": "0",
+                "ui_mode": "2",
+                "nettype": "1020",
+                "v4ip": "",
+            ],
+            "req": [
+                "module": "music.musichallAlbum.AlbumSongList",
+                "method": "GetAlbumSongList",
+                "param": [
+                    "albumMid": albumMid,
+                    "begin": 0,
+                    "num": 300,
+                    "order": 2,
+                ],
+            ],
+        ]
+
+        let object = try await postJSON(
+            "https://u.y.qq.com/cgi-bin/musicu.fcg",
+            headers: ["User-Agent": "QQMusic 14090508(android 12)"],
+            body: body
+        )
+
+        guard let req = object["req"] as? [String: Any],
+              let code = req["code"] as? Int,
+              code == 0,
+              let data = req["data"] as? [String: Any],
+              let rawSongs = data["songList"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("QQ 专辑曲目")
+        }
+
+        return rawSongs.compactMap(makeQQAlbumSong)
+    }
+
+    private func makeQQAlbumSong(raw: [String: Any]) -> SearchSong? {
+        guard let songInfo = raw["songInfo"] as? [String: Any] else { return nil }
+        return makeQQSong(raw: songInfo)
+    }
+
+    private func fetchKugouAlbumSongs(albumID: String, albumTitle: String) async throws -> [SearchSong] {
+        let urlString = "https://mobilecdnbj.kugou.com/api/v3/album/song?albumid=\(albumID.urlEscaped)&page=1&pagesize=300"
+        let object = try await getJSON(urlString)
+        guard let data = object["data"] as? [String: Any],
+              let items = data["info"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("酷狗专辑曲目")
+        }
+        return items.compactMap { makeKugouAlbumSong(raw: $0, albumTitle: albumTitle) }
+    }
+
+    private func makeKugouAlbumSong(raw: [String: Any], albumTitle: String) -> SearchSong? {
+        guard let audioID = stringValue(raw["audio_id"]).nilIfEmpty,
+              let fileHash = raw["hash"] as? String else { return nil }
+
+        var qualities: [(String, String?, String)] = []
+        if let size = positiveSizeString(raw["filesize"]) {
+            qualities.append(("128k", size, fileHash))
+        }
+        if let size = positiveSizeString(raw["320filesize"]),
+           let hash = raw["320hash"] as? String, !hash.isEmpty {
+            qualities.append(("320k", size, hash))
+        }
+        if let size = positiveSizeString(raw["sqfilesize"]),
+           let hash = raw["sqhash"] as? String, !hash.isEmpty {
+            qualities.append(("flac", size, hash))
+        }
+
+        let filename = stringValue(raw["filename"])
+        let parts = filename.components(separatedBy: " - ")
+        let artist = parts.count > 1 ? parts.dropLast().joined(separator: " - ") : ""
+        let title = parts.count > 1 ? parts.last ?? filename : filename
+        let artworkURL = URL(string: stringValue((raw["trans_param"] as? [String: Any])?["union_cover"]).replacingOccurrences(of: "{size}", with: "400"))
+
+        let types = qualities.map { ["type": $0.0, "size": $0.1, "hash": $0.2] }
+        let legacy: [String: Any] = [
+            "name": title,
+            "singer": artist,
+            "albumName": albumTitle,
+            "albumId": albumIDFrom(raw),
+            "songmid": audioID,
+            "source": SearchPlatformSource.kg.rawValue,
+            "interval": formatDuration(seconds: raw["duration"] as? Int ?? 0),
+            "_interval": raw["duration"] as? Int ?? 0,
+            "img": artworkURL?.absoluteString ?? "",
+            "lrc": NSNull(),
+            "hash": fileHash,
+            "types": types,
+            "_types": Dictionary(uniqueKeysWithValues: qualities.map { ($0.0, ["size": $0.1, "hash": $0.2]) }),
+            "typeUrl": [:],
+        ]
+
+        return makeSearchSong(
+            id: "\(audioID)_\(fileHash)",
+            source: .kg,
+            title: title,
+            artist: artist,
+            album: albumTitle,
+            durationText: legacy["interval"] as? String ?? "",
+            artworkURL: artworkURL,
+            qualities: qualities.map(\.0),
+            legacy: legacy
+        )
+    }
+
     private func searchNetease(query: String, page: Int, limit: Int) async throws -> SearchPageResult {
         let payload: [String: Any] = [
             "keyword": query,
@@ -464,6 +777,39 @@ struct MusicSearchService {
         return SearchPageResult(
             source: .wy,
             list: songs,
+            total: total,
+            limit: limit,
+            maxPage: Int(ceil(Double(max(total, 1)) / Double(limit)))
+        )
+    }
+
+    private func searchNeteaseAlbums(query: String, page: Int, limit: Int) async throws -> SearchAlbumPageResult {
+        let offset = limit * (page - 1)
+        let form = [
+            "s": query,
+            "type": "10",
+            "offset": "\(offset)",
+            "limit": "\(limit)",
+        ]
+        let object = try await postForm(
+            "https://interface.music.163.com/api/cloudsearch/pc",
+            headers: [
+                "User-Agent": "Mozilla/5.0",
+                "Referer": "https://music.163.com/",
+            ],
+            form: form
+        )
+
+        guard let result = object["result"] as? [String: Any],
+              let items = result["albums"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("网易专辑")
+        }
+
+        let total = result["albumCount"] as? Int ?? items.count
+        let albums = items.compactMap(makeNeteaseAlbum)
+        return SearchAlbumPageResult(
+            source: .wy,
+            list: albums,
             total: total,
             limit: limit,
             maxPage: Int(ceil(Double(max(total, 1)) / Double(limit)))
@@ -533,6 +879,118 @@ struct MusicSearchService {
         )
     }
 
+    private func makeNeteaseAlbum(raw: [String: Any]) -> SearchAlbum? {
+        guard let albumID = stringValue(raw["id"]).nilIfEmpty else { return nil }
+
+        let primaryArtist = stringValue((raw["artist"] as? [String: Any])?["name"])
+        let artist = primaryArtist.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? joinNames(raw["artists"])
+            : primaryArtist
+        let artworkURL = URL(string: stringValue(raw["picUrl"]))
+        let publishDate = formatDateString(milliseconds: raw["publishTime"] as? Int64 ?? Int64(raw["publishTime"] as? Int ?? 0))
+        let songCount = raw["size"] as? Int ?? 0
+        let legacy: [String: Any] = [
+            "albumId": albumID,
+            "albumName": stringValue(raw["name"]),
+            "artist": artist,
+            "publishDate": publishDate,
+            "songCount": songCount,
+            "source": SearchPlatformSource.wy.rawValue,
+            "img": artworkURL?.absoluteString ?? "",
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: legacy, options: [.sortedKeys]),
+              let json = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        return SearchAlbum(
+            id: "wy_album_\(albumID)",
+            source: .wy,
+            sourceAlbumID: albumID,
+            title: stringValue(raw["name"]),
+            artist: artist,
+            releaseDate: publishDate,
+            songCountText: songCount > 0 ? "\(songCount) 首" : "",
+            artworkURL: artworkURL,
+            legacyInfoJSON: json
+        )
+    }
+
+    private func fetchNeteaseAlbumSongs(albumID: String) async throws -> [SearchSong] {
+        let object = try await getJSON(
+            "https://interface.music.163.com/api/v1/album/\(albumID)",
+            headers: [
+                "User-Agent": "Mozilla/5.0",
+                "Referer": "https://music.163.com/",
+            ]
+        )
+        guard let songs = object["songs"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("网易专辑曲目")
+        }
+        return songs.compactMap(makeNeteaseAlbumSong)
+    }
+
+    private func makeNeteaseAlbumSong(raw: [String: Any]) -> SearchSong? {
+        guard let songID = stringValue(raw["id"]).nilIfEmpty else { return nil }
+
+        let privilege = raw["privilege"] as? [String: Any] ?? [:]
+        let maxBrLevel = privilege["maxBrLevel"] as? String ?? ""
+        let maxBr = privilege["maxbr"] as? Int ?? 0
+        var qualities: [(String, String?)] = []
+
+        if maxBrLevel == "hires",
+           let hr = raw["hr"] as? [String: Any],
+           let size = positiveSizeString(hr["size"]) {
+            qualities.append(("flac24bit", size))
+        }
+        if maxBr >= 999_000,
+           let sq = raw["sq"] as? [String: Any],
+           let size = positiveSizeString(sq["size"]) {
+            qualities.append(("flac", size))
+        }
+        if maxBr >= 320_000,
+           let h = raw["h"] as? [String: Any],
+           let size = positiveSizeString(h["size"]) {
+            qualities.append(("320k", size))
+        }
+        if maxBr >= 128_000,
+           let l = raw["l"] as? [String: Any],
+           let size = positiveSizeString(l["size"]) {
+            qualities.append(("128k", size))
+        }
+
+        let album = raw["al"] as? [String: Any] ?? [:]
+        let artworkURL = URL(string: stringValue(album["picUrl"]))
+        let types = qualities.reversed().map { ["type": $0.0, "size": $0.1] }
+        let legacy: [String: Any] = [
+            "singer": joinNames(raw["ar"]),
+            "name": stringValue(raw["name"]),
+            "albumName": stringValue(album["name"]),
+            "albumId": stringValue(album["id"]),
+            "source": SearchPlatformSource.wy.rawValue,
+            "interval": formatDuration(milliseconds: raw["dt"] as? Int ?? 0),
+            "songmid": songID,
+            "img": artworkURL?.absoluteString ?? "",
+            "lrc": NSNull(),
+            "types": types,
+            "_types": Dictionary(uniqueKeysWithValues: qualities.map { ($0.0, ["size": $0.1]) }),
+            "typeUrl": [:],
+        ]
+
+        return makeSearchSong(
+            id: "wy_\(songID)",
+            source: .wy,
+            title: stringValue(raw["name"]),
+            artist: joinNames(raw["ar"]),
+            album: stringValue(album["name"]),
+            durationText: legacy["interval"] as? String ?? "",
+            artworkURL: artworkURL,
+            qualities: qualities.map(\.0),
+            legacy: legacy
+        )
+    }
+
     private func searchMigu(query: String, page: Int, limit: Int) async throws -> SearchPageResult {
         let time = String(Int(Date().timeIntervalSince1970 * 1000))
         let signature = createMiguSignature(time: time, text: query)
@@ -560,6 +1018,39 @@ struct MusicSearchService {
         return SearchPageResult(
             source: .mg,
             list: deduplicate(songs),
+            total: total,
+            limit: limit,
+            maxPage: Int(ceil(Double(max(total, 1)) / Double(limit)))
+        )
+    }
+
+    private func searchMiguAlbums(query: String, page: Int, limit: Int) async throws -> SearchAlbumPageResult {
+        let time = String(Int(Date().timeIntervalSince1970 * 1000))
+        let signature = createMiguSignature(time: time, text: query)
+        let urlString = "https://jadeite.migu.cn/music_search/v3/search/searchAll?isCorrect=0&isCopyright=1&searchSwitch=%7B%22song%22%3A0%2C%22album%22%3A1%2C%22singer%22%3A0%2C%22tagSong%22%3A0%2C%22mvSong%22%3A0%2C%22bestShow%22%3A0%2C%22songlist%22%3A0%2C%22lyricSong%22%3A0%7D&pageSize=\(limit)&text=\(query.urlEscaped)&pageNo=\(page)&sort=0&sid=USS"
+        let object = try await getJSON(
+            urlString,
+            headers: [
+                "uiVersion": "A_music_3.6.1",
+                "deviceId": signature.deviceID,
+                "timestamp": time,
+                "sign": signature.sign,
+                "channel": "0146921",
+                "User-Agent": "Mozilla/5.0 (Linux; Android 11.0.0; MI 11 Build/OPR1.170623.032) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30",
+            ]
+        )
+
+        guard (object["code"] as? String) == "000000",
+              let albumData = object["albumResultData"] as? [String: Any],
+              let items = albumData["result"] as? [[String: Any]] else {
+            throw MusicSearchError.badResponse("咪咕专辑")
+        }
+
+        let total = Int(albumData["totalCount"] as? String ?? "") ?? items.count
+        let albums = items.compactMap(makeMiguAlbum)
+        return SearchAlbumPageResult(
+            source: .mg,
+            list: albums,
             total: total,
             limit: limit,
             maxPage: Int(ceil(Double(max(total, 1)) / Double(limit)))
@@ -627,6 +1118,38 @@ struct MusicSearchService {
             artworkURL: artworkURL,
             qualities: qualities.map(\.0),
             legacy: legacy
+        )
+    }
+
+    private func makeMiguAlbum(raw: [String: Any]) -> SearchAlbum? {
+        guard let contentID = stringValue(raw["id"]).nilIfEmpty else { return nil }
+
+        let image = ((raw["imgItems"] as? [[String: Any]])?.first?["img"] as? String) ?? ""
+        let artworkURL = URL(string: image)
+        let legacy: [String: Any] = [
+            "albumId": contentID,
+            "albumName": stringValue(raw["name"]),
+            "artist": stringValue(raw["singer"]),
+            "publishDate": stringValue(raw["publishDate"]),
+            "source": SearchPlatformSource.mg.rawValue,
+            "img": artworkURL?.absoluteString ?? "",
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: legacy, options: [.sortedKeys]),
+              let json = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        return SearchAlbum(
+            id: "mg_album_\(contentID)",
+            source: .mg,
+            sourceAlbumID: contentID,
+            title: stringValue(raw["name"]),
+            artist: stringValue(raw["singer"]),
+            releaseDate: stringValue(raw["publishDate"]),
+            songCountText: "",
+            artworkURL: artworkURL,
+            legacyInfoJSON: json
         )
     }
 
@@ -802,6 +1325,14 @@ struct MusicSearchService {
         return number > 1000 ? formatDuration(milliseconds: number) : formatDuration(seconds: number)
     }
 
+    private func formatDateString(milliseconds: Int64) -> String {
+        guard milliseconds > 0 else { return "" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(milliseconds) / 1000))
+    }
+
     private func formatSize(bytes: Int) -> String {
         let size = Double(bytes)
         if size > 1024 * 1024 * 1024 {
@@ -822,6 +1353,15 @@ struct MusicSearchService {
     private func joinNames(_ raw: Any?) -> String {
         guard let array = raw as? [[String: Any]] else { return "" }
         return array.compactMap { $0["name"] as? String }.joined(separator: "、")
+    }
+
+    private func albumIDFrom(_ raw: [String: Any]) -> String {
+        let candidates = [
+            stringValue(raw["album_id"]),
+            stringValue(raw["albumid"]),
+            stringValue(raw["albumId"]),
+        ]
+        return candidates.first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? ""
     }
 
     private func decodeEntity(_ text: String) -> String {
@@ -856,6 +1396,134 @@ struct MusicSearchService {
             }
             return lhs.id < rhs.id
         }
+    }
+
+    private func sortAllSourceAlbums(_ albums: [SearchAlbum], keyword: String) -> [SearchAlbum] {
+        albums.sorted { lhs, rhs in
+            let lhsScore = albumScore(query: keyword, album: lhs)
+            let rhsScore = albumScore(query: keyword, album: rhs)
+            if lhsScore != rhsScore {
+                return lhsScore > rhsScore
+            }
+            if lhs.releaseDate != rhs.releaseDate {
+                return lhs.releaseDate > rhs.releaseDate
+            }
+            return lhs.id < rhs.id
+        }
+    }
+
+    private func albumScore(query: String, album: SearchAlbum) -> Int {
+        let normalizedQuery = normalize(query)
+        let title = normalize(album.title)
+        let artist = normalize(album.artist)
+        let combo = normalize("\(album.title) \(album.artist)")
+        let queryParts = splitSearchTerms(query)
+
+        var score = 0
+
+        if title == normalizedQuery {
+            score += 4000
+        } else if combo == normalizedQuery {
+            score += 3600
+        } else if title.hasPrefix(normalizedQuery) {
+            score += 2800
+        } else if title.contains(normalizedQuery) {
+            score += 2200
+        } else if combo.hasPrefix(normalizedQuery) {
+            score += 1800
+        } else if combo.contains(normalizedQuery) {
+            score += 1200
+        }
+
+        if artist == normalizedQuery {
+            score += 1000
+        } else if artist.hasPrefix(normalizedQuery) {
+            score += 760
+        } else if artist.contains(normalizedQuery) {
+            score += 520
+        }
+
+        let titlePartsMatched = queryParts.filter { title.contains($0) }.count
+        let artistPartsMatched = queryParts.filter { artist.contains($0) }.count
+        score += titlePartsMatched * 260
+        score += artistPartsMatched * 180
+
+        if !queryParts.isEmpty, titlePartsMatched == queryParts.count {
+            score += 520
+        }
+
+        if !queryParts.isEmpty, titlePartsMatched + artistPartsMatched == queryParts.count {
+            score += 320
+        }
+
+        score += Int(lxSimilarity(query, "\(album.title) \(album.artist)") * 1000)
+        score += recencyScore(from: album.releaseDate)
+        score -= editionPenalty(for: album, query: query)
+
+        return score
+    }
+
+    private func splitSearchTerms(_ query: String) -> [String] {
+        query
+            .split(whereSeparator: { character in
+                character.isWhitespace || "·•-_/()[]【】,，".contains(character)
+            })
+            .map(String.init)
+            .map(normalize)
+            .filter { !$0.isEmpty }
+    }
+
+    private func recencyScore(from dateText: String) -> Int {
+        guard !dateText.isEmpty else { return 0 }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: dateText) else { return 0 }
+
+        let interval = Date().timeIntervalSince(date)
+        let days = Int(interval / 86_400)
+        switch days {
+        case ..<0:
+            return 80
+        case 0...30:
+            return 140
+        case 31...180:
+            return 100
+        case 181...365:
+            return 60
+        case 366...1_825:
+            return 30
+        default:
+            return 0
+        }
+    }
+
+    private func editionPenalty(for album: SearchAlbum, query: String) -> Int {
+        let title = normalize(album.title)
+        let queryText = normalize(query)
+
+        let penaltyRules: [(keywords: [String], penalty: Int)] = [
+            (["演唱会", "live", "现场"], 520),
+            (["伴奏", "instrumental", "纯音乐"], 520),
+            (["ep"], 300),
+            (["single", "单曲"], 260),
+            (["demo"], 240),
+            (["remix", "mix"], 220),
+            (["版", "version", "ver"], 120),
+        ]
+
+        var totalPenalty = 0
+        for rule in penaltyRules {
+            let titleMatched = rule.keywords.contains { title.contains(normalize($0)) }
+            guard titleMatched else { continue }
+
+            let queryMatched = rule.keywords.contains { queryText.contains(normalize($0)) }
+            if !queryMatched {
+                totalPenalty += rule.penalty
+            }
+        }
+
+        return totalPenalty
     }
 
     private func lxSimilarity(_ a: String, _ b: String) -> Double {
@@ -996,6 +1664,19 @@ struct MusicSearchService {
     private func deduplicate(_ songs: [SearchSong]) -> [SearchSong] {
         var seen = Set<String>()
         return songs.filter { seen.insert($0.id).inserted }
+    }
+
+    private func deduplicateAlbums(_ albums: [SearchAlbum]) -> [SearchAlbum] {
+        var seen = Set<String>()
+        return albums.filter { album in
+            let key = [
+                album.source.rawValue,
+                normalize(album.title),
+                normalize(album.artist),
+                normalize(album.releaseDate),
+            ].joined(separator: "|")
+            return seen.insert(key).inserted
+        }
     }
 
     private func createMiguSignature(time: String, text: String) -> (sign: String, deviceID: String) {

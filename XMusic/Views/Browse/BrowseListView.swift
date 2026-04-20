@@ -7,6 +7,7 @@ struct BrowseListView: View {
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
 
     @Binding var showingSongs: Bool
+    @Binding var showingAlbums: Bool
     @Binding var showingPlaylists: Bool
     @Binding var showingCached: Bool
 
@@ -42,6 +43,18 @@ struct BrowseListView: View {
             ) {
                 withAnimation(.easeInOut(duration: 0.28)) {
                     showingSongs = true
+                }
+            }
+
+            RowDividerView()
+
+            BrowseListRowView(
+                symbol: "square.stack",
+                title: "专辑",
+                count: library.savedAlbums.count
+            ) {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    showingAlbums = true
                 }
             }
 

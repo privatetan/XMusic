@@ -152,4 +152,21 @@ final class ModelBehaviorTests: XCTestCase {
 
         XCTAssertEqual(preparedURL.absoluteString, remoteURL.absoluteString.replacingOccurrences(of: "http://", with: "https://"))
     }
+
+    @MainActor
+    func testKugouSearchSongStillPrefersHighestAvailableQuality() {
+        let song = SearchSong(
+            id: "kg-song-1",
+            source: .kg,
+            title: "Track",
+            artist: "Artist",
+            album: "Album",
+            durationText: "03:21",
+            artworkURL: nil,
+            qualities: ["128k", "320k", "flac"],
+            legacyInfoJSON: "{}"
+        )
+
+        XCTAssertEqual(song.preferredQuality, "flac")
+    }
 }

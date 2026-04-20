@@ -325,6 +325,45 @@ struct Playlist: Identifiable {
     }
 }
 
+struct LibraryAlbum: Identifiable, Equatable {
+    let source: SearchPlatformSource
+    let sourceAlbumID: String
+    let title: String
+    let artist: String
+    let releaseDate: String
+    let trackCount: Int
+    let artworkURL: URL?
+    let tracks: [Track]
+
+    var id: String { storageKey }
+
+    var storageKey: String {
+        let normalizedAlbumID = sourceAlbumID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !normalizedAlbumID.isEmpty {
+            return "album:\(source.rawValue):\(normalizedAlbumID)"
+        }
+        return "album:\(source.rawValue):\(title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())|\(artist.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
+    }
+
+    static func == (lhs: LibraryAlbum, rhs: LibraryAlbum) -> Bool {
+        lhs.storageKey == rhs.storageKey
+    }
+}
+
+enum LibraryRecentItem: Identifiable, Equatable {
+    case track(Track)
+    case album(LibraryAlbum)
+
+    var id: String {
+        switch self {
+        case let .track(track):
+            return "track:\(track.storageKey)"
+        case let .album(album):
+            return "album:\(album.storageKey)"
+        }
+    }
+}
+
 extension URL {
     var preferredArtworkURL: URL {
         guard scheme?.lowercased() == "http",

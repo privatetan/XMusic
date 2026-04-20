@@ -11,15 +11,18 @@ import Foundation
 @MainActor
 final class MusicSearchViewModel: ObservableObject {
     @Published var query = ""
+    @Published var selectedKind: SearchResultKind = .song
     @Published var selectedSource: SearchPlatformSource = .all
     @Published private(set) var searchHistory: [String] = []
     @Published private(set) var results: [SearchSong] = []
+    @Published private(set) var albumResults: [SearchAlbum] = []
     @Published private(set) var debugItems: [SearchDebugItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingMore = false
     @Published var errorMessage: String?
 
     private let service = MusicSearchService()
+    private let albumSearchEntry = AlbumSearchEntry()
     private let historyKey = "XMusic.SearchHistory"
     private let maxHistoryCount = 12
     private var currentPage = 0
@@ -34,7 +37,7 @@ final class MusicSearchViewModel: ObservableObject {
     }
 
     var canLoadMore: Bool {
-        !results.isEmpty && currentPage < maxPage && !isLoading && !isLoadingMore
+        ((!results.isEmpty) || (!albumResults.isEmpty)) && currentPage < maxPage && !isLoading && !isLoadingMore
     }
 
     func submitSearch() {
@@ -109,6 +112,7 @@ final class MusicSearchViewModel: ObservableObject {
 
     func reset() {
         results = []
+        albumResults = []
         debugItems = []
         currentPage = 0
         maxPage = 0
@@ -139,7 +143,13 @@ final class MusicSearchViewModel: ObservableObject {
 
         let page = isReset ? 1 : currentPage + 1
         let availableSources = allowedSources.isEmpty ? SearchPlatformSource.builtIn : allowedSources
-        let cacheKey = makeCacheKey(query: trimmed, page: page, source: selectedSource, allowedSources: availableSources)
+        let cacheKey = makeCacheKey(
+            query: trimmed,
+            page: page,
+            kind: selectedKind,
+            source: selectedSource,
+            allowedSources: availableSources
+        )
 
         defer {
             isLoading = false
@@ -151,26 +161,49 @@ final class MusicSearchViewModel: ObservableObject {
             if let cached = cache[cacheKey] {
                 responseBundle = cached
             } else {
-                responseBundle = try await service.search(
-                    query: trimmed,
-                    page: page,
-                    source: selectedSource,
-                    allowedSources: availableSources
-                )
+                switch selectedKind {
+                case .song:
+                    responseBundle = try await service.search(
+                        query: trimmed,
+                        page: page,
+                        kind: .song,
+                        source: selectedSource,
+                        allowedSources: availableSources
+                    )
+                case .album:
+                    responseBundle = try await albumSearchEntry.search(
+                        query: trimmed,
+                        page: page,
+                        source: selectedSource,
+                        allowedSources: availableSources
+                    )
+                }
                 cache[cacheKey] = responseBundle
             }
 
             guard token == latestSearchToken else { return }
 
             currentPage = page
-            maxPage = responseBundle.result.maxPage
-            results = isReset ? responseBundle.result.list : results + responseBundle.result.list
+            maxPage = responseBundle.payload.maxPage
+            switch responseBundle.payload {
+            case let .songs(result):
+                results = isReset ? result.list : results + result.list
+                if isReset {
+                    albumResults = []
+                }
+            case let .albums(result):
+                albumResults = isReset ? result.list : albumResults + result.list
+                if isReset {
+                    results = []
+                }
+            }
             debugItems = responseBundle.debugItems
         } catch {
             guard token == latestSearchToken else { return }
             errorMessage = error.localizedDescription
             if isReset {
                 results = []
+                albumResults = []
             }
             debugItems = []
         }
@@ -179,11 +212,12 @@ final class MusicSearchViewModel: ObservableObject {
     private func makeCacheKey(
         query: String,
         page: Int,
+        kind: SearchResultKind = .song,
         source: SearchPlatformSource,
         allowedSources: [SearchPlatformSource]
     ) -> String {
         let sourceList = allowedSources.map(\.rawValue).sorted().joined(separator: ",")
-        return "\(source.rawValue)__\(page)__\(query)__\(sourceList)"
+        return "\(kind.rawValue)__\(source.rawValue)__\(page)__\(query)__\(sourceList)"
     }
 
     private func loadSearchHistory() {

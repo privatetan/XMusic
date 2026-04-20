@@ -5,6 +5,11 @@ private struct SearchPlaylistDraftSession: Identifiable {
     let draft: CustomPlaylistDraft
 }
 
+private struct SearchAlbumDetailSession: Identifiable {
+    let id = UUID()
+    let album: SearchAlbum
+}
+
 struct SearchView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
@@ -17,6 +22,8 @@ struct SearchView: View {
     @State private var isDebugPanelExpanded = true
     @State private var playbackDebugInfo: PlaybackDebugInfo?
     @State private var playlistDraftSession: SearchPlaylistDraftSession?
+    @State private var albumDetailSession: SearchAlbumDetailSession?
+    @State private var workingAlbumID: String?
     @State private var isEditingHistory = false
     private let isPlaybackDebugCardVisible = false
     private let isSearchDebugPanelVisible = false
@@ -27,6 +34,23 @@ struct SearchView: View {
                 Text("搜索")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(SearchResultKind.allCases) { kind in
+                            SearchSourcePill(
+                                title: kind.title,
+                                isSelected: musicSearch.selectedKind == kind
+                            ) {
+                                guard musicSearch.selectedKind != kind else { return }
+                                musicSearch.selectedKind = kind
+                                ensureSelectedSourceIsValid()
+                                musicSearch.reload(allowedSources: searchableSources)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -98,7 +122,7 @@ struct SearchView: View {
                         activeSourceName: sourceLibrary.activeSource?.name,
                         fallbackEnabled: sourceLibrary.enableAutomaticSourceFallback
                     )
-                } else if musicSearch.isLoading && musicSearch.results.isEmpty {
+                } else if musicSearch.isLoading && activeResultCount == 0 {
                     VStack(spacing: 16) {
                         ProgressView()
                             .tint(.white)
@@ -118,7 +142,7 @@ struct SearchView: View {
 
                             Spacer(minLength: 0)
 
-                            Text("\(musicSearch.results.count) 首")
+                            Text(searchResultSummary)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.white.opacity(0.58))
                         }
@@ -149,7 +173,7 @@ struct SearchView: View {
                             PlaybackDebugCard(info: playbackDebugInfo)
                         }
 
-                        if let errorMessage = musicSearch.errorMessage, musicSearch.results.isEmpty {
+                        if let errorMessage = musicSearch.errorMessage, activeResultCount == 0 {
                             Text(errorMessage)
                                 .font(.footnote)
                                 .foregroundStyle(Color.white.opacity(0.72))
@@ -158,25 +182,53 @@ struct SearchView: View {
                                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                         }
 
-                        ForEach(musicSearch.results) { song in
-                            let track = Track.searchResultTrack(from: song)
-                            OnlineSearchResultRow(
-                                song: song,
-                                isCurrent: player.isCurrentTrack(track),
-                                isResolving: resolvingSongID == song.id,
-                                isInLibrary: library.contains(track),
-                                customPlaylists: playlistModel.customPlaylists,
-                                playlistContainsTrack: { playlist in
-                                    playlistModel.contains(track, in: playlist)
+                        switch musicSearch.selectedKind {
+                        case .song:
+                            ForEach(musicSearch.results) { song in
+                                let track = Track.searchResultTrack(from: song)
+                                OnlineSearchResultRow(
+                                    song: song,
+                                    isCurrent: player.isCurrentTrack(track),
+                                    isResolving: resolvingSongID == song.id,
+                                    isInLibrary: library.contains(track),
+                                    customPlaylists: playlistModel.customPlaylists,
+                                    playlistContainsTrack: { playlist in
+                                        playlistModel.contains(track, in: playlist)
+                                    }
+                                ) {
+                                    play(song)
+                                } onAddToLibrary: {
+                                    addToLibrary(song)
+                                } onAddToCustomPlaylist: { playlist in
+                                    addToCustomPlaylist(song, playlist: playlist)
+                                } onCreateCustomPlaylist: {
+                                    openCustomPlaylistEditor(prefilling: song)
                                 }
-                            ) {
-                                play(song)
-                            } onAddToLibrary: {
-                                addToLibrary(song)
-                            } onAddToCustomPlaylist: { playlist in
-                                addToCustomPlaylist(song, playlist: playlist)
-                            } onCreateCustomPlaylist: {
-                                openCustomPlaylistEditor(prefilling: song)
+                            }
+                        case .album:
+                            ForEach(musicSearch.albumResults) { album in
+                                SearchAlbumResultRow(
+                                    album: album,
+                                    isWorking: workingAlbumID == album.id,
+                                    isInLibrary: library.contains(
+                                        album: LibraryAlbum(
+                                            source: album.source,
+                                            sourceAlbumID: album.sourceAlbumID,
+                                            title: album.title,
+                                            artist: album.artist,
+                                            releaseDate: album.releaseDate,
+                                            trackCount: 0,
+                                            artworkURL: album.artworkURL,
+                                            tracks: []
+                                        )
+                                    )
+                                ) {
+                                    openAlbumSongs(album)
+                                } onPlayAlbum: {
+                                    playAlbum(album)
+                                } onAddToLibrary: {
+                                    addAlbumToLibrary(album)
+                                }
                             }
                         }
 
@@ -202,14 +254,12 @@ struct SearchView: View {
         }
         .onAppear {
             if !musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               musicSearch.results.isEmpty {
+               activeResultCount == 0 {
                 musicSearch.reload(allowedSources: searchableSources)
             }
         }
         .appOnChange(of: sourceLibrary.activeSourceID) {
-            if !searchableSourceTabs.contains(musicSearch.selectedSource) {
-                musicSearch.selectedSource = .all
-            }
+            ensureSelectedSourceIsValid()
             if !musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 musicSearch.reload(allowedSources: searchableSources)
             }
@@ -223,22 +273,57 @@ struct SearchView: View {
                 actionMessage = "已创建自定义歌单。"
             }
         }
+        .sheet(item: $albumDetailSession) { session in
+            SearchAlbumDetailSheet(
+                album: session.album,
+                onPlay: play(_:),
+                onAddToLibrary: addToLibrary(_:),
+                onAddToCustomPlaylist: addToCustomPlaylist(_:playlist:),
+                onCreateCustomPlaylist: openCustomPlaylistEditor(prefilling:)
+            )
+            .environmentObject(player)
+            .environmentObject(sourceLibrary)
+            .environmentObject(library)
+            .environmentObject(playlistModel)
+        }
         .appOnChange(of: musicSearch.query) {
             musicSearch.scheduleSearch(allowedSources: searchableSources)
             if !musicSearch.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 isEditingHistory = false
             }
         }
+        .appOnChange(of: musicSearch.selectedKind) {
+            ensureSelectedSourceIsValid()
+        }
     }
 
     private var searchableSources: [SearchPlatformSource] {
         let sourceNames = sourceLibrary.activeSource?.capabilities.compactMap { SearchPlatformSource(rawValue: $0.source) } ?? []
-        return sourceNames.isEmpty ? SearchPlatformSource.builtIn : sourceNames
+        let allSources = sourceNames.isEmpty ? SearchPlatformSource.builtIn : sourceNames
+        return allSources.filter { $0.supports(musicSearch.selectedKind) }
     }
 
     private var searchableSourceTabs: [SearchPlatformSource] {
         [.all] + searchableSources.sorted { lhs, rhs in
             searchSourcePriority(lhs) < searchSourcePriority(rhs)
+        }
+    }
+
+    private var activeResultCount: Int {
+        switch musicSearch.selectedKind {
+        case .song:
+            return musicSearch.results.count
+        case .album:
+            return musicSearch.albumResults.count
+        }
+    }
+
+    private var searchResultSummary: String {
+        switch musicSearch.selectedKind {
+        case .song:
+            return "\(musicSearch.results.count) 首"
+        case .album:
+            return "\(musicSearch.albumResults.count) 张专辑"
         }
     }
 
@@ -256,6 +341,12 @@ struct SearchView: View {
             return 4
         case .all:
             return -1
+        }
+    }
+
+    private func ensureSelectedSourceIsValid() {
+        if !searchableSourceTabs.contains(musicSearch.selectedSource) {
+            musicSearch.selectedSource = .all
         }
     }
 
@@ -354,6 +445,90 @@ struct SearchView: View {
                 libraryTracks: library.savedTracks
             )
         )
+    }
+
+    private func openAlbumSongs(_ album: SearchAlbum) {
+        playbackError = nil
+        actionMessage = nil
+        albumDetailSession = SearchAlbumDetailSession(album: album)
+    }
+
+    private func addAlbumToLibrary(_ album: SearchAlbum) {
+        guard workingAlbumID != album.id else { return }
+
+        let storedAlbum = LibraryAlbum(
+            source: album.source,
+            sourceAlbumID: album.sourceAlbumID,
+            title: album.title,
+            artist: album.artist,
+            releaseDate: album.releaseDate,
+            trackCount: 0,
+            artworkURL: album.artworkURL,
+            tracks: []
+        )
+        guard !library.contains(album: storedAlbum) else {
+            actionMessage = "这张专辑已经在资料库里了。"
+            return
+        }
+
+        playbackError = nil
+        actionMessage = nil
+        workingAlbumID = album.id
+
+        Task {
+            defer {
+                Task { @MainActor in
+                    workingAlbumID = nil
+                }
+            }
+
+            do {
+                let songs = try await AlbumSearchEntry().albumSongs(for: album)
+                await MainActor.run {
+                    library.add(album: album, songs: songs)
+                    actionMessage = "已加入专辑：\(album.title)"
+                }
+            } catch {
+                await MainActor.run {
+                    playbackError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func playAlbum(_ album: SearchAlbum) {
+        guard workingAlbumID != album.id else { return }
+
+        playbackError = nil
+        actionMessage = nil
+        workingAlbumID = album.id
+
+        Task {
+            defer {
+                Task { @MainActor in
+                    workingAlbumID = nil
+                }
+            }
+
+            do {
+                let songs = try await AlbumSearchEntry().albumSongs(for: album)
+                guard let firstSong = songs.first else {
+                    await MainActor.run {
+                        playbackError = "这张专辑当前没有可播放的曲目。"
+                    }
+                    return
+                }
+
+                await MainActor.run {
+                    actionMessage = "正在播放专辑：\(album.title)"
+                    play(firstSong)
+                }
+            } catch {
+                await MainActor.run {
+                    playbackError = error.localizedDescription
+                }
+            }
+        }
     }
 }
 
@@ -512,6 +687,296 @@ private struct SearchStatusCard: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
+    }
+}
+
+private struct SearchAlbumResultRow: View {
+    let album: SearchAlbum
+    let isWorking: Bool
+    let isInLibrary: Bool
+    let action: () -> Void
+    let onPlayAlbum: () -> Void
+    let onAddToLibrary: () -> Void
+
+    private var coverTrack: Track {
+        Track(
+            title: album.title,
+            artist: album.artist,
+            album: album.title,
+            blurb: "专辑搜索结果",
+            genre: album.source.title,
+            duration: 0,
+            artwork: album.source.searchArtworkPalette,
+            remoteArtworkURL: album.artworkURL,
+            sourceName: album.source.title
+        )
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: action) {
+                HStack(spacing: 12) {
+                    CoverImgView(track: coverTrack, cornerRadius: 10, iconSize: 16)
+                    .frame(width: 56, height: 56)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(album.title)
+                            .font(.body)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+
+                        Text(album.artist)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.white.opacity(0.58))
+                            .lineLimit(1)
+
+                        HStack(spacing: 8) {
+                            if !album.releaseDate.isEmpty {
+                                Text(album.releaseDate)
+                            }
+                            if !album.songCountText.isEmpty {
+                                Text(album.songCountText)
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Color.white.opacity(0.4))
+                    }
+
+                    Spacer(minLength: 0)
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text(album.source.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.52))
+
+                        Text("搜歌曲")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color(red: 0.58, green: 0.88, blue: 0.75))
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isWorking {
+                ProgressView()
+                    .tint(.white)
+                    .frame(width: 36, height: 44)
+            } else {
+                Menu {
+                    Button("查看专辑", systemImage: "rectangle.stack") {
+                        action()
+                    }
+
+                    Button("播放专辑", systemImage: "play.fill") {
+                        onPlayAlbum()
+                    }
+
+                    Button(isInLibrary ? "已在资料库" : "加入资料库", systemImage: isInLibrary ? "checkmark" : "square.and.arrow.down") {
+                        onAddToLibrary()
+                    }
+                    .disabled(isInLibrary)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.3))
+                        .frame(width: 36, height: 44)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 10)
+    }
+}
+
+private struct SearchAlbumDetailSheet: View {
+    @EnvironmentObject private var player: MusicPlayerViewModel
+    @EnvironmentObject private var sourceLibrary: MusicSourceLibrary
+    @EnvironmentObject private var library: MusicLibraryViewModel
+    @EnvironmentObject private var playlistModel: MusicPlaylistViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    let album: SearchAlbum
+    let onPlay: (SearchSong) -> Void
+    let onAddToLibrary: (SearchSong) -> Void
+    let onAddToCustomPlaylist: (SearchSong, Playlist) -> Void
+    let onCreateCustomPlaylist: (SearchSong) -> Void
+
+    @State private var songs: [SearchSong] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    private let albumSearchEntry = AlbumSearchEntry()
+
+    private var coverTrack: Track {
+        Track(
+            title: album.title,
+            artist: album.artist,
+            album: album.title,
+            blurb: "专辑详情",
+            genre: album.source.title,
+            duration: 0,
+            artwork: album.source.searchArtworkPalette,
+            remoteArtworkURL: album.artworkURL,
+            sourceName: album.source.title
+        )
+    }
+
+    private var isAlbumInLibrary: Bool {
+        library.contains(
+            album: LibraryAlbum(
+                source: album.source,
+                sourceAlbumID: album.sourceAlbumID,
+                title: album.title,
+                artist: album.artist,
+                releaseDate: album.releaseDate,
+                trackCount: songs.count,
+                artworkURL: album.artworkURL,
+                tracks: songs.map { Track.searchResultTrack(from: $0) }
+            )
+        )
+    }
+
+    var body: some View {
+        AppNavigationContainerView {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    albumHeader
+
+                    if isLoading {
+                        VStack(spacing: 14) {
+                            ProgressView()
+                                .tint(.white)
+                            Text("正在加载专辑曲目…")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.white.opacity(0.68))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 28)
+                    } else if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(Color.white.opacity(0.72))
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                Text("曲目")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+
+                            if !songs.isEmpty {
+                                Button(isAlbumInLibrary ? "专辑已在资料库" : "加入整张专辑") {
+                                    library.add(album: album, songs: songs)
+                                }
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(isAlbumInLibrary ? Color.white.opacity(0.5) : Color(red: 0.57, green: 0.90, blue: 0.72))
+                                .disabled(isAlbumInLibrary)
+                            }
+
+                            ForEach(songs) { song in
+                                let track = Track.searchResultTrack(from: song)
+                                OnlineSearchResultRow(
+                                    song: song,
+                                    isCurrent: player.isCurrentTrack(track),
+                                    isResolving: false,
+                                    isInLibrary: library.contains(track),
+                                    customPlaylists: playlistModel.customPlaylists,
+                                    playlistContainsTrack: { playlist in
+                                        playlistModel.contains(track, in: playlist)
+                                    }
+                                ) {
+                                    dismiss()
+                                    onPlay(song)
+                                } onAddToLibrary: {
+                                    onAddToLibrary(song)
+                                } onAddToCustomPlaylist: { playlist in
+                                    onAddToCustomPlaylist(song, playlist)
+                                } onCreateCustomPlaylist: {
+                                    onCreateCustomPlaylist(song)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 20)
+            }
+            .navigationTitle(album.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .task {
+                await loadSongs()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+        }
+    }
+
+    private var albumHeader: some View {
+        HStack(alignment: .top, spacing: 16) {
+            CoverImgView(track: coverTrack, cornerRadius: 18, iconSize: 22)
+                .frame(width: 112, height: 112)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(album.title)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(album.artist)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.white.opacity(0.68))
+
+                HStack(spacing: 8) {
+                    if !album.releaseDate.isEmpty {
+                        infoPill(album.releaseDate)
+                    }
+                    if !album.songCountText.isEmpty {
+                        infoPill(album.songCountText)
+                    }
+                    infoPill(album.source.title)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private func infoPill(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Color.white.opacity(0.7))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.08), in: Capsule())
+    }
+
+    @MainActor
+    private func loadSongs() async {
+        guard songs.isEmpty else { return }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            songs = try await albumSearchEntry.albumSongs(for: album)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
     }
 }
 

@@ -13,6 +13,7 @@ struct ContentView: View {
     @FocusState private var isSearchFieldFocused: Bool
 
     @State private var showBrowseSongs = false
+    @State private var showBrowseAlbums = false
     @State private var showBrowsePlaylists = false
     @State private var showBrowseCached = false
 
@@ -51,6 +52,14 @@ struct ContentView: View {
                     .transition(.move(edge: .trailing))
                     .zIndex(10)
             }
+            if showBrowseAlbums {
+                AllAlbumsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseAlbums = false } })
+                    .environmentObject(library)
+                    .environmentObject(player)
+                    .environmentObject(playlistModel)
+                    .transition(.move(edge: .trailing))
+                    .zIndex(10)
+            }
             if showBrowsePlaylists {
                 AllPlaylistsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowsePlaylists = false } })
                     .environmentObject(playlistModel)
@@ -71,10 +80,12 @@ struct ContentView: View {
                 .zIndex(10)
         }
         .animation(.easeInOut(duration: 0.28), value: showBrowseSongs)
+        .animation(.easeInOut(duration: 0.28), value: showBrowseAlbums)
         .animation(.easeInOut(duration: 0.28), value: showBrowsePlaylists)
         .animation(.easeInOut(duration: 0.28), value: showBrowseCached)
         .appOnChange(of: player.selectedTab) {
             showBrowseSongs = false
+            showBrowseAlbums = false
             showBrowsePlaylists = false
             showBrowseCached = false
             scrollState.reset()
@@ -155,6 +166,7 @@ struct ContentView: View {
         case .browse:
             BrowseView(
                 showingSongs: $showBrowseSongs,
+                showingAlbums: $showBrowseAlbums,
                 showingPlaylists: $showBrowsePlaylists,
                 showingCached: $showBrowseCached
             )

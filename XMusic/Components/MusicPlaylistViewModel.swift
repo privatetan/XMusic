@@ -30,11 +30,39 @@ private struct StoredLibraryTrack: Codable, Identifiable {
     let addedAt: Date
 }
 
+private struct StoredLibraryAlbum: Codable, Identifiable {
+    let id: String
+    let source: String
+    let sourceAlbumID: String
+    let title: String
+    let artist: String
+    let releaseDate: String
+    let trackCount: Int
+    let artworkURL: String?
+    let tracks: [StoredTrackRecord]
+    let addedAt: Date
+
+    var album: LibraryAlbum? {
+        guard let source = SearchPlatformSource(rawValue: source) else { return nil }
+        return LibraryAlbum(
+            source: source,
+            sourceAlbumID: sourceAlbumID,
+            title: title,
+            artist: artist,
+            releaseDate: releaseDate,
+            trackCount: trackCount,
+            artworkURL: artworkURL.flatMap(URL.init(string:)),
+            tracks: tracks.map(\.track)
+        )
+    }
+}
+
 private struct MusicLibraryStore {
-    private let storageKey = "XMusic.SavedLibraryTracks"
+    private let trackStorageKey = "XMusic.SavedLibraryTracks"
+    private let albumStorageKey = "XMusic.SavedLibraryAlbums"
 
     func load() -> [StoredLibraryTrack] {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
+        guard let data = UserDefaults.standard.data(forKey: trackStorageKey),
               let records = try? JSONDecoder().decode([StoredLibraryTrack].self, from: data) else {
             return []
         }
@@ -43,16 +71,32 @@ private struct MusicLibraryStore {
 
     func save(_ tracks: [StoredLibraryTrack]) {
         guard let data = try? JSONEncoder().encode(tracks) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        UserDefaults.standard.set(data, forKey: trackStorageKey)
+    }
+
+    func loadAlbums() -> [StoredLibraryAlbum] {
+        guard let data = UserDefaults.standard.data(forKey: albumStorageKey),
+              let records = try? JSONDecoder().decode([StoredLibraryAlbum].self, from: data) else {
+            return []
+        }
+        return records.sorted { $0.addedAt > $1.addedAt }
+    }
+
+    func saveAlbums(_ albums: [StoredLibraryAlbum]) {
+        guard let data = try? JSONEncoder().encode(albums) else { return }
+        UserDefaults.standard.set(data, forKey: albumStorageKey)
     }
 }
 
 @MainActor
 final class MusicLibraryViewModel: ObservableObject {
     @Published private(set) var savedTracks: [Track] = []
+    @Published private(set) var savedAlbums: [LibraryAlbum] = []
+    @Published private(set) var recentItems: [LibraryRecentItem] = []
 
     private let store = MusicLibraryStore()
     private var storedTracks: [StoredLibraryTrack] = []
+    private var storedAlbums: [StoredLibraryAlbum] = []
 
     init() {
         load()
@@ -64,6 +108,10 @@ final class MusicLibraryViewModel: ObservableObject {
 
     func contains(searchSong: SearchSong) -> Bool {
         contains(Track.searchResultTrack(from: searchSong))
+    }
+
+    func contains(album: LibraryAlbum) -> Bool {
+        storedAlbums.contains { $0.id == album.storageKey }
     }
 
     func add(_ track: Track) {
@@ -81,28 +129,95 @@ final class MusicLibraryViewModel: ObservableObject {
         add(Track.searchResultTrack(from: searchSong))
     }
 
+    func add(album: SearchAlbum, songs: [SearchSong]) {
+        let tracks = songs.map { Track.searchResultTrack(from: $0) }
+        let libraryAlbum = LibraryAlbum(
+            source: album.source,
+            sourceAlbumID: album.sourceAlbumID,
+            title: album.title,
+            artist: album.artist,
+            releaseDate: album.releaseDate,
+            trackCount: songs.count,
+            artworkURL: album.artworkURL,
+            tracks: tracks
+        )
+        add(album: libraryAlbum)
+    }
+
+    func add(album: LibraryAlbum) {
+        let record = StoredLibraryAlbum(
+            id: album.storageKey,
+            source: album.source.rawValue,
+            sourceAlbumID: album.sourceAlbumID,
+            title: album.title,
+            artist: album.artist,
+            releaseDate: album.releaseDate,
+            trackCount: album.trackCount,
+            artworkURL: album.artworkURL?.absoluteString,
+            tracks: album.tracks.map(StoredTrackRecord.init),
+            addedAt: Date()
+        )
+        storedAlbums.removeAll { $0.id == record.id }
+        storedAlbums.insert(record, at: 0)
+        persist()
+    }
+
     func remove(_ track: Track) {
         storedTracks.removeAll { $0.id == track.storageKey }
         persist()
     }
 
+    func remove(album: LibraryAlbum) {
+        storedAlbums.removeAll { $0.id == album.storageKey }
+        persist()
+    }
+
     private func load() {
         storedTracks = store.load().filter { $0.track.track.searchSong != nil }
+        storedAlbums = store.loadAlbums().filter { $0.album != nil }
         store.save(storedTracks)
+        store.saveAlbums(storedAlbums)
         syncSavedTracks()
+        syncSavedAlbums()
+        syncRecentItems()
     }
 
     private func persist() {
         storedTracks = storedTracks.filter { $0.track.track.searchSong != nil }
         storedTracks.sort { $0.addedAt > $1.addedAt }
+        storedAlbums = storedAlbums.filter { $0.album != nil }
+        storedAlbums.sort { $0.addedAt > $1.addedAt }
         store.save(storedTracks)
+        store.saveAlbums(storedAlbums)
         syncSavedTracks()
+        syncSavedAlbums()
+        syncRecentItems()
     }
 
     private func syncSavedTracks() {
         savedTracks = storedTracks
             .map(\.track.track)
             .filter { $0.searchSong != nil }
+    }
+
+    private func syncSavedAlbums() {
+        savedAlbums = storedAlbums.compactMap(\.album)
+    }
+
+    private func syncRecentItems() {
+        let trackItems = storedTracks.compactMap { record -> (Date, LibraryRecentItem)? in
+            let track = record.track.track
+            guard track.searchSong != nil else { return nil }
+            return (record.addedAt, .track(track))
+        }
+        let albumItems = storedAlbums.compactMap { record -> (Date, LibraryRecentItem)? in
+            guard let album = record.album else { return nil }
+            return (record.addedAt, .album(album))
+        }
+
+        recentItems = (trackItems + albumItems)
+            .sorted { $0.0 > $1.0 }
+            .map(\.1)
     }
 }
 

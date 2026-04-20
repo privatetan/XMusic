@@ -3,6 +3,7 @@ import SwiftUI
 struct BrowseView: View {
     @EnvironmentObject private var scrollState: AppScrollState
     @Binding var showingSongs: Bool
+    @Binding var showingAlbums: Bool
     @Binding var showingPlaylists: Bool
     @Binding var showingCached: Bool
 
@@ -18,6 +19,7 @@ struct BrowseView: View {
 
                 BrowseListView(
                     showingSongs: $showingSongs,
+                    showingAlbums: $showingAlbums,
                     showingPlaylists: $showingPlaylists,
                     showingCached: $showingCached
                 )
