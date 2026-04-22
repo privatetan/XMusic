@@ -192,7 +192,6 @@ final class MusicPlayerViewModel: ObservableObject {
     @Published var currentTrack: Track?
     @Published var selectedTab: AppTab = .browse
     @Published var isNowPlayingPresented = false
-    @Published private(set) var nowPlayingPresentationID = UUID()
     @Published var isPlaying = false
     @Published var volume: Double = 0.85
     let playbackTimeline = PlaybackTimeline()
@@ -295,7 +294,6 @@ final class MusicPlayerViewModel: ObservableObject {
         guard currentTrack != nil else { return }
         guard !isNowPlayingPresented else { return }
 
-        nowPlayingPresentationID = UUID()
         setNowPlayingPresented(true, animated: animated)
     }
 

@@ -10,7 +10,6 @@ import SwiftUI
 
 private struct PlayPageDemoView: View {
     @StateObject private var player = MusicPlayerViewModel()
-    @Namespace private var animation
     @State private var isScrubbing = false
     @State private var draftTime: Double = 39
     @State private var lyricsPresentationMode: LyricsPresentationMode
@@ -46,7 +45,6 @@ private struct PlayPageDemoView: View {
                 VStack(spacing: 0) {
                     PlayPageArtworkSectionView(
                         track: previewTrack,
-                        animation: animation,
                         layout: layout,
                         squeezeProgress: 0,
                         lines: previewLines,

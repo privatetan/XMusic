@@ -12,7 +12,6 @@ enum LyricsPresentationMode {
 
 struct PlayPageArtworkSectionView: View {
     let track: Track
-    let animation: Namespace.ID
     let layout: PlayPagePanelLayout
     let squeezeProgress: CGFloat
     let lines: [ParsedLyricLine]
@@ -57,7 +56,6 @@ struct PlayPageArtworkSectionView: View {
                 CoverImgView(track: track, cornerRadius: 28, iconSize: layout.compactHeight ? 28 : 32)
                     .frame(width: layout.artworkSize, height: layout.artworkSize)
                     .clipped()
-                    .matchedGeometryEffect(id: "Artwork", in: animation)
                     .shadow(color: Color.black.opacity(0.14), radius: 24, x: 0, y: 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)

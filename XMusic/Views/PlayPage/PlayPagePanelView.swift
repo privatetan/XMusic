@@ -18,7 +18,6 @@ struct PlayPagePanelView: View {
     @State private var isScrubbing = false
     @State private var draftTime: Double = 0
     @State private var dragOffset: CGFloat = 0
-    @State private var showContent = true
     @State private var lyricsPresentationMode: LyricsPresentationMode = .hidden
     @State private var isLoadingLyrics = false
     @State private var lyricsStateTrackID: UUID?
@@ -29,7 +28,6 @@ struct PlayPagePanelView: View {
     @State private var isRouteSheetPresented = false
     @State private var routePickerTrigger = 0
     @State private var isLyricsAtTop = true
-    let animation: Namespace.ID
     /// 从父视图传入的稳定尺寸，避免 GeometryReader 在转场动画期间
     /// 拿到 .zero / 不正确的值导致布局卡死。
     var containerSize: CGSize = .zero
@@ -51,7 +49,7 @@ struct PlayPagePanelView: View {
                 let topSectionHeight = lyricsPresentationMode == .full ? layout.availableHeight : layout.topSectionHeight
 
                 ZStack {
-                    RoundedRectangle(cornerRadius: currentCornerRadius, style: .continuous)
+                    Rectangle()
                         .fill(
                             LinearGradient(
                                 colors: [
@@ -63,15 +61,12 @@ struct PlayPagePanelView: View {
                                 endPoint: .bottom
                             )
                         )
-                        .matchedGeometryEffect(id: "PlayerBackground", in: animation)
                         .ignoresSafeArea()
-                        .scaleEffect(x: currentScaleX, y: currentScaleY)
                         .opacity(backgroundOpacity)
 
                     VStack(spacing: 0) {
                         PlayPageArtworkSectionView(
                             track: track,
-                            animation: animation,
                             layout: layout,
                             squeezeProgress: squeezeProgress,
                             lines: lyricLines,
@@ -79,7 +74,7 @@ struct PlayPagePanelView: View {
                             isLoadingLyrics: isLoadingLyrics,
                             lyricsErrorMessage: lyricsErrorMessage,
                             lyricsPresentationMode: lyricsPresentationMode,
-                            showContent: showContent,
+                            showContent: true,
                             onArtistTap: { openArtistSearch(for: track) },
                             onRetryLyrics: { loadLyrics(for: track, force: true) },
                             onLyricsTopStateChange: { isLyricsAtTop = $0 },
@@ -93,7 +88,7 @@ struct PlayPagePanelView: View {
                             PlayPageControlsSectionView(
                                 timeline: timeline,
                                 layout: layout,
-                                showContent: showContent,
+                                showContent: true,
                                 squeezeProgress: squeezeProgress,
                                 isExternalAudioRouteActive: isExternalAudioRouteActive,
                                 isScrubbing: $isScrubbing,
@@ -122,7 +117,6 @@ struct PlayPagePanelView: View {
                         .frame(width: 560, height: 560)
                         .blur(radius: 130)
                         .offset(y: -240 + dragOffset * 0.18)
-                        .opacity(showContent ? 1 : 0)
                         .allowsHitTesting(false)
 
                     if isRouteSheetPresented {
@@ -163,9 +157,7 @@ struct PlayPagePanelView: View {
                 }
             }
             .ignoresSafeArea()
-            .onAppear {
-                resetTransientPresentationState()
-            }
+            .onAppear(perform: resetTransientPresentationState)
             .onAppear(perform: refreshAudioRouteState)
             .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in
                 refreshAudioRouteState()
@@ -183,34 +175,12 @@ struct PlayPagePanelView: View {
         return min(max(dragOffset / threshold, 0), 1)
     }
 
-    private var currentScaleX: CGFloat {
-        let baseScale: CGFloat = showContent ? 1.0 : 0.82
-        return baseScale - (squeezeProgress * 0.18)
-    }
-
-    private var currentScaleY: CGFloat {
-        let baseScale: CGFloat = showContent ? 1.0 : 0.96
-        return baseScale - (squeezeProgress * 0.04)
-    }
-
-    private var currentCornerRadius: CGFloat {
-        let baseRadius: CGFloat = showContent ? 48 : 28
-        return baseRadius - (squeezeProgress * 20)
-    }
-
     private func resetTransientPresentationState() {
         isScrubbing = false
         draftTime = timeline.currentTime
         dragOffset = 0
         lyricsPresentationMode = .hidden
         isLyricsAtTop = true
-
-        showContent = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            withAnimation(.easeOut(duration: 0.45).delay(0.1)) {
-                showContent = true
-            }
-        }
     }
 
     private func dismissPanel() {

@@ -1856,7 +1856,7 @@ struct PlaylistView_Preview: View {
     }
 
     var body: some View {
-        PlayPagePanelView(timeline: player.playbackTimeline, animation: animation) {
+        PlayPagePanelView(timeline: player.playbackTimeline) {
         }
         .environmentObject(player)
         .environmentObject(sourceLibrary)

@@ -9,7 +9,6 @@ struct ContentView: View {
     @ObservedObject private var library: MusicLibraryViewModel
     @ObservedObject private var playlistModel: MusicPlaylistViewModel
     @ObservedObject private var scrollState: AppScrollState
-    @Namespace private var playerAnimation
     @FocusState private var isSearchFieldFocused: Bool
 
     @State private var showBrowseSongs = false
@@ -107,7 +106,7 @@ struct ContentView: View {
                 if !isCompactScrolledMode &&
                     !shouldHidePlayBarForSearchFocus &&
                     player.currentTrack != nil {
-                    PlayBarView(animation: playerAnimation)  //播放栏
+                    PlayBarView()  //播放栏
                         .environmentObject(player)
                         .transition(.opacity)
                 }
@@ -121,7 +120,6 @@ struct ContentView: View {
                     compactMiddleContent: isCompactScrolledMode ? {
                         AnyView(
                             PlayBarView(
-                                animation: playerAnimation,
                                 displayMode: .compactEmbedded
                             )
                             .environmentObject(player)
@@ -141,23 +139,19 @@ struct ContentView: View {
                 if player.isNowPlayingPresented, player.currentTrack != nil {
                     PlayPagePanelView(
                         timeline: player.playbackTimeline,
-                        animation: playerAnimation,
                         containerSize: proxy.size
                     ) {
                         player.dismissNowPlaying(animated: true)
                     }
-                    .id(player.nowPlayingPresentationID)
                     .environmentObject(player)
                     .environmentObject(sourceLibrary)
                     .environmentObject(musicSearch)
-                    .transition(.asymmetric(
-                        insertion: .identity,
-                        removal: .scale(scale: 0.95, anchor: .center).combined(with: .opacity)
-                    ))
+                    .transition(.move(edge: .bottom))
                     .zIndex(20)
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.28), value: player.isNowPlayingPresented)
     }
 
     @ViewBuilder

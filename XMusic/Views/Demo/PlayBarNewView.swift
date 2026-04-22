@@ -1,12 +1,15 @@
 import SwiftUI
 
-struct PlayBarView: View {
+struct PlayBarNewView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
     @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
 
     var displayMode: PlayBarModel.DisplayMode = .regular
+
+    @Binding var isExpanded: Bool
+    var animationNamespace: Namespace.ID
 
     private var theme: AppThemeConfiguration {
         AppThemeConfiguration(
