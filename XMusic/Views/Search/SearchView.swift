@@ -351,13 +351,46 @@ struct SearchView: View {
     }
 
     private func play(_ song: SearchSong) {
-        let track = Track.searchResultTrack(from: song)
+        let activeSource = sourceLibrary.activeSource
+        let track = Track.searchResultTrack(from: song, sourceName: activeSource?.name)
         guard !player.isCurrentTrack(track) else { return }
 
         playbackError = nil
         actionMessage = nil
         playbackDebugInfo = nil
         resolvingSongID = song.id
+
+        if let cachedTrack = player.cachedTrack(for: song),
+           canExportTrackFile(cachedTrack),
+           let localURL = cachedTrack.audioURL {
+            playbackDebugInfo = sourceLibrary.cachedPlaybackDebugInfo(
+                for: song,
+                localURL: localURL,
+                sourceName: cachedTrack.sourceName
+            )
+            player.play(cachedTrack, preferCachedQueue: true)
+            resolvingSongID = nil
+            return
+        }
+
+        if let cachedFile = sourceLibrary.matchingCachedMediaFile(
+            for: song,
+            preferredSourceName: activeSource?.name
+        ) {
+            let cachedTrack = Track.searchResultTrack(
+                from: song,
+                sourceName: cachedFile.sourceName ?? activeSource?.name,
+                resolvedURL: cachedFile.localURL
+            )
+            playbackDebugInfo = sourceLibrary.cachedPlaybackDebugInfo(
+                for: song,
+                localURL: cachedFile.localURL,
+                sourceName: cachedFile.sourceName
+            )
+            player.play(cachedTrack, preferCachedQueue: true)
+            resolvingSongID = nil
+            return
+        }
 
         Task {
             defer {
@@ -366,7 +399,7 @@ struct SearchView: View {
                 }
             }
 
-            guard let activeSource = sourceLibrary.activeSource else {
+            guard let activeSource else {
                 await MainActor.run {
                     playbackError = "请先去设置页导入并激活一个音乐源，再播放搜索结果。"
                 }

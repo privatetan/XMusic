@@ -175,6 +175,14 @@ private final class SearchPlaybackResolverBox {
     }
 }
 
+private final class CachedPlaybackResolverBox {
+    let resolve: @MainActor (Track) -> Track?
+
+    init(resolve: @escaping @MainActor (Track) -> Track?) {
+        self.resolve = resolve
+    }
+}
+
 private struct PlaybackRequest {
     let track: Track
     let queue: [Track]
@@ -204,6 +212,7 @@ final class MusicPlayerViewModel: ObservableObject {
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
     private var searchPlaybackResolverBox: SearchPlaybackResolverBox?
+    private var cachedPlaybackResolverBox: CachedPlaybackResolverBox?
     private var pendingResolveTask: Task<Void, Never>?
     private let lastPlayedTrackStorageKey = "XMusic.LastPlayedTrack"
     private let cachedTracksStorageKey = "XMusic.CachedTracks"
@@ -291,6 +300,10 @@ final class MusicPlayerViewModel: ObservableObject {
         searchPlaybackResolverBox = SearchPlaybackResolverBox(resolve: resolver)
     }
 
+    func setCachedPlaybackResolver(_ resolver: @escaping @MainActor (Track) -> Track?) {
+        cachedPlaybackResolverBox = CachedPlaybackResolverBox(resolve: resolver)
+    }
+
     func presentNowPlaying(animated: Bool = true) {
         guard currentTrack != nil else { return }
         guard !isNowPlayingPresented else { return }
@@ -335,8 +348,7 @@ final class MusicPlayerViewModel: ObservableObject {
 
         activateAudioSession()
         player.play()
-        isPlaying = true
-        updateNowPlayingInfo()
+        syncPlaybackState(with: player.timeControlStatus)
     }
 
     func playNext() {
@@ -389,6 +401,12 @@ final class MusicPlayerViewModel: ObservableObject {
         #else
         player.volume = Float(volume)
         #endif
+    }
+
+    func cachedTrack(for song: SearchSong) -> Track? {
+        playableCachedTracks().last { cachedTrack in
+            cachedTrack.searchSong?.id == song.id
+        }
     }
 
     #if os(iOS)
@@ -482,7 +500,11 @@ final class MusicPlayerViewModel: ObservableObject {
         pendingResolveTask?.cancel()
         pendingResolveTask = nil
         lastAutoAdvancedTrackID = nil
-        registerCachedTrackIfNeeded(track)
+        let preferredTrack = preferredPlaybackTrack(for: track)
+        if currentIndex < queue.count {
+            queue[currentIndex] = preferredTrack
+        }
+        registerCachedTrackIfNeeded(preferredTrack)
 
         // Stop current playback immediately to avoid overlapping audio.
         player.pause()
@@ -490,21 +512,26 @@ final class MusicPlayerViewModel: ObservableObject {
 
         currentLoadToken = UUID()
         let loadToken = currentLoadToken
-        currentTrack = track
+        currentTrack = preferredTrack
         currentTime = 0
-        duration = max(track.duration, 1)
+        duration = max(preferredTrack.duration, 1)
         isPlaying = false
         updateNowPlayingInfo()
 
-        if let searchSong = track.searchSong, shouldResolveSearchTrack(track) {
-            resolveSearchTrack(searchSong, trackID: track.id, autoPlay: autoPlay, loadToken: loadToken)
+        if let searchSong = preferredTrack.searchSong, shouldResolveSearchTrack(preferredTrack) {
+            resolveSearchTrack(searchSong, trackID: preferredTrack.id, autoPlay: autoPlay, loadToken: loadToken)
             return
         }
 
-        guard let url = track.audioURL else { return }
+        guard let url = preferredTrack.audioURL else { return }
 
-        persistCurrentTrack(track)
+        persistCurrentTrack(preferredTrack)
         loadResolvedURL(url, autoPlay: autoPlay)
+    }
+
+    private func preferredPlaybackTrack(for track: Track) -> Track {
+        guard let resolver = cachedPlaybackResolverBox?.resolve else { return track }
+        return resolver(track) ?? track
     }
 
     private func loadResolvedURL(_ url: URL, autoPlay: Bool) {
@@ -516,12 +543,10 @@ final class MusicPlayerViewModel: ObservableObject {
         if autoPlay {
             activateAudioSession()
             player.play()
-            isPlaying = true
         } else {
             player.pause()
-            isPlaying = false
         }
-        updateNowPlayingInfo()
+        syncPlaybackState(with: player.timeControlStatus)
     }
 
     private func shouldResolveSearchTrack(_ track: Track) -> Bool {
@@ -808,8 +833,7 @@ private extension MusicPlayerViewModel {
 
             activateAudioSession()
             player.play()
-            isPlaying = true
-            updateNowPlayingInfo()
+            syncPlaybackState(with: player.timeControlStatus)
 
         @unknown default:
             shouldResumeAfterInterruption = false
@@ -839,8 +863,7 @@ private extension MusicPlayerViewModel {
             if !isPlaying {
                 activateAudioSession()
                 player.play()
-                isPlaying = true
-                updateNowPlayingInfo()
+                syncPlaybackState(with: player.timeControlStatus)
             }
             return .success
         }
@@ -918,8 +941,10 @@ private extension MusicPlayerViewModel {
         switch status {
         case .paused:
             nextIsPlaying = false
-        case .waitingToPlayAtSpecifiedRate, .playing:
-            nextIsPlaying = true
+        case .waitingToPlayAtSpecifiedRate:
+            nextIsPlaying = false
+        case .playing:
+            nextIsPlaying = player.rate > 0 && player.error == nil && player.currentItem?.error == nil
         @unknown default:
             nextIsPlaying = player.rate > 0
         }

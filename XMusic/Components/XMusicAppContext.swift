@@ -27,6 +27,7 @@ final class XMusicAppContext {
         scrollState = AppScrollState()
 
         installSearchPlaybackResolver()
+        installCachedPlaybackResolver()
     }
 
     func installSearchPlaybackResolver() {
@@ -39,6 +40,12 @@ final class XMusicAppContext {
                 )
             }
             return try await sourceLibrary.resolvePlayback(for: nextSong, with: currentSource)
+        }
+    }
+
+    func installCachedPlaybackResolver() {
+        player.setCachedPlaybackResolver { [sourceLibrary] track in
+            sourceLibrary.preferredPlaybackTrack(for: track)
         }
     }
 }

@@ -125,6 +125,86 @@ final class MusicSourceLibrary: ObservableObject {
         cachedMediaFilesSnapshot
     }
 
+    func matchingCachedMediaFile(
+        for song: SearchSong,
+        preferredSourceName: String? = nil
+    ) -> CachedMediaFile? {
+        matchingCachedMediaFile(
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            remoteURL: nil,
+            preferredSourceName: preferredSourceName
+        )
+    }
+
+    func preferredPlaybackTrack(for track: Track) -> Track? {
+        if let audioURL = track.audioURL,
+           audioURL.isFileURL,
+           FileManager.default.fileExists(atPath: audioURL.path) {
+            return track
+        }
+
+        let cachedFile: CachedMediaFile?
+        if let searchSong = track.searchSong {
+            cachedFile = matchingCachedMediaFile(
+                title: searchSong.title,
+                artist: searchSong.artist,
+                album: searchSong.album,
+                remoteURL: track.audioURL,
+                preferredSourceName: track.sourceName
+            )
+        } else {
+            cachedFile = matchingCachedMediaFile(
+                title: track.title,
+                artist: track.artist,
+                album: track.album,
+                remoteURL: track.audioURL,
+                preferredSourceName: track.sourceName
+            )
+        }
+
+        guard let cachedFile else { return nil }
+
+        var preferredTrack = track
+        preferredTrack.audioURL = cachedFile.localURL
+        if preferredTrack.sourceName?.nilIfBlank == nil {
+            preferredTrack.sourceName = cachedFile.sourceName
+        }
+        if preferredTrack.remoteArtworkURL == nil {
+            preferredTrack.remoteArtworkURL = cachedFile.artworkURL
+        }
+        return preferredTrack
+    }
+
+    func cachedPlaybackDebugInfo(
+        for song: SearchSong,
+        localURL: URL,
+        sourceName: String? = nil
+    ) -> PlaybackDebugInfo {
+        let path = localURL.standardizedFileURL.path
+        let info = PlaybackDebugInfo(
+            originalURL: "",
+            preparedURL: localURL.absoluteString,
+            usedLocalCache: true,
+            localPath: path,
+            fileExists: FileManager.default.fileExists(atPath: path),
+            requestedSource: song.source.rawValue,
+            resolvedSource: song.source.rawValue,
+            requestedQuality: preferredPlaybackQuality(for: song),
+            resolvedQuality: preferredPlaybackQuality(for: song),
+            resolutionStrategy: "本地缓存命中",
+            resolutionNote: sourceName?.nilIfBlank.map { "优先使用本地缓存文件，来源：\($0)。" } ?? "优先使用本地缓存文件。",
+            usedResolverCache: false,
+            attemptedSources: [song.source.rawValue],
+            legacyInfoJSON: song.legacyInfoJSON,
+            fieldChecks: [],
+            requestTrace: []
+        )
+        latestPlaybackDebugInfo = info
+        return info
+    }
+
     func preferredPlaybackQuality(for song: SearchSong) -> String {
         preferredQuality(
             requested: defaultPlaybackQuality.rawValue,
@@ -227,6 +307,69 @@ final class MusicSourceLibrary: ObservableObject {
             "https://gcore.jsdelivr.net/gh/\(owner)/\(repo)@\(ref)/\(path)",
         ]
         .compactMap(URL.init(string:))
+    }
+
+    private func normalizedCacheLookupValue(_ value: String?) -> String {
+        value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased() ?? ""
+    }
+
+    private func matchingCachedMediaFile(
+        title: String?,
+        artist: String?,
+        album: String?,
+        remoteURL: URL?,
+        preferredSourceName: String?
+    ) -> CachedMediaFile? {
+        if let remoteURL,
+           let exactMatch = cachedMediaFilesSnapshot.first(where: { file in
+               file.originalURL?.absoluteString == remoteURL.absoluteString &&
+               FileManager.default.fileExists(atPath: file.localURL.path)
+           }) {
+            return exactMatch
+        }
+
+        let normalizedTitle = normalizedCacheLookupValue(title)
+        let normalizedArtist = normalizedCacheLookupValue(artist)
+        let normalizedAlbum = normalizedCacheLookupValue(album)
+        let normalizedPreferredSource = normalizedCacheLookupValue(preferredSourceName)
+
+        return cachedMediaFilesSnapshot
+            .filter { file in
+                FileManager.default.fileExists(atPath: file.localURL.path)
+            }
+            .compactMap { file -> (CachedMediaFile, Int)? in
+                let fileTitle = normalizedCacheLookupValue(file.title)
+                let fileArtist = normalizedCacheLookupValue(file.artist)
+                guard fileTitle == normalizedTitle, fileArtist == normalizedArtist else { return nil }
+
+                let fileAlbum = normalizedCacheLookupValue(file.album)
+                var score = 10
+
+                if !normalizedAlbum.isEmpty, !fileAlbum.isEmpty {
+                    guard fileAlbum == normalizedAlbum else { return nil }
+                    score += 4
+                } else if normalizedAlbum.isEmpty || fileAlbum.isEmpty {
+                    score += 1
+                }
+
+                if !normalizedPreferredSource.isEmpty,
+                   normalizedCacheLookupValue(file.sourceName) == normalizedPreferredSource {
+                    score += 2
+                }
+
+                return (file, score)
+            }
+            .sorted { lhs, rhs in
+                if lhs.1 == rhs.1 {
+                    return lhs.0.lastAccessedAt > rhs.0.lastAccessedAt
+                }
+                return lhs.1 > rhs.1
+            }
+            .first?
+            .0
     }
 
     private func fetchRemoteData(from url: URL) async throws -> (Data, URLResponse) {
