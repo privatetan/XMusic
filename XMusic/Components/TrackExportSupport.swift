@@ -498,7 +498,7 @@ private struct CachedMediaShareFallbackView: View {
             VStack(spacing: 20) {
                 Text(item.title)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .multilineTextAlignment(.center)
 
                 ShareLink(item: item.url) {
@@ -509,7 +509,7 @@ private struct CachedMediaShareFallbackView: View {
 
                 Text(item.url.lastPathComponent)
                     .font(.footnote)
-                    .foregroundStyle(Color.white.opacity(0.6))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.6))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }

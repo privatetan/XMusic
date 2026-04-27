@@ -3,18 +3,8 @@ import SwiftUI
 struct PlayBarView: View {
     @EnvironmentObject private var player: MusicPlayerViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
-    @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
 
     var displayMode: PlayBarModel.DisplayMode = .regular
-
-    private var theme: AppThemeConfiguration {
-        AppThemeConfiguration(
-            selectedThemeRawValue: selectedThemeRawValue,
-            customAccentData: customAccentData,
-            customBackgroundRevision: 0
-        )
-    }
 
     private var model: PlayBarModel {
         PlayBarModel(
@@ -53,14 +43,12 @@ struct PlayBarView: View {
                     Color.clear
                         .glassEffect(.regular, in: visibleShape)
                         .overlay {
-                            visibleShape.fill(Color.primary).opacity(0.04)
+                            visibleShape.fill(AppThemeTextColors.primary).opacity(0.04)
                         }
                 } else {
                     visibleShape
-                        .fill(.regularMaterial)
-                        .overlay(visibleShape.fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                        .overlay(visibleShape.stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
-                        .overlay(visibleShape.fill(Color.primary).opacity(0.02))
+                        .fill(.ultraThinMaterial)
+                        .overlay(visibleShape.stroke(Color.white.opacity(0.18), lineWidth: 1))
                 }
             }
         }
@@ -68,6 +56,6 @@ struct PlayBarView: View {
     }
 
     private var primaryControlColor: Color {
-        displayMode == .regular ? theme.accent : .primary
+        displayMode == .regular ? AppThemeTextColors.accent : AppThemeTextColors.primary
     }
 }

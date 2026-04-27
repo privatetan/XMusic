@@ -20,13 +20,13 @@ struct PlayPageLyricsPreviewView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
                         .font(.system(size: compactHeight ? 24 : 26, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.96))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.96))
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     Text(track.artist)
                         .font(.system(size: compactHeight ? 17 : 18, weight: .regular))
-                        .foregroundStyle(Color.white.opacity(0.76))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.76))
                         .lineLimit(1)
                 }
 
@@ -95,7 +95,7 @@ struct PlayPageLyricsPreviewView: View {
                         weight: isActive ? .bold : .semibold
                     )
                 )
-                .foregroundStyle(Color.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .multilineTextAlignment(.leading)
                 .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
@@ -105,7 +105,7 @@ struct PlayPageLyricsPreviewView: View {
                 ForEach(line.extendedLyrics, id: \.self) { extendedLine in
                     Text(extendedLine)
                         .font(.system(size: compactHeight ? 15 : 17, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.70))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.70))
                         .multilineTextAlignment(.leading)
                         .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)

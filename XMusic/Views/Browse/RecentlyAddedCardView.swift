@@ -54,12 +54,12 @@ struct RecentlyAddedCardView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(titleText)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                         .lineLimit(1)
 
                     Text(subtitleText)
                         .font(.caption)
-                        .foregroundStyle(Color.white.opacity(0.55))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.55))
                         .lineLimit(1)
                 }
             }

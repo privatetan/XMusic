@@ -4,13 +4,13 @@ import SwiftUI
 enum ChromeBarMetrics {
     // 菜单栏的高度
     static func menuBarHeight(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
-        sizeClass == .compact ? 64 : 68
+        55
     }
 
     // 播放栏的高度
     static func playBarHeight(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
         // 分离出的播放栏高度控制
-        sizeClass == .compact ? 54 : 58
+        55
     }
 
     // 收缩态的单行控件统一沿用原播放栏高度
@@ -20,16 +20,16 @@ enum ChromeBarMetrics {
 
     // 迷你播放器封面的大小
     static func miniPlayerArtworkSize(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
-        sizeClass == .compact ? 36 : 40
+        30
     }
 
     // 迷你播放器控制按钮的大小
     static func miniPlayerControlSize(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
-        sizeClass == .compact ? 40 : 44
+        38
     }
 
     // 菜单栏标签项的高度
     static func tabItemHeight(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
-        menuBarHeight(for: sizeClass) - 5
+        48
     }
 }

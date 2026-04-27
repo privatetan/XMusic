@@ -65,7 +65,7 @@ struct PlayPageArtworkSectionView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(track.title)
                     .font(.system(size: layout.compactHeight ? 28 : 32, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .truncationMode(.tail)
@@ -76,7 +76,7 @@ struct PlayPageArtworkSectionView: View {
                             .lineLimit(1)
                     }
                     .font(.system(size: layout.compactHeight ? 18 : 20, weight: .regular))
-                    .foregroundStyle(Color.white.opacity(0.88))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.88))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -102,20 +102,20 @@ struct PlayPageArtworkSectionView: View {
 
                     Text("正在加载歌词…")
                         .font(.system(size: layout.compactHeight ? 16 : 17, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else if let lyricsErrorMessage {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(lyricsErrorMessage)
                         .font(.system(size: layout.compactHeight ? 16 : 17, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                         .multilineTextAlignment(.leading)
 
                     Button(action: onRetryLyrics) {
                         Label("重新加载歌词", systemImage: "arrow.clockwise")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .background(Color.white.opacity(0.12), in: Capsule())
@@ -129,11 +129,11 @@ struct PlayPageArtworkSectionView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("当前歌曲暂无可显示的歌词")
                         .font(.system(size: layout.compactHeight ? 18 : 20, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.68))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
 
                     Text("播放页上半部分会优先展示同步歌词。")
                         .font(.system(size: layout.compactHeight ? 14 : 15, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.42))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.42))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
@@ -191,7 +191,7 @@ struct PlayPageArtworkSectionView: View {
                             weight: .semibold
                         )
                     )
-                    .foregroundStyle(Color.white.opacity(0.94))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.94))
                     .lineLimit(1)
 
                 Button(action: onArtistTap) {
@@ -202,7 +202,7 @@ struct PlayPageArtworkSectionView: View {
                                 weight: .medium
                             )
                         )
-                        .foregroundStyle(Color.white.opacity(lyricsPresentationMode == .full ? 0.52 : 0.64))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(lyricsPresentationMode == .full ? 0.52 : 0.64))
                         .lineLimit(1)
                 }
                 .buttonStyle(.plain)
@@ -216,7 +216,7 @@ struct PlayPageArtworkSectionView: View {
                 .overlay {
                     Image(systemName: lyricsPresentationMode == .full ? "chevron.down" : "chevron.up")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.76))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.76))
                 }
         }
         .contentShape(Rectangle())

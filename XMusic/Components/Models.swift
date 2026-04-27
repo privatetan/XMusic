@@ -14,7 +14,7 @@ import UIKit
 import AppKit
 #endif
 
-enum AppTab: String, CaseIterable, Identifiable {
+enum MenuBarItem: String, CaseIterable {
     case browse
     case radio
     case settings

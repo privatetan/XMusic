@@ -15,7 +15,7 @@ struct SettingsEntryButtonView: View {
                 Text("设置")
                     .font(.subheadline.weight(.semibold))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppThemeTextColors.primary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(.ultraThinMaterial, in: Capsule())

@@ -20,12 +20,12 @@ struct SettingsPanelView<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             if !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.62))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
             }
 
             content

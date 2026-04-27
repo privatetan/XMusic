@@ -28,13 +28,13 @@ struct SettingsQualityOptionView: View {
 
                 Image(systemName: quality.symbol)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(isSelected ? .white : Color.white.opacity(0.74))
+                    .foregroundStyle(isSelected ? AppThemeTextColors.selectedOnAccent : AppThemeTextColors.primary.opacity(0.74))
             }
             .frame(width: 42, height: 42)
 
             Text(quality.shortLabel)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(isSelected ? .white : Color.white.opacity(0.62))
+                .foregroundStyle(isSelected ? AppThemeTextColors.selectedOnAccent : AppThemeTextColors.primary.opacity(0.62))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }

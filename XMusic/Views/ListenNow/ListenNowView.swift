@@ -44,7 +44,7 @@ private struct ListenNowCurrentTrackCard: View {
         VStack(alignment: .leading, spacing: 18) {
             Text("当前播放")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.62))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                 .textCase(.uppercase)
 
             HStack(alignment: .center, spacing: 16) {
@@ -54,17 +54,17 @@ private struct ListenNowCurrentTrackCard: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(track.title)
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                         .lineLimit(2)
 
                     Text(track.artist)
                         .font(.headline)
-                        .foregroundStyle(Color.white.opacity(0.74))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.74))
                         .lineLimit(1)
 
                     Text(track.album)
                         .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.56))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.56))
                         .lineLimit(1)
 
                     Button {
@@ -75,7 +75,7 @@ private struct ListenNowCurrentTrackCard: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(Color.white, in: Capsule())
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppThemeTextColors.selectedOnLight)
                     }
                     .buttonStyle(.plain)
                 }
@@ -100,4 +100,3 @@ private struct ListenNowCurrentTrackCard: View {
         )
     }
 }
-

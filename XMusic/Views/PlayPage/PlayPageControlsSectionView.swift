@@ -50,7 +50,7 @@ struct PlayPageControlsSectionView: View {
                     Text("-\(format(time: max(timeline.duration - (isScrubbing ? draftTime : timeline.currentTime), 0)))")
                 }
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.50))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.50))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 22)
@@ -75,7 +75,7 @@ struct PlayPageControlsSectionView: View {
                 HStack(spacing: 16) {
                     Image(systemName: "speaker.fill")
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(Color.white.opacity(0.82))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                     PlayPageSliderBarView(
                         value: Binding(
@@ -91,7 +91,7 @@ struct PlayPageControlsSectionView: View {
 
                     Image(systemName: "speaker.wave.3.fill")
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(Color.white.opacity(0.82))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
                 }
                 .frame(maxWidth: .infinity)
                 .background(SystemVolumeBridgeView().environmentObject(player))
@@ -126,7 +126,7 @@ struct PlayPageControlsSectionView: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: size, weight: .regular))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .frame(width: touchSize, height: touchSize)
         }
         .buttonStyle(.plain)
@@ -142,7 +142,7 @@ struct PlayPageControlsSectionView: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: size, weight: .regular))
-                .foregroundStyle(Color.white.opacity(isActive ? 0.96 : 0.74))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(isActive ? 0.96 : 0.74))
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.white.opacity(isActive ? 0.14 : 0.001)))
         }
@@ -167,7 +167,7 @@ struct PlayPageControlsSectionView: View {
 
                 Image(systemName: "airplayaudio")
                     .font(.system(size: size, weight: .regular))
-                    .foregroundStyle(Color.white.opacity(isExternalAudioRouteActive ? 0.96 : 0.74))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(isExternalAudioRouteActive ? 0.96 : 0.74))
             }
             .frame(width: 44, height: 44)
         }

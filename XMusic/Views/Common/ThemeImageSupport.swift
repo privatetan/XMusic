@@ -124,11 +124,11 @@ struct ThemeBackgroundCropperView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("裁剪背景图")
                                 .font(.title2.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppThemeTextColors.primary)
 
                             Text("拖动调整位置，双指缩放调整取景，确认后再作为背景图保存。")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.white.opacity(0.66))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.66))
                         }
                         .frame(maxWidth: layout.cropSize.width, alignment: .leading)
 
@@ -163,7 +163,7 @@ struct ThemeBackgroundCropperView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("取消", action: onCancel)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                     }
 
                     ToolbarItem(placement: .confirmationAction) {
@@ -176,7 +176,7 @@ struct ThemeBackgroundCropperView: View {
                                 onConfirm(cropped)
                             }
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                     }
                 }
             }

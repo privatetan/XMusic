@@ -33,19 +33,19 @@ struct TrackArtworkFallbackView: View {
                 if isCompact {
                     Image(systemName: "music.note")
                         .font(.system(size: min(geo.size.width, geo.size.height) * 0.4, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.8))
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(platformTitle.uppercased())
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(Color.white.opacity(0.72))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                             .lineLimit(1)
 
                         Spacer(minLength: 0)
 
                         Text(trackTitle)
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .lineLimit(3)
                             .multilineTextAlignment(.leading)
                     }

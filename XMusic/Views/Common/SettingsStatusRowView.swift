@@ -9,13 +9,13 @@ struct SettingsStatusRowView: View {
         HStack(alignment: .center, spacing: 12) {
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.white.opacity(0.66))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.66))
 
             Spacer(minLength: 0)
 
             Text(value)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .multilineTextAlignment(.trailing)
         }
         .padding(.horizontal, 14)

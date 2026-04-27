@@ -57,7 +57,7 @@ struct MusicSourceManagementView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("音乐源管理")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
 
                         HStack(spacing: 12) {
                             ActionPill(title: "导入文件", symbol: "square.and.arrow.down") {
@@ -104,7 +104,7 @@ struct MusicSourceManagementView: View {
                     Button("关闭") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
             }
         }
@@ -178,14 +178,14 @@ struct MusicSourceManagementView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("运行测试")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                     }
 
                     Spacer()
 
                     Text(isRuntimeLabExpanded ? "收起" : "展开")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.56))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.56))
                 }
             }
         )
@@ -205,11 +205,11 @@ struct MusicSourceManagementView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("还没有导入任何音乐源")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             Text("导入一个脚本后会显示在这里。")
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -228,13 +228,13 @@ struct MusicSourceManagementView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("媒体缓存")
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 Text(effectiveMediaCacheSummary.isEmpty
                      ? "暂无缓存"
                      : "\(effectiveMediaCacheSummary.fileCount) 个文件 · \(effectiveMediaCacheSummary.formattedSize)")
                     .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.62))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                     .lineLimit(1)
             }
 
@@ -303,7 +303,7 @@ struct MusicSourceManagementView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
         }
     }
 }
@@ -322,7 +322,7 @@ private struct MusicSourceCard: View {
                     HStack(spacing: 8) {
                         Text(source.name)
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
 
                         if isActive {
                             Text("当前")
@@ -330,7 +330,7 @@ private struct MusicSourceCard: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(Color(red: 0.48, green: 0.92, blue: 0.72).opacity(0.18), in: Capsule())
-                                .foregroundStyle(Color(red: 0.48, green: 0.92, blue: 0.72))
+                                .foregroundStyle(AppThemeTextColors.success)
                         }
 
                         if source.parseErrorMessage != nil {
@@ -339,13 +339,13 @@ private struct MusicSourceCard: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(Color.orange.opacity(0.14), in: Capsule())
-                                .foregroundStyle(Color.orange)
+                                .foregroundStyle(AppThemeTextColors.warning)
                         }
                     }
 
                     Text(detailLine)
                         .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.62))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                         .lineLimit(1)
                 }
 
@@ -356,11 +356,11 @@ private struct MusicSourceCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("脚本解析失败")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
+                        .foregroundStyle(AppThemeTextColors.warning)
 
                     Text(parseErrorMessage)
                         .font(.footnote)
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(12)
@@ -435,11 +435,11 @@ private struct MusicSourcePasteView: View {
                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                             .stroke(Color.white.opacity(0.08), lineWidth: 1)
                     )
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 Text("支持直接粘贴脚本文本，也支持粘贴 `https://.../latest.js` 这样的远程音乐源链接。")
                     .font(.footnote)
-                    .foregroundStyle(Color.white.opacity(0.62))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button {
@@ -451,7 +451,7 @@ private struct MusicSourcePasteView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppThemeTextColors.selectedOnLight)
                 }
                 .buttonStyle(.plain)
                 .disabled(script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -465,7 +465,7 @@ private struct MusicSourcePasteView: View {
                     Button("取消") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
             }
         }
@@ -494,11 +494,11 @@ private struct MusicSourceRuntimeLab: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("运行测试")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             Text("LX 的自定义源只负责 `musicUrl / lyric / pic`。这里可以直接粘贴一份 `songInfo` JSON，测试当前源是否真的能跑通。默认模板里的关键字段是空的，像酷狗需要真实 `hash`，否则会直接报错。")
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 12) {
@@ -535,7 +535,7 @@ private struct MusicSourceRuntimeLab: View {
 
             Text(searchHint)
                 .font(.footnote)
-                .foregroundStyle(Color.white.opacity(0.58))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                 .fixedSize(horizontal: false, vertical: true)
 
             TextEditor(text: $songInfoJSON)
@@ -550,7 +550,7 @@ private struct MusicSourceRuntimeLab: View {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             HStack(spacing: 10) {
                 ActionPillCompact(title: "解析地址", symbol: "link") {
@@ -603,11 +603,11 @@ private struct MusicSourceRuntimeLab: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("已解析地址")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.82))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                     Text(resolvedURL.absoluteString)
                         .font(.footnote)
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                         .textSelection(.enabled)
 
                     MiniActionButton(title: "用这个地址播放", symbol: "play.fill") {
@@ -626,11 +626,11 @@ private struct MusicSourceRuntimeLab: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("歌词结果")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.82))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                     Text(lyricResult.lyric)
                         .font(.footnote)
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                         .lineLimit(8)
                 }
                 .padding(14)
@@ -641,7 +641,7 @@ private struct MusicSourceRuntimeLab: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("封面结果")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.82))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                     AsyncImage(url: pictureURL) { image in
                         image
@@ -656,7 +656,7 @@ private struct MusicSourceRuntimeLab: View {
 
                     Text(pictureURL.absoluteString)
                         .font(.footnote)
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                         .textSelection(.enabled)
                 }
                 .padding(14)
@@ -666,7 +666,7 @@ private struct MusicSourceRuntimeLab: View {
             if let runtimeError {
                 Text(runtimeError)
                     .font(.footnote)
-                    .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
+                    .foregroundStyle(AppThemeTextColors.warning)
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -812,7 +812,7 @@ private struct SearchSongFillMenu: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(Color.white.opacity(0.08), in: Capsule())
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
         }
         .buttonStyle(.plain)
         .disabled(songs.isEmpty)
@@ -838,7 +838,7 @@ private struct ActionPill: View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity)
@@ -861,7 +861,7 @@ private struct ActionPillCompact: View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
@@ -892,16 +892,16 @@ private struct PickerChip: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(Color.white.opacity(0.52))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
 
                 HStack(spacing: 8) {
                     Text(value)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.white.opacity(0.45))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.45))
                 }
             }
             .padding(.horizontal, 14)
@@ -931,7 +931,7 @@ private struct MiniActionButton: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(Color.white.opacity(0.08), in: Capsule())
-                .foregroundStyle(role == .destructive ? Color.red.opacity(0.9) : Color.white)
+                .foregroundStyle(role == .destructive ? AppThemeTextColors.destructive.opacity(0.9) : AppThemeTextColors.primary)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)

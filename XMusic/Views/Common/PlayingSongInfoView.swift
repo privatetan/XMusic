@@ -17,13 +17,13 @@ struct PlayingSongInfoView: View {
                     VStack(alignment: .leading, spacing: model.displayMode == .regular ? 3 : 1) {
                         Text(track.title)
                             .font(model.titleFont)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.86)
 
                         Text(track.artist)
                             .font(model.subtitleFont)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppThemeTextColors.secondary)
                             .lineLimit(1)
                     }
                         .layoutPriority(1)

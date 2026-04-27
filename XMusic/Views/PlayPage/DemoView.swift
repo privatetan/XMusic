@@ -27,7 +27,7 @@ struct DemoView: View {
                                         .fill(Color.blue)
                                         .frame(width: 80, height: 80)
                                         .overlay(Text("App"))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(AppThemeTextColors.primary)
                                         .matchedGeometryEffect(
                                             id: "appIcon",
                                             in: animationNamespace
@@ -66,7 +66,7 @@ struct DemoView: View {
                             }) {
                                 Image(systemName: "house.fill")
                                     .font(.title)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppThemeTextColors.primary)
                                     .padding()
                             }
                             Spacer()
@@ -74,7 +74,7 @@ struct DemoView: View {
 
                         Text("App 内容")
                             .font(.title)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppThemeTextColors.primary)
 
                         ScrollView {
                             VStack(spacing: 15) {
@@ -84,7 +84,7 @@ struct DemoView: View {
                                         .frame(height: 80)
                                         .overlay(
                                             Text("内容 \(index + 1)")
-                                                .foregroundColor(.white)
+                                                .foregroundColor(AppThemeTextColors.primary)
                                         )
                                 }
                             }

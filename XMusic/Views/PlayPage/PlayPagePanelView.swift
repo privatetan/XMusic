@@ -241,7 +241,7 @@ struct PlayPagePanelView: View {
         let currentRouteName = AVAudioSession.sharedInstance().currentRoute.outputs.first?.portName ?? deviceName
         let panelWidth = min(UIScreen.main.bounds.width - horizontalPadding * 2, compactHeight ? 320 : 352)
         let bottomInset = max(safeBottom + 96, 104)
-        let panelBackground = Color(red: 0.28, green: 0.23, blue: 0.31).opacity(0.97)
+        let panelBackground = AppThemeDefaults.demoBackground.opacity(0.97)
         let panelStroke = Color.white.opacity(0.07)
 
         ZStack(alignment: .bottom) {
@@ -267,11 +267,11 @@ struct PlayPagePanelView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "airplayaudio")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Color.white.opacity(0.82))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                         Text("AirPlay")
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 14)
@@ -309,7 +309,7 @@ struct PlayPagePanelView: View {
 
                 Text("正在播放到 \(currentRouteName)")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.58))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                     .padding(.top, 16)
                     .padding(.bottom, bottomInset)
             }
@@ -327,18 +327,18 @@ struct PlayPagePanelView: View {
         HStack(spacing: 14) {
             Image(systemName: systemName)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(.white.opacity(0.88))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.88))
                 .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.52))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                 }
             }
 
@@ -347,7 +347,7 @@ struct PlayPagePanelView: View {
             if title == "iPhone" {
                 Image(systemName: "checkmark")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.9))
             }
         }
         .padding(.horizontal, 18)

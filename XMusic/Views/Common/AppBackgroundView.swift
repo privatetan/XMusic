@@ -4,7 +4,7 @@ import SwiftUI
 import UIKit
 #endif
 
-/// 应用全局背景层，提供统一的渐变和光斑氛围。
+/// 应用全局背景层，与 Demo 保持系统背景和轻量蓝色氛围。
 struct AppBackgroundView: View {
     @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
     @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
@@ -33,35 +33,11 @@ struct AppBackgroundView: View {
                         .blur(radius: theme.customBackgroundBlur)
                         .clipped()
 
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.34),
-                            Color.black.opacity(0.48),
-                            Color.black.opacity(0.68)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    AppThemeDefaults.demoBackground.opacity(0.78)
                 }
 
-                LinearGradient(
-                    colors: theme.gradientColors,
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .opacity(backgroundImage == nil ? 1 : 0.56)
-
-                Circle()
-                    .fill(theme.primaryGlow)
-                    .frame(width: 320, height: 320)
-                    .blur(radius: 80)
-                    .offset(x: -120, y: -260)
-
-                Circle()
-                    .fill(theme.secondaryGlow)
-                    .frame(width: 300, height: 300)
-                    .blur(radius: 86)
-                    .offset(x: 140, y: 120)
+                AppThemeDefaults.demoBackground
+                    .opacity(backgroundImage == nil ? 1 : 0.86)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }

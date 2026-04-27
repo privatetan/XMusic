@@ -14,11 +14,11 @@ struct SettingsInlineActionRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.white.opacity(0.66))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.66))
 
                 Text(value)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -28,7 +28,7 @@ struct SettingsInlineActionRowView: View {
             Button(action: action) {
                 Label(actionTitle, systemImage: symbol)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 9)
                     .background(Color.white.opacity(0.08), in: Capsule())

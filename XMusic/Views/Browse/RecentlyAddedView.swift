@@ -10,7 +10,7 @@ struct RecentlyAddedView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("最近加入")
                 .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .padding(.horizontal, 20)
             
             if library.recentItems.isEmpty {

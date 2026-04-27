@@ -11,16 +11,16 @@ struct PageHeaderView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(Date(), format: .dateTime.month(.abbreviated).day())
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.45))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.45))
 
                 Text(title)
                     .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.7))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.7))
                 }
             }
             .layoutPriority(1)

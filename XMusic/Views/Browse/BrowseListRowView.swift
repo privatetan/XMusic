@@ -16,22 +16,22 @@ struct BrowseListRowView: View {
                         .frame(width: 36, height: 36)
                     Image(systemName: symbol)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                 }
 
                 Text(title)
                     .font(.body)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 Spacer()
 
                 Text("\(count)")
                     .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.4))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.4))
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.3))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.3))
             }
             .padding(.vertical, 12)
             .contentShape(Rectangle())

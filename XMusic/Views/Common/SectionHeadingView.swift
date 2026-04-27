@@ -9,12 +9,12 @@ struct SectionHeadingView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             if !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.62))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
             }
         }
     }

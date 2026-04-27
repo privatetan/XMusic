@@ -100,7 +100,7 @@ struct PlaylistView: View {
                     LazyVStack(alignment: .leading, spacing: 28) {
                         Text("歌单")
                             .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
 
                         customPlaylistSection
 
@@ -179,11 +179,11 @@ struct PlaylistView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
@@ -208,7 +208,7 @@ struct PlaylistView: View {
                 } label: {
                     Label("新建歌单", systemImage: "plus")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppThemeTextColors.selectedOnLight)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 11)
                         .background(Color.white, in: Capsule())
@@ -284,7 +284,7 @@ struct PlaylistView: View {
                 if let errorMessage = playlistModel.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
-                        .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
+                        .foregroundStyle(AppThemeTextColors.warning)
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -297,7 +297,7 @@ struct PlaylistView: View {
 
                         Text("正在从 \(playlistModel.selectedSource?.title ?? "当前平台") 加载歌单…")
                             .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.68))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 36)
@@ -408,21 +408,21 @@ private struct PlaylistCustomEmptyCard: View {
 
                     Image(systemName: "music.note.list")
                         .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.92))
                 }
                 .frame(width: 68, height: 68)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("先建一张自己的歌单")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                 }
             }
 
             Button(action: action) {
                 Label("创建第一张歌单", systemImage: "plus.circle.fill")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(AppThemeTextColors.selectedOnLight)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -501,7 +501,7 @@ struct PlaylistCustomEditorSheet: View {
                     Button("取消") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -521,7 +521,7 @@ struct PlaylistCustomEditorSheet: View {
                         dismiss()
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
             }
         }
@@ -560,7 +560,7 @@ struct PlaylistCustomEditorSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("封面")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.68))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
 
             HStack(alignment: .center, spacing: 14) {
                 
@@ -587,7 +587,7 @@ struct PlaylistCustomEditorSheet: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .frame(width: 32, height: 32)
                             .background(Color.black.opacity(0.55), in: Circle())
                             .overlay(
@@ -609,9 +609,9 @@ struct PlaylistCustomEditorSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.68))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
 
-            TextField("", text: text, prompt: Text(prompt).foregroundColor(Color.white.opacity(0.28)))
+            TextField("", text: text, prompt: Text(prompt).foregroundColor(AppThemeTextColors.primary.opacity(0.28)))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -619,7 +619,7 @@ struct PlaylistCustomEditorSheet: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
         }
     }
 
@@ -630,17 +630,17 @@ struct PlaylistCustomEditorSheet: View {
             HStack(spacing: 12) {
                 Label("添加歌曲", systemImage: "plus")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 Spacer(minLength: 0)
 
                 Text(selectedTrackKeys.isEmpty ? "未选择" : "\(selectedTrackKeys.count) 首")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.56))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.56))
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.white.opacity(0.32))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.32))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -674,12 +674,12 @@ private struct PlaylistEditorSectionCard<Content: View>: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.62))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -719,11 +719,11 @@ private struct PlaylistCustomCoverPreview: View {
                 VStack(spacing: 6) {
                     Image(systemName: "photo")
                         .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.82))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                     Text("封面")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.48))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.48))
                 }
             }
         }
@@ -750,7 +750,7 @@ private struct PlaylistTrackPickerSheet: View {
                         if tracks.isEmpty {
                             Text("资料库还没有歌曲。")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.white.opacity(0.62))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -767,12 +767,12 @@ private struct PlaylistTrackPickerSheet: View {
                                             VStack(alignment: .leading, spacing: 4) {
                                                 Text(track.title)
                                                     .font(.body)
-                                                    .foregroundStyle(.white)
+                                                    .foregroundStyle(AppThemeTextColors.primary)
                                                     .lineLimit(1)
 
                                                 Text(track.artist)
                                                     .font(.subheadline)
-                                                    .foregroundStyle(Color.white.opacity(0.5))
+                                                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.5))
                                                     .lineLimit(1)
                                             }
 
@@ -780,7 +780,7 @@ private struct PlaylistTrackPickerSheet: View {
 
                                             Image(systemName: selectedTrackKeys.contains(track.storageKey) ? "checkmark.circle.fill" : "circle")
                                                 .font(.title3.weight(.semibold))
-                                                .foregroundStyle(selectedTrackKeys.contains(track.storageKey) ? .white : Color.white.opacity(0.26))
+                                                .foregroundStyle(selectedTrackKeys.contains(track.storageKey) ? AppThemeTextColors.selectedOnAccent : AppThemeTextColors.primary.opacity(0.26))
                                         }
                                         .padding(.vertical, 10)
                                         .contentShape(Rectangle())
@@ -808,14 +808,14 @@ private struct PlaylistTrackPickerSheet: View {
                     Button("关闭") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("完成") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
             }
         }
@@ -968,23 +968,23 @@ private struct PlaylistDetailHeroCard: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(playlist.primaryCategory.uppercased())
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.58))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
 
                 Text(playlist.title)
                     .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.86)
 
                 if !metaLine.isEmpty {
                     Text(metaLine)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                 }
 
                 Text(descriptionText)
                     .font(.body)
-                    .foregroundStyle(Color.white.opacity(0.78))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.78))
                     .fixedSize(horizontal: false, vertical: true)
 
                 LazyVGrid(columns: metricColumns, alignment: .leading, spacing: 10) {
@@ -1016,18 +1016,18 @@ private struct PlaylistDetailHeroCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(playlist.source?.title ?? playlist.primaryCategory)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.58))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
 
                     Text(playlist.title)
                         .font(.system(size: 21, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if !metaLine.isEmpty {
                         Text(metaLine)
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(Color.white.opacity(0.72))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                             .lineLimit(1)
                     }
                 }
@@ -1036,7 +1036,7 @@ private struct PlaylistDetailHeroCard: View {
 
             Text(descriptionText)
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.74))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.74))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -1072,7 +1072,7 @@ private struct PlaylistDetailHeroCard: View {
                     .padding(.horizontal, compact ? 12 : 16)
                     .padding(.vertical, compact ? 12 : 10)
                     .background(Color.white, in: Capsule())
-                    .foregroundStyle(.black)
+                    .foregroundStyle(AppThemeTextColors.selectedOnLight)
             }
             .buttonStyle(.plain)
 
@@ -1092,7 +1092,7 @@ private struct PlaylistDetailHeroCard: View {
                         Capsule()
                             .stroke(Color.white.opacity(0.10), lineWidth: 1)
                     )
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
             }
             .buttonStyle(.plain)
         }
@@ -1117,11 +1117,11 @@ private struct CompactPlaylistMetricChip: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.52))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
 
             Text(value)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1148,7 +1148,7 @@ struct PlaylistDetailPage: View {
     @State private var isCustomPlaylistEditorPresented = false
     @State private var isDeleteConfirmationPresented = false
 
-    private let accentColor = Color(red: 0.89, green: 0.28, blue: 0.32)
+    private let accentColor = AppThemeTextColors.accent
 
     var body: some View {
         GeometryReader { geometry in
@@ -1172,7 +1172,7 @@ struct PlaylistDetailPage: View {
                                 VStack(spacing: 8) {
                                     Text(playlist.title)
                                         .font(.system(size: 31, weight: .bold, design: .rounded))
-                                        .foregroundStyle(Color.white)
+                                        .foregroundStyle(AppThemeTextColors.primary)
                                         .multilineTextAlignment(.center)
                                         .lineLimit(3)
 
@@ -1183,7 +1183,7 @@ struct PlaylistDetailPage: View {
 
                                     Text(subtitleText(for: playlist))
                                         .font(.subheadline)
-                                        .foregroundStyle(Color.white.opacity(0.46))
+                                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.46))
                                         .lineLimit(1)
                                 }
                                 .frame(maxWidth: 320)
@@ -1223,7 +1223,7 @@ struct PlaylistDetailPage: View {
                                         .tint(accentColor)
                                     Text("正在加载歌单曲目…")
                                         .font(.subheadline)
-                                        .foregroundStyle(Color.white.opacity(0.52))
+                                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
@@ -1231,11 +1231,11 @@ struct PlaylistDetailPage: View {
                                 VStack(spacing: 10) {
                                     Image(systemName: "music.note.list")
                                         .font(.title2)
-                                        .foregroundStyle(Color.white.opacity(0.35))
+                                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.35))
 
                                     Text("这张歌单暂时还没有可展示的曲目")
                                         .font(.subheadline)
-                                        .foregroundStyle(Color.white.opacity(0.54))
+                                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.54))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 28)
@@ -1285,7 +1285,7 @@ struct PlaylistDetailPage: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.72))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                         .frame(width: 44, height: 44)
                         .background(
                             Circle()
@@ -1300,7 +1300,7 @@ struct PlaylistDetailPage: View {
             ToolbarItem(placement: .principal) {
                 Text(currentPlaylist?.title ?? "")
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .lineLimit(1)
                     .opacity(showsNavigationTitle ? 1 : 0)
             }
@@ -1383,7 +1383,7 @@ struct PlaylistDetailPage: View {
 #if canImport(UIKit)
         .background(
             PlaylistNavigationBarConfigurator(
-                backgroundColor: UIColor(red: 0.07, green: 0.07, blue: 0.12, alpha: 1),
+                backgroundColor: .systemBackground,
                 foregroundColor: .white,
                 shadowColor: .clear
             )
@@ -1433,7 +1433,7 @@ struct PlaylistDetailPage: View {
     private func detailToolbarIcon(_ systemImage: String) -> some View {
         Image(systemName: systemImage)
             .font(.body.weight(.semibold))
-            .foregroundStyle(Color.white.opacity(0.72))
+            .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
             .frame(width: 34, height: 34)
     }
 
@@ -1507,12 +1507,12 @@ private struct PlaylistDetailTrackRow: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(track.title)
                             .font(.body.weight(.medium))
-                            .foregroundStyle(Color.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .lineLimit(1)
 
                         Text(track.artist)
                             .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.52))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                             .lineLimit(1)
                     }
 
@@ -1520,7 +1520,7 @@ private struct PlaylistDetailTrackRow: View {
 
                     Text(index.formatted())
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.26))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.26))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -1543,7 +1543,7 @@ private struct PlaylistDetailTrackRow: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(isCurrent ? accentColor : Color.white.opacity(0.55))
+                    .foregroundStyle(isCurrent ? accentColor : AppThemeTextColors.primary.opacity(0.55))
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
@@ -1589,7 +1589,7 @@ private struct PlaylistTrackArtwork: View {
 
             Image(systemName: track.artwork.symbol)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
         }
     }
 }
@@ -1608,14 +1608,14 @@ private struct PlaylistRowCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(playlist.title)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(sourceText)
                     .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.68))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                     .lineLimit(1)
             }
             .layoutPriority(1)
@@ -1706,7 +1706,7 @@ private struct PlaylistCardMenu: View {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.body.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.7))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.7))
                 .frame(width: 32, height: 32)
         }
         .buttonStyle(.plain)
@@ -1722,7 +1722,7 @@ private struct PlaylistFilterPill: View {
         Button(action: action) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(isSelected ? .black : .white)
+                .foregroundStyle(isSelected ? AppThemeTextColors.selectedOnLight : AppThemeTextColors.primary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
@@ -1746,11 +1746,11 @@ private struct PlaylistMetricPill: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.52))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
 
             Text(value)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -1824,7 +1824,7 @@ private struct PlaylistCoverView: View {
 
             Image(systemName: playlist.artwork.symbol)
                 .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.92))
         }
     }
 }

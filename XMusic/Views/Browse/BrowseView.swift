@@ -12,7 +12,7 @@ struct BrowseView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("资料库")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .padding(.horizontal, 20)
                     .padding(.top, 24)
                     .padding(.bottom, 22)

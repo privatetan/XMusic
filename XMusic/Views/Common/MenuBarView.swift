@@ -4,8 +4,6 @@ import SwiftUI
 struct MenuBarView: View {
     private static let tabSelectionAnimation = Animation.spring(response: 0.34, dampingFraction: 0.86)
 
-    @AppStorage(AppThemePreset.storageKey) private var selectedThemeRawValue = AppThemePreset.midnight.rawValue
-    @AppStorage(AppThemeStorage.customAccentDataKey) private var customAccentData = Data()
     @Binding var selectedTab: AppTab
     @Binding var searchQuery: String
     var isSearchFieldFocused: FocusState<Bool>.Binding
@@ -16,13 +14,7 @@ struct MenuBarView: View {
     @Namespace private var navigationAnimation
     @State private var lastNonSearchTab: AppTab = .browse
 
-    private var theme: AppThemeConfiguration {
-        AppThemeConfiguration(
-            selectedThemeRawValue: selectedThemeRawValue,
-            customAccentData: customAccentData,
-            customBackgroundRevision: 0
-        )
-    }
+    private let accentColor = Color.blue
 
     private var isSearchMode: Bool { selectedTab == .search }
 
@@ -45,7 +37,7 @@ struct MenuBarView: View {
                     } label: {
                         Image(systemName: lastNonSearchTab.symbol)
                             .font(.system(size: isCompactLayout ? 20 : 22, weight: .semibold))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .frame(width: shortcutControlHeight, height: shortcutControlHeight)
                             .background(searchButtonBackground(isSelected: false))
                     }
@@ -74,12 +66,12 @@ struct MenuBarView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.primary.opacity(0.55))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.55))
 
                     TextField("搜索歌名、艺人、专辑", text: $searchQuery)
                         .focused(isSearchFieldFocused)
                         .textFieldStyle(.plain)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(AppThemeTextColors.primary)
                         .font(.system(size: 16, weight: .medium))
                         .submitLabel(.search)
                         .onSubmit { onSearchSubmit?() }
@@ -90,7 +82,7 @@ struct MenuBarView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                                .foregroundStyle(Color.primary.opacity(0.4))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.4))
                         }
                         .buttonStyle(.plain)
                         .transition(.opacity.combined(with: .scale))
@@ -139,7 +131,7 @@ struct MenuBarView: View {
             if isSearchShortcut {
                 Image(systemName: tab.symbol)
                     .font(.system(size: isCompactLayout ? 22 : 24, weight: .semibold))
-                    .foregroundStyle(isSelected ? theme.accent : .primary)
+                    .foregroundStyle(isSelected ? accentColor : AppThemeTextColors.primary)
                     .frame(width: shortcutControlHeight, height: shortcutControlHeight)
                     .background(searchButtonBackground(isSelected: isSelected))
                     .shadow(color: tabClusterShadowColor, radius: 24, x: 0, y: 12)
@@ -153,7 +145,7 @@ struct MenuBarView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                .foregroundStyle(isSelected ? theme.accent : Color.secondary)
+                .foregroundStyle(isSelected ? accentColor : AppThemeTextColors.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: tabItemHeight)
                 .background {
@@ -198,7 +190,7 @@ struct MenuBarView: View {
                     .glassEffect(.regular, in: Circle())
                     .overlay {
                         if isSelected {
-                            Circle().fill(theme.accent).opacity(0.15)
+                            Circle().fill(accentColor).opacity(0.15)
                         } else {
                             Circle().fill(Color.primary).opacity(0.04)
                         }
@@ -206,15 +198,13 @@ struct MenuBarView: View {
             } else {
                 if isSelected {
                     Circle()
-                        .fill(theme.accent).opacity(0.15)
+                        .fill(accentColor).opacity(0.15)
                         .overlay(Circle().fill(LinearGradient(colors: [Color.white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)))
                         .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                 } else {
                     Circle()
-                        .fill(.regularMaterial)
-                        .overlay(Circle().fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                        .overlay(Circle().stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
-                        .overlay(Circle().fill(Color.primary).opacity(0.02))
+                        .fill(.ultraThinMaterial)
+                        .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
                 }
             }
         }
@@ -229,10 +219,8 @@ struct MenuBarView: View {
                     .overlay { Capsule().fill(Color.primary).opacity(0.04) }
             } else {
                 Capsule()
-                    .fill(.regularMaterial)
-                    .overlay(Capsule().fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .overlay(Capsule().stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
-                    .overlay(Capsule().fill(Color.primary).opacity(0.02))
+                    .fill(.ultraThinMaterial)
+                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1))
             }
         }
     }
@@ -248,10 +236,10 @@ struct MenuBarView: View {
             if #available(iOS 26.0, *) {
                 Color.clear
                     .glassEffect(.regular, in: Capsule())
-                    .overlay(Capsule().fill(theme.accent).opacity(0.15))
+                    .overlay(Capsule().fill(accentColor).opacity(0.15))
             } else {
                 Capsule()
-                    .fill(theme.accent).opacity(0.15)
+                    .fill(accentColor).opacity(0.15)
                     .overlay(Capsule().fill(LinearGradient(colors: [Color.white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)))
                     .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
             }
@@ -268,10 +256,8 @@ struct MenuBarView: View {
                     .overlay { Capsule().fill(Color.primary).opacity(0.04) }
             } else {
                 Capsule()
-                    .fill(.regularMaterial)
-                    .overlay(Capsule().fill(LinearGradient(colors: [Color.white.opacity(0.15), .clear, Color.white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .overlay(Capsule().stroke(LinearGradient(colors: [Color.white.opacity(0.35), .clear, Color.white.opacity(0.15)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.5))
-                    .overlay(Capsule().fill(Color.primary).opacity(0.02))
+                    .fill(.ultraThinMaterial)
+                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 1))
             }
         }
     }

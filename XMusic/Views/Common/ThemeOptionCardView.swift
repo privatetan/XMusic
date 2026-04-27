@@ -48,14 +48,14 @@ struct ThemeOptionCardView: View {
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(isSelected ? theme.accent : Color.white.opacity(0.34))
+                    .foregroundStyle(isSelected ? theme.accent : AppThemeTextColors.primary.opacity(0.34))
                     .padding(5)
             }
 
             HStack(spacing: 5) {
                 Text(theme.preset.title)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 Circle()
                     .fill(theme.accent)

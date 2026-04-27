@@ -15,7 +15,7 @@ struct TrackRowView: View {
                 HStack(spacing: 14) {
                     Text(index.formatted())
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.35))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.35))
                         .frame(width: 22)
 
                     CoverImgView(track: track, cornerRadius: 18, iconSize: 18)
@@ -24,12 +24,12 @@ struct TrackRowView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(track.title)
                             .font(.headline)
-                            .foregroundStyle(isCurrent ? Color(red: 1.00, green: 0.43, blue: 0.42) : .white)
+                            .foregroundStyle(isCurrent ? AppThemeTextColors.accent : AppThemeTextColors.primary)
                             .lineLimit(1)
 
                         Text("\(track.artist) • \(track.album)")
                             .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.64))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.64))
                             .lineLimit(1)
                     }
 
@@ -37,7 +37,7 @@ struct TrackRowView: View {
 
                     Image(systemName: isCurrent && isPlaying ? "speaker.wave.2.fill" : "play.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(isCurrent ? Color(red: 1.00, green: 0.43, blue: 0.42) : Color.white.opacity(0.86))
+                        .foregroundStyle(isCurrent ? AppThemeTextColors.accent : AppThemeTextColors.primary.opacity(0.86))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -51,7 +51,7 @@ struct TrackRowView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.55))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.55))
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)

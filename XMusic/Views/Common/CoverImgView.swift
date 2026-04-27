@@ -56,18 +56,18 @@ struct CoverImgView: View {
 
                         Text(track.artwork.label.uppercased())
                             .font(.system(size: max(9, iconSize * 0.32), weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.62))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                     }
 
                     Spacer()
 
                     Image(systemName: track.artwork.symbol)
                         .font(.system(size: iconSize, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Text(track.title)
                         .font(.system(size: max(10, iconSize * 0.38), weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
                         .lineLimit(2)
                 }
                 .padding(iconSize * 0.56)

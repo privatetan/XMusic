@@ -33,7 +33,7 @@ struct SearchView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Text("搜索")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -88,14 +88,14 @@ struct SearchView: View {
                                     }
                                 }
                                 .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.white.opacity(0.55))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.55))
                             }
                         }
 
                         if musicSearch.searchHistory.isEmpty {
                             Text("还没有搜索记录。")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.white.opacity(0.62))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -129,7 +129,7 @@ struct SearchView: View {
 
                         Text("正在搜索 \(musicSearch.selectedSource.title)…")
                             .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.68))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 36)
@@ -138,19 +138,19 @@ struct SearchView: View {
                         HStack(alignment: .center, spacing: 12) {
                             Text("搜索结果")
                                 .font(.title2.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppThemeTextColors.primary)
 
                             Spacer(minLength: 0)
 
                             Text(searchResultSummary)
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.white.opacity(0.58))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                         }
 
                         if let playbackError {
                             Text(playbackError)
                                 .font(.footnote)
-                                .foregroundStyle(Color(red: 1.00, green: 0.66, blue: 0.38))
+                                .foregroundStyle(AppThemeTextColors.warning)
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -159,7 +159,7 @@ struct SearchView: View {
                         if let actionMessage {
                             Text(actionMessage)
                                 .font(.footnote.weight(.semibold))
-                                .foregroundStyle(Color(red: 0.57, green: 0.90, blue: 0.72))
+                                .foregroundStyle(AppThemeTextColors.success)
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color(red: 0.24, green: 0.55, blue: 0.38).opacity(0.14), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -176,7 +176,7 @@ struct SearchView: View {
                         if let errorMessage = musicSearch.errorMessage, activeResultCount == 0 {
                             Text(errorMessage)
                                 .font(.footnote)
-                                .foregroundStyle(Color.white.opacity(0.72))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -241,7 +241,7 @@ struct SearchView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                                     .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AppThemeTextColors.primary)
                             }
                             .buttonStyle(.plain)
                         }
@@ -539,7 +539,7 @@ struct PlaybackDebugCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("播放调试")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             if let strategy = info.resolutionStrategy {
                 debugLine("解析策略", strategy)
@@ -583,16 +583,16 @@ struct PlaybackDebugCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("字段检查")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.white.opacity(0.5))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.5))
                     ForEach(info.fieldChecks) { check in
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(check.isPresent ? "OK" : "MISS") · \(check.field): \(check.actualValue)")
                                 .font(.footnote.monospaced())
-                                .foregroundStyle(check.isPresent ? Color(red: 0.55, green: 0.90, blue: 0.72) : Color(red: 1.00, green: 0.63, blue: 0.45))
+                                .foregroundStyle(check.isPresent ? AppThemeTextColors.success : AppThemeTextColors.warning)
                             if let note = check.note {
                                 Text(note)
                                     .font(.caption)
-                                    .foregroundStyle(Color.white.opacity(0.52))
+                                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                             }
                         }
                     }
@@ -616,10 +616,10 @@ struct PlaybackDebugCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.5))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.5))
             Text(value)
                 .font(.footnote)
-                .foregroundStyle(Color.white.opacity(0.76))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.76))
                 .textSelection(.enabled)
         }
     }
@@ -638,7 +638,7 @@ private struct SearchSourcePill: View {
         Button(action: action) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(isSelected ? .black : .white)
+                .foregroundStyle(isSelected ? AppThemeTextColors.selectedOnLight : AppThemeTextColors.primary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
@@ -663,18 +663,18 @@ private struct SearchStatusCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("当前音源")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.white.opacity(0.66))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.66))
 
                 Text(activeSourceName ?? "未激活")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
             }
 
             Spacer(minLength: 0)
 
             Text(fallbackEnabled ? "自动换源已开启" : "自动换源已关闭")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(fallbackEnabled ? Color(red: 0.57, green: 0.86, blue: 0.73) : Color(red: 1.00, green: 0.72, blue: 0.47))
+                .foregroundStyle(fallbackEnabled ? AppThemeTextColors.success : AppThemeTextColors.warning)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(Color.white.opacity(0.08), in: Capsule())
@@ -722,12 +722,12 @@ private struct SearchAlbumResultRow: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(album.title)
                             .font(.body)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .lineLimit(1)
 
                         Text(album.artist)
                             .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.58))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                             .lineLimit(1)
 
                         HStack(spacing: 8) {
@@ -739,7 +739,7 @@ private struct SearchAlbumResultRow: View {
                             }
                         }
                         .font(.caption)
-                        .foregroundStyle(Color.white.opacity(0.4))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.4))
                     }
 
                     Spacer(minLength: 0)
@@ -747,11 +747,11 @@ private struct SearchAlbumResultRow: View {
                     VStack(alignment: .trailing, spacing: 6) {
                         Text(album.source.title)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.white.opacity(0.52))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
 
                         Text("搜歌曲")
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Color(red: 0.58, green: 0.88, blue: 0.75))
+                            .foregroundStyle(AppThemeTextColors.success)
                     }
                 }
                 .contentShape(Rectangle())
@@ -779,7 +779,7 @@ private struct SearchAlbumResultRow: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.3))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.3))
                         .frame(width: 36, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -848,14 +848,14 @@ private struct SearchAlbumDetailSheet: View {
                                 .tint(.white)
                             Text("正在加载专辑曲目…")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.white.opacity(0.68))
+                                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 28)
                     } else if let errorMessage {
                         Text(errorMessage)
                             .font(.footnote)
-                            .foregroundStyle(Color.white.opacity(0.72))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
                             .padding(14)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -863,14 +863,14 @@ private struct SearchAlbumDetailSheet: View {
                         VStack(alignment: .leading, spacing: 12) {
                 Text("曲目")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                             if !songs.isEmpty {
                                 Button(isAlbumInLibrary ? "专辑已在资料库" : "加入整张专辑") {
                                     library.add(album: album, songs: songs)
                                 }
                                 .font(.footnote.weight(.semibold))
-                                .foregroundStyle(isAlbumInLibrary ? Color.white.opacity(0.5) : Color(red: 0.57, green: 0.90, blue: 0.72))
+                                .foregroundStyle(isAlbumInLibrary ? AppThemeTextColors.primary.opacity(0.5) : AppThemeTextColors.accent)
                                 .disabled(isAlbumInLibrary)
                             }
 
@@ -913,7 +913,7 @@ private struct SearchAlbumDetailSheet: View {
                     Button("关闭") {
                         dismiss()
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                 }
             }
         }
@@ -927,12 +927,12 @@ private struct SearchAlbumDetailSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(album.title)
                     .font(.title2.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(album.artist)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.white.opacity(0.68))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
 
                 HStack(spacing: 8) {
                     if !album.releaseDate.isEmpty {
@@ -958,7 +958,7 @@ private struct SearchAlbumDetailSheet: View {
     private func infoPill(_ text: String) -> some View {
         Text(text)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(Color.white.opacity(0.7))
+            .foregroundStyle(AppThemeTextColors.primary.opacity(0.7))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Color.white.opacity(0.08), in: Capsule())
@@ -1007,12 +1007,12 @@ private struct OnlineSearchResultRow: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(song.title)
                             .font(.body)
-                            .foregroundStyle(isCurrent ? Color(red: 0.50, green: 0.52, blue: 1.0) : .white)
+                            .foregroundStyle(isCurrent ? AppThemeTextColors.accent : AppThemeTextColors.primary)
                             .lineLimit(1)
 
                         Text(song.artist)
                             .font(.subheadline)
-                            .foregroundStyle(Color.white.opacity(0.5))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.5))
                             .lineLimit(1)
                     }
 
@@ -1021,12 +1021,12 @@ private struct OnlineSearchResultRow: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(song.source.title)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.white.opacity(0.52))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                             .lineLimit(1)
 
                         Text(sourceLibrary.preferredPlaybackQuality(for: song))
                             .font(.caption2)
-                            .foregroundStyle(Color.white.opacity(0.36))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.36))
                             .lineLimit(1)
                     }
                 }
@@ -1079,7 +1079,7 @@ private struct OnlineSearchResultRow: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.3))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.3))
                         .frame(width: 36, height: 44)
                 }
                 .buttonStyle(.plain)
@@ -1121,7 +1121,7 @@ private struct SearchDebugPanel: View {
                 HStack {
                     Label("搜索调试面板", systemImage: "wrench.and.screwdriver.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Spacer()
 
@@ -1131,7 +1131,7 @@ private struct SearchDebugPanel: View {
                     } else {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.white.opacity(0.52))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                     }
                 }
             }
@@ -1141,7 +1141,7 @@ private struct SearchDebugPanel: View {
                 if entries.isEmpty {
                     Text("当前还没有调试结果。输入关键词后会显示每个平台是成功、无结果，还是直接报错。")
                         .font(.footnote)
-                        .foregroundStyle(Color.white.opacity(0.64))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.64))
                 } else {
                     VStack(spacing: 10) {
                         ForEach(entries) { entry in
@@ -1174,7 +1174,7 @@ private struct SearchDebugRow: View {
                 HStack(spacing: 8) {
                     Text(entry.source.title)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Text(statusText)
                         .font(.caption.weight(.bold))
@@ -1183,7 +1183,7 @@ private struct SearchDebugRow: View {
 
                 Text("\(entry.message) · 本页 \(entry.resultCount) 首 · 总数 \(entry.total) · 页 \(entry.page)/\(max(entry.maxPage, 1))")
                     .font(.caption)
-                    .foregroundStyle(Color.white.opacity(0.62))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -1196,11 +1196,11 @@ private struct SearchDebugRow: View {
     private var statusColor: Color {
         switch entry.status {
         case .success:
-            return Color(red: 0.48, green: 0.92, blue: 0.72)
+            return AppThemeTextColors.success
         case .empty:
-            return Color(red: 0.99, green: 0.78, blue: 0.39)
+            return AppThemeTextColors.warning
         case .error:
-            return Color(red: 1.00, green: 0.50, blue: 0.42)
+            return AppThemeTextColors.destructive
         }
     }
 
@@ -1236,7 +1236,7 @@ private struct FlexibleTags: View {
                     } label: {
                         Text(item)
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
                             .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
@@ -1259,7 +1259,7 @@ private struct FlexibleTags: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Color.white)
+                                .foregroundStyle(AppThemeTextColors.primary)
                                 .background(Color(white: 0.15), in: Circle())
                         }
                         .buttonStyle(.plain)

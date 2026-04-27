@@ -59,7 +59,7 @@ struct ContentNewView: View {
                }) {
                 Text("点击展开")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppThemeTextColors.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
                     .background(Color.blue)

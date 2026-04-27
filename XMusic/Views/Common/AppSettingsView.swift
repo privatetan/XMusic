@@ -55,7 +55,7 @@ struct AppSettingsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("设置")
                         .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     SettingsPanelView(title: "外观与皮肤", subtitle: "切换主题或设置自定义背景。") {
                         VStack(alignment: .leading, spacing: 6) {
@@ -95,18 +95,18 @@ struct AppSettingsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("默认音质")
                                         .font(.headline)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AppThemeTextColors.primary)
 
                                     Text(sourceLibrary.defaultPlaybackQuality.title)
                                         .font(.caption)
-                                        .foregroundStyle(Color.white.opacity(0.58))
+                                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                                 }
 
                                 Spacer(minLength: 0)
 
                                 Text(sourceLibrary.defaultPlaybackQuality.shortLabel)
                                     .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Color.white.opacity(0.66))
+                                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.66))
                             }
 
                             HStack(spacing: 8) {
@@ -130,7 +130,7 @@ struct AppSettingsView: View {
                             Toggle(isOn: $sourceLibrary.enableAutomaticSourceFallback) {
                                 Text("自动切换可用音源")
                                     .font(.headline)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AppThemeTextColors.primary)
                             }
                             .tint(currentTheme.accent)
 
@@ -192,7 +192,7 @@ struct AppSettingsView: View {
                 Button("关闭") {
                     dismiss()
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
             }
         }
         .sheet(isPresented: $isSourceManagerPresented) {
@@ -282,18 +282,18 @@ struct AppSettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("自定义外观")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Text(currentTheme.hasCustomBackgroundImage ? "已配置背景图和按钮色" : "未配置背景图")
                         .font(.caption2)
-                        .foregroundStyle(Color.white.opacity(0.62))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.62))
                 }
 
                 Spacer(minLength: 0)
 
                 Image(systemName: isCustomThemeEditorExpanded ? "chevron.up" : "chevron.down")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.white.opacity(0.46))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.46))
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -341,7 +341,7 @@ struct AppSettingsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("按钮主色")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Circle()
                         .fill(currentTheme.accent)
@@ -365,11 +365,11 @@ struct AppSettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("背景模糊")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppThemeTextColors.primary)
 
                     Text("\(Int(customBackgroundBlur))")
                         .font(.caption2)
-                        .foregroundStyle(Color.white.opacity(0.58))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                 }
 
                 Slider(value: $customBackgroundBlur, in: 0...36, step: 1)
@@ -412,7 +412,7 @@ struct AppSettingsView: View {
             } else {
                 Image(systemName: "photo.artframe")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.72))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.72))
             }
         }
         .frame(width: 52, height: 52)
@@ -503,7 +503,7 @@ private struct ThemeActionButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(AppThemeTextColors.primary)
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
             .background(accent.opacity(0.22), in: Capsule())
@@ -518,7 +518,7 @@ private struct ThemeSecondaryActionButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(AppThemeTextColors.primary)
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
             .background(Color.white.opacity(0.08), in: Capsule())

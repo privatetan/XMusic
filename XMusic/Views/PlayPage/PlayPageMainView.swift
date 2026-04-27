@@ -471,7 +471,7 @@ struct PlayPageMainView: View {
         // 计算底部留白，避免挡住系统区域。
         let bottomInset = max(safeBottom + 96, 104)
         // 定义面板背景色。
-        let panelBackground = Color(red: 0.28, green: 0.23, blue: 0.31).opacity(0.97)
+        let panelBackground = AppThemeDefaults.demoBackground.opacity(0.97)
         // 定义面板描边色。
         let panelStroke = Color.white.opacity(0.07)
 
@@ -517,14 +517,14 @@ struct PlayPageMainView: View {
                             // 设置图标字体样式。
                             .font(.system(size: 15, weight: .medium))
                             // 设置图标颜色。
-                            .foregroundStyle(Color.white.opacity(0.82))
+                            .foregroundStyle(AppThemeTextColors.primary.opacity(0.82))
 
                         // 显示弹层标题。
                         Text("AirPlay")
                             // 设置标题字体。
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             // 设置标题颜色。
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppThemeTextColors.primary)
                     }
                     // 标题区上边距。
                     .padding(.top, 16)
@@ -590,7 +590,7 @@ struct PlayPageMainView: View {
                     // 设置文字样式。
                     .font(.system(size: 13, weight: .medium))
                     // 设置文字颜色。
-                    .foregroundStyle(Color.white.opacity(0.58))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.58))
                     // 顶部留白。
                     .padding(.top, 16)
                     // 底部留白。
@@ -620,7 +620,7 @@ struct PlayPageMainView: View {
                 // 设置图标样式。
                 .font(.system(size: 18, weight: .medium))
                 // 设置图标颜色。
-                .foregroundStyle(.white.opacity(0.88))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.88))
                 // 固定图标区域尺寸。
                 .frame(width: 28, height: 28)
 
@@ -631,7 +631,7 @@ struct PlayPageMainView: View {
                     // 设置标题字体。
                     .font(.system(size: 16, weight: .semibold))
                     // 设置标题颜色。
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppThemeTextColors.primary)
 
                 // 当副标题存在时显示。
                 if let subtitle {
@@ -640,7 +640,7 @@ struct PlayPageMainView: View {
                         // 设置副标题字体。
                         .font(.system(size: 13, weight: .medium))
                         // 设置副标题颜色。
-                        .foregroundStyle(Color.white.opacity(0.52))
+                        .foregroundStyle(AppThemeTextColors.primary.opacity(0.52))
                 }
             }
 
@@ -654,7 +654,7 @@ struct PlayPageMainView: View {
                     // 设置图标样式。
                     .font(.system(size: 14, weight: .bold))
                     // 设置图标颜色。
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(0.9))
             }
         }
         // 应用左右内边距。

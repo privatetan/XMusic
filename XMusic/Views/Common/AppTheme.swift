@@ -48,83 +48,22 @@ enum AppThemePreset: String, CaseIterable, Identifiable {
     }
 
     fileprivate var presetAccent: Color {
-        switch self {
-        case .midnight:
-            return Color(red: 0.48, green: 0.92, blue: 0.72)
-        case .aurora:
-            return Color(red: 0.41, green: 0.84, blue: 0.98)
-        case .sunset:
-            return Color(red: 1.00, green: 0.62, blue: 0.37)
-        case .forest:
-            return Color(red: 0.78, green: 0.91, blue: 0.50)
-        case .custom:
-            return AppThemeDefaults.customAccent
-        }
+        AppThemeDefaults.demoAccent
     }
 
     fileprivate var presetGradientColors: [Color] {
-        switch self {
-        case .midnight:
-            return [
-                Color(red: 0.07, green: 0.07, blue: 0.10),
-                Color(red: 0.04, green: 0.04, blue: 0.06),
-                .black
-            ]
-        case .aurora:
-            return [
-                Color(red: 0.03, green: 0.08, blue: 0.14),
-                Color(red: 0.02, green: 0.05, blue: 0.10),
-                Color(red: 0.01, green: 0.02, blue: 0.05)
-            ]
-        case .sunset:
-            return [
-                Color(red: 0.16, green: 0.06, blue: 0.08),
-                Color(red: 0.10, green: 0.04, blue: 0.05),
-                Color(red: 0.04, green: 0.02, blue: 0.03)
-            ]
-        case .forest:
-            return [
-                Color(red: 0.04, green: 0.10, blue: 0.08),
-                Color(red: 0.03, green: 0.06, blue: 0.05),
-                Color(red: 0.01, green: 0.03, blue: 0.02)
-            ]
-        case .custom:
-            return [
-                Color(red: 0.06, green: 0.07, blue: 0.10),
-                Color(red: 0.03, green: 0.04, blue: 0.07),
-                Color(red: 0.01, green: 0.01, blue: 0.03)
-            ]
-        }
+        [
+            AppThemeDefaults.demoBackground,
+            AppThemeDefaults.demoBackground
+        ]
     }
 
     fileprivate var presetPrimaryGlow: Color {
-        switch self {
-        case .midnight:
-            return Color(red: 0.99, green: 0.28, blue: 0.32).opacity(0.22)
-        case .aurora:
-            return Color(red: 0.33, green: 0.92, blue: 0.95).opacity(0.24)
-        case .sunset:
-            return Color(red: 1.00, green: 0.42, blue: 0.32).opacity(0.24)
-        case .forest:
-            return Color(red: 0.33, green: 0.82, blue: 0.53).opacity(0.22)
-        case .custom:
-            return AppThemeDefaults.customAccent.opacity(0.28)
-        }
+        AppThemeDefaults.demoAccent.opacity(0.16)
     }
 
     fileprivate var presetSecondaryGlow: Color {
-        switch self {
-        case .midnight:
-            return Color(red: 0.23, green: 0.66, blue: 0.88).opacity(0.16)
-        case .aurora:
-            return Color(red: 0.44, green: 0.52, blue: 1.00).opacity(0.18)
-        case .sunset:
-            return Color(red: 1.00, green: 0.80, blue: 0.34).opacity(0.17)
-        case .forest:
-            return Color(red: 0.90, green: 0.75, blue: 0.36).opacity(0.16)
-        case .custom:
-            return Color.white.opacity(0.16)
-        }
+        Color.primary.opacity(0.04)
     }
 
     static func resolve(from rawValue: String) -> AppThemePreset {
@@ -133,7 +72,29 @@ enum AppThemePreset: String, CaseIterable, Identifiable {
 }
 
 enum AppThemeDefaults {
-    static let customAccent = Color(red: 0.72, green: 0.62, blue: 1.00)
+    static let demoAccent = Color.blue
+    static let customAccent = Color.blue
+
+    #if canImport(UIKit)
+    static let demoBackground = Color(UIColor.systemBackground)
+    #elseif canImport(AppKit)
+    static let demoBackground = Color(NSColor.windowBackgroundColor)
+    #else
+    static let demoBackground = Color(.sRGB, white: 0, opacity: 1)
+    #endif
+}
+
+enum AppThemeTextColors {
+    static let primary = Color.primary
+    static let secondary = Color.secondary
+    static let tertiary = Color.primary.opacity(0.45)
+    static let accent = AppThemeDefaults.demoAccent
+    static let inverse = Color.white
+    static let selectedOnLight = Color.black
+    static let selectedOnAccent = Color.white
+    static let success = Color.green
+    static let warning = Color.orange
+    static let destructive = Color.red
 }
 
 private struct PersistedThemeColor: Codable {

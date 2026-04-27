@@ -27,57 +27,36 @@ struct ContentView: View {
     }
 
     var body: some View {
+        Group {
+            if #available(iOS 26.0, *) {
+                ios26RootContent
+            } else {
+                legacyRootContent
+            }
+        }
+        .environmentObject(player)
+        .environmentObject(sourceLibrary)
+        .environmentObject(musicSearch)
+        .environmentObject(library)
+        .environmentObject(playlistModel)
+        .environmentObject(scrollState)
+        .overlay {
+            nowPlayingOverlay
+        }
+        .animation(.easeInOut(duration: 0.28), value: player.isNowPlayingPresented)
+    }
+
+    private var legacyRootContent: some View {
         ZStack(alignment: .top) {
             AppBackgroundView()
 
             tabContent(for: player.selectedTab)
                 .id(player.selectedTab)
                 .transition(.opacity)
-            .environmentObject(player)
-            .environmentObject(sourceLibrary)
-            .environmentObject(musicSearch)
-            .environmentObject(library)
-            .environmentObject(playlistModel)
-            .environmentObject(scrollState)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .animation(Self.tabSwitchAnimation, value: player.selectedTab)
-        .overlay(alignment: .top) {
-            if showBrowseSongs {
-                AllSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseSongs = false } })
-                    .environmentObject(library)
-                    .environmentObject(player)
-                    .environmentObject(playlistModel)
-                    .transition(.move(edge: .trailing))
-                    .zIndex(10)
-            }
-            if showBrowseAlbums {
-                AllAlbumsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseAlbums = false } })
-                    .environmentObject(library)
-                    .environmentObject(player)
-                    .environmentObject(playlistModel)
-                    .transition(.move(edge: .trailing))
-                    .zIndex(10)
-            }
-            if showBrowsePlaylists {
-                AllPlaylistsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowsePlaylists = false } })
-                    .environmentObject(playlistModel)
-                    .environmentObject(library)
-                    .environmentObject(player)
-                    .environmentObject(sourceLibrary)
-                    .transition(.move(edge: .trailing))
-                    .zIndex(10)
-            }
-            CachedSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseCached = false } })
-                .environmentObject(library)
-                .environmentObject(player)
-                .environmentObject(playlistModel)
-                .environmentObject(sourceLibrary)
-                .offset(x: showBrowseCached ? 0 : UIScreen.main.bounds.width)
-                .opacity(showBrowseCached ? 1 : 0.001)
-                .allowsHitTesting(showBrowseCached)
-                .zIndex(10)
-        }
+        .overlay(alignment: .top) { browseSheetOverlay }
         .animation(.easeInOut(duration: 0.28), value: showBrowseSongs)
         .animation(.easeInOut(duration: 0.28), value: showBrowseAlbums)
         .animation(.easeInOut(duration: 0.28), value: showBrowsePlaylists)
@@ -128,30 +107,131 @@ struct ContentView: View {
                 )
             }
             .padding(.horizontal, 24) //控制菜单栏和播放栏的左右间距
-            .padding(.top, 8)
-            .padding(.bottom, bottomChromePadding)
+            .padding(.top, 0)
+            .padding(.bottom, max(bottomChromePadding, 2))
             .animation(.easeInOut(duration: 0.18), value: isCompactScrolledMode)
             .animation(.easeInOut(duration: 0.18), value: shouldHidePlayBarForSearchFocus)
             .animation(.easeInOut(duration: 0.18), value: isSearchFieldFocused)
         }
-        .overlay {
-            GeometryReader { proxy in
-                if player.isNowPlayingPresented, player.currentTrack != nil {
-                    PlayPagePanelView(
-                        timeline: player.playbackTimeline,
-                        containerSize: proxy.size
-                    ) {
-                        player.dismissNowPlaying(animated: true)
-                    }
-                    .environmentObject(player)
-                    .environmentObject(sourceLibrary)
-                    .environmentObject(musicSearch)
-                    .transition(.move(edge: .bottom))
-                    .zIndex(20)
+    }
+
+    @available(iOS 26.0, *)
+    private var ios26RootContent: some View {
+        nativeTabContent
+            .tabBarMinimizeBehavior(.onScrollDown)
+            .tabViewBottomAccessory {
+                if player.currentTrack != nil {
+                    PlayBarView()
                 }
             }
+            .overlay(alignment: .top) { browseSheetOverlay }
+            .animation(.easeInOut(duration: 0.28), value: showBrowseSongs)
+            .animation(.easeInOut(duration: 0.28), value: showBrowseAlbums)
+            .animation(.easeInOut(duration: 0.28), value: showBrowsePlaylists)
+            .animation(.easeInOut(duration: 0.28), value: showBrowseCached)
+            .appOnChange(of: player.selectedTab) {
+                showBrowseSongs = false
+                showBrowseAlbums = false
+                showBrowsePlaylists = false
+                showBrowseCached = false
+                scrollState.reset()
+            }
+    }
+
+    @available(iOS 26.0, *)
+    private var nativeTabContent: some View {
+        TabView(selection: $player.selectedTab) {
+            Tab(AppTab.browse.title, systemImage: AppTab.browse.symbol, value: AppTab.browse) {
+                tabPage(for: .browse)
+            }
+
+            Tab(AppTab.radio.title, systemImage: AppTab.radio.symbol, value: AppTab.radio) {
+                tabPage(for: .radio)
+            }
+
+            Tab(AppTab.settings.title, systemImage: AppTab.settings.symbol, value: AppTab.settings) {
+                tabPage(for: .settings)
+            }
+
+            Tab(AppTab.search.title, systemImage: AppTab.search.symbol, value: AppTab.search, role: .search) {
+                tabPage(for: .search)
+                    .searchable(
+                        text: $musicSearch.query,
+                        placement: .toolbar,
+                        prompt: Text("搜索歌名、艺人、专辑")
+                    )
+                    .onSubmit(of: .search) {
+                        musicSearch.submitSearch()
+                    }
+            }
         }
-        .animation(.easeInOut(duration: 0.28), value: player.isNowPlayingPresented)
+    }
+
+    private func tabPage(for tab: AppTab) -> some View {
+        AppNavigationContainerView {
+            ZStack {
+                AppBackgroundView()
+                tabContent(for: tab)
+            }
+            .appRootNavigationHidden()
+        }
+    }
+
+    @ViewBuilder
+    private var browseSheetOverlay: some View {
+        if showBrowseSongs {
+            AllSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseSongs = false } })
+                .environmentObject(library)
+                .environmentObject(player)
+                .environmentObject(playlistModel)
+                .transition(.move(edge: .trailing))
+                .zIndex(10)
+        }
+        if showBrowseAlbums {
+            AllAlbumsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseAlbums = false } })
+                .environmentObject(library)
+                .environmentObject(player)
+                .environmentObject(playlistModel)
+                .transition(.move(edge: .trailing))
+                .zIndex(10)
+        }
+        if showBrowsePlaylists {
+            AllPlaylistsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowsePlaylists = false } })
+                .environmentObject(playlistModel)
+                .environmentObject(library)
+                .environmentObject(player)
+                .environmentObject(sourceLibrary)
+                .transition(.move(edge: .trailing))
+                .zIndex(10)
+        }
+        CachedSongsSheet(onDismiss: { withAnimation(.easeInOut(duration: 0.28)) { showBrowseCached = false } })
+            .environmentObject(library)
+            .environmentObject(player)
+            .environmentObject(playlistModel)
+            .environmentObject(sourceLibrary)
+            .offset(x: showBrowseCached ? 0 : UIScreen.main.bounds.width)
+            .opacity(showBrowseCached ? 1 : 0.001)
+            .allowsHitTesting(showBrowseCached)
+            .zIndex(10)
+    }
+
+    @ViewBuilder
+    private var nowPlayingOverlay: some View {
+        GeometryReader { proxy in
+            if player.isNowPlayingPresented, player.currentTrack != nil {
+                PlayPagePanelView(
+                    timeline: player.playbackTimeline,
+                    containerSize: proxy.size
+                ) {
+                    player.dismissNowPlaying(animated: true)
+                }
+                .environmentObject(player)
+                .environmentObject(sourceLibrary)
+                .environmentObject(musicSearch)
+                .transition(.move(edge: .bottom))
+                .zIndex(20)
+            }
+        }
     }
 
     @ViewBuilder

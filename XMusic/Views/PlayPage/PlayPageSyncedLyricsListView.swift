@@ -77,7 +77,7 @@ struct PlayPageSyncedLyricsListView: View {
             ForEach(line.extendedLyrics, id: \.self) { extendedLine in
                 Text(extendedLine)
                     .font(.system(size: secondaryFontSize(isActive: isActive), weight: .medium))
-                    .foregroundStyle(Color.white.opacity(isActive ? secondaryOpacity : 0.18))
+                    .foregroundStyle(AppThemeTextColors.primary.opacity(isActive ? secondaryOpacity : 0.18))
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

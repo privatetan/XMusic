@@ -5,11 +5,11 @@ struct ListenNowEmptyCardView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("还没有可继续播放的歌曲")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppThemeTextColors.primary)
 
             Text("去搜索页找到想听的歌，加入资料库之后，这里和资料库页都会同步显示。")
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.68))
+                .foregroundStyle(AppThemeTextColors.primary.opacity(0.68))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
